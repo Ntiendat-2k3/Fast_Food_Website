@@ -1,0 +1,288 @@
+[{
+  "_id": 2,
+  "name": "Burger nguyên bản",
+  "description": "bao gồm 1 miếng bò áp chảo cùng với 1 lớp phô mai phía trên, bao phủ bởi một lớp tương cà và mù tạt",
+  "price": 30000,
+  "image": "nguyên bản.jpg",
+  "category": "Burger",
+  "__v": 0
+},
+{
+  "_id": 3,
+  "name": "Burger gà",
+  "description": "bao gồm 2 miếng ức gà chiên, dưa muối cùng với bắp cải bào sợi, phủ trên cùng là một lớp dưa muối và mù tạt vàng",
+  "price": 30000,
+  "image": "2 miếng gà.jpg",
+  "category": "Burger",
+  "__v": 0
+},
+{
+  "_id": 4,
+  "name": "Burger Bò phô mai",
+  "description": "bao gồm hai miếng bò áp chảo, 1 lớp phô mai, ăn cùng rau sà lách và dưa chuột muối, trên cùng là một lớp mù tạt vàng và tương cà",
+  "price": 30000,
+  "image": "2 miếng bò.jpg",
+  "category": "Burger",
+  "__v": 0
+},
+{
+  "_id": 5,
+  "name": "Burger Bò và thịt heo xông khói",
+  "description": "bao gồm hai miếng bò áp chảo, hai lớp phô mai, hai lớp thịt heo xông khói áp chảo, ăn cùng hành tây xào và mù tạt vàng",
+  "price": 30000,
+  "image": "2 bò + thịt heo xông khói.png",
+  "category": "Burger",
+  "__v": 0
+},
+{
+  "_id": 6,
+  "name": "Burito nhân bò bằm ",
+  "description": "phần nhân bao gồm bò bằm, hành ớt và phô mai, kêt hợp cùng phần sốt tiêu đen himalaya",
+  "price": 30000,
+  "image": "nhân bò bằm.jpg",
+  "category": "Burito",
+  "__v": 0
+},
+{
+  "_id": 7,
+  "name": "Burito nhân bò ngô ",
+  "description": "phần nhân bao gồm bò bằm, ngô tách hạt,kết hợp cùng phần sốt BBQ đặc biệt kèm tương cà",
+  "price": 30000,
+  "image": "nhân bò ngô.jpg",
+  "category": "Burito",
+  "__v": 0
+},
+{
+  "_id": 8,
+  "name": "Burito nhân bò xào rau củ ",
+  "description": "phần nhân bao gồm bò thái hạt lựu xào cùng cà chua, hành tây và quả oliu, kết hợp cùng sốt phô mai đặc biệt",
+  "price": 30000,
+  "image": "nhân bò thái hạt lựu.jpg",
+  "category": "Burito",
+  "__v": 0
+},
+{
+  "_id": 9,
+  "name": "Burito nhân cơm thịt xào đậu đỏ ",
+  "description": "phần nhân bao gồm cơm rang thịt lợn bằm cùng rau rủ thái nhỏ, ăn cùng sốt phô mai đặc biệt",
+  "price": 30000,
+  "image": "nhân cơm xào đậu đỏ.jpg",
+  "category": "Burito",
+  "__v": 0
+},
+{
+  "_id": 10,
+  "name": "Burito nhân cơm thịt băm phô mai ",
+  "description": "phần nhân bao gồm thịt băm xào cùng cà chua kết hợp cùng sốt tiêu đen và một lớp phô mai phía trên cùng",
+  "price": 30000,
+  "image": "thịt băm phô mai.jpg",
+  "category": "Burito",
+  "__v": 0
+},
+{
+  "_id": 11,
+  "name": "Cánh gà chiên mắm ",
+  "description": "Phần giữa của cánh gà chiên giòn kết hợp cùng nước sốt mắm tỏi ớt chua cay",
+  "price": 30000,
+  "image": "cánh gà chiên mắm.jpg",
+  "category": "Chicken",
+  "__v": 0
+},
+{
+  "_id": 12,
+  "name": "Cánh gà chiên giòn ",
+  "description": "Cánh gà tẩm bột tỏi và bột chiên giòn với hương vị cổ điển",
+  "price": 30000,
+  "image": "cánh gà rán.jpg",
+  "category": "Chicken",
+  "__v": 0
+},
+{
+  "_id": 13,
+  "name": "Đùi gà lắc phô mai ",
+  "description": "Đùi gà chiên giòn lắc cùng phô mai cheetos ",
+  "price": 30000,
+  "image": "đùi gà lắc phô mai.jpg",
+  "category": "Chicken",
+  "__v": 0
+},
+{
+  "_id": 14,
+  "name": "Ức gà chiên",
+  "description": "Ức gà chiên giòn nguyên miếng ngon ngọt mọng nước ăn cùng nước sốt Branch",
+  "price": 30000,
+  "image": "ức gà chiên.jpg",
+  "category": "Chicken",
+  "__v": 0
+},
+{
+  "_id": 15,
+  "name": "Hotdog cơ bản không rau",
+  "description": "Một cây xúc xích kẹp bánh mì ăn cùng mù tạt vàng và gia vị đặc biệt ",
+  "price": 30000,
+  "image": "cơ bản không rau.jpg",
+  "category": "Hotdog",
+  "__v": 0
+},
+{
+  "_id": 16,
+  "name": "Hotdog đầy đủ full topping",
+  "description": "Một cây xúc xích kẹp bánh mì ăn kèm dưa chuột và ớt muối đi cùng với và chua và hành thái hạt lựu ",
+  "price": 30000,
+  "image": "đầy đủ full topping.jpg",
+  "category": "Hotdog",
+  "__v": 0
+},
+{
+  "_id": 17,
+  "name": "Hotdog dưa muối hành tây",
+  "description": "Một cây xúc xích kẹp bánh mì ăn kèm dưa chuột muối và hành tây xào ",
+  "price": 30000,
+  "image": "hot dog dưa muối + hành tây .jpg",
+  "category": "Hotdog",
+  "__v": 0
+},
+{
+  "_id": 18,
+  "name": "Hotdog dưa muối ",
+  "description": "Một cây xúc xích kẹp bánh mì ăn kèm dưa chuột muối, rau xà lách ăn cùng tương cà và mù tạt vàng ",
+  "price": 30000,
+  "image": "hotdog dưa muối.jpg",
+  "category": "Hotdog",
+  "__v": 0
+},
+{
+  "_id": 19,
+  "name": "Hotdog nguyên bản ",
+  "description": "Một cây xúc xích kẹp bánh mì cơ bản ",
+  "price": 30000,
+  "image": "hotdog nguyên bản.jpg",
+  "category": "Hotdog",
+  "__v": 0
+},
+{
+  "_id": 20,
+  "name": "Pasta cà chua oliu",
+  "description": "Nui xoăn xào cà chua và quả oliu kết hợp cùng sốt kem tiêu đặc biệt  ",
+  "price": 30000,
+  "image": "cà chua + oliu.jpg",
+  "category": "Pasta",
+  "__v": 0
+},
+{
+  "_id": 21,
+  "name": "Pasta cà chua phô mai",
+  "description": "Nui ống xào cà chua phô mai kết hợp cùng sốt kem đặc biệt  ",
+  "price": 30000,
+  "image": "cà chua phô mai.jpg",
+  "category": "Pasta",
+  "__v": 0
+},
+{
+  "_id": 22,
+  "name": "Mì Ý sốt kem",
+  "description": "Mì Ý sốt kem cà chua kết hợp cùng tiêu đen và lá hương thảo ",
+  "price": 30000,
+  "image": "mì ý sốt kem.jpg",
+  "category": "Pasta",
+  "__v": 0
+},
+{
+  "_id": 23,
+  "name": "Pasta sốt kem",
+  "description": "Pasta sợi dài kết hợp cùng sốt kem đặc biệt và lá hương thảo ",
+  "price": 30000,
+  "image": "pasta sốt kem.jpg",
+  "category": "Pasta",
+  "__v": 0
+},
+{
+  "_id": 24,
+  "name": "Nui sốt cay",
+  "description": "Nui xoăn kết hợp cùng sốt tiêu cay ",
+  "price": 30000,
+  "image": "sốt cay.jpg",
+  "category": "Pasta",
+  "__v": 0
+},
+{
+  "_id": 25,
+  "name": "Salad phô mai cà chua",
+  "description": "Phô mai hy lạp kết hợp cùng cà chua bi nhiệt đới trộn dầu oliu",
+  "price": 30000,
+  "image": "phô mai cà chua.jpg",
+  "category": "Salad",
+  "__v": 0
+},
+{
+  "_id": 26,
+  "name": "Salad bơ ",
+  "description": "Bao gồm bơ, cải thìa, cà chua, quả oliu ăn cùng bánh mì nướng giòn",
+  "price": 30000,
+  "image": "salad bơ.jpg",
+  "category": "Salad",
+  "__v": 0
+},
+{
+  "_id": 27,
+  "name": "Salad nhiệt đới ",
+  "description": "Bao gồm các loại rau củ nhiệt đới như cà chua, dưa chuột muối, rau xà lách trộn cùng dầu oliu",
+  "price": 30000,
+  "image": "salad nhiệt đới.jpg",
+  "category": "Salad",
+  "__v": 0
+},
+{
+  "_id": 28,
+  "name": "Salad rau trứng ",
+  "description": "Là sự kết hợp thanh đạm đến từ các loại rau củ như cà chua, bắp cải, rau xà lách và trứng luộc trộn cùng sốt mayo",
+  "price": 30000,
+  "image": "salad rau trứng.jpg",
+  "category": "Salad",
+  "__v": 0
+},
+{
+  "_id": 29,
+  "name": "Salad rau  ",
+  "description": "Bao gồm các loại rau tươi mái của mùa hè như cà chua, xà lach, bắp cải tím trộn cùng dầu oliu",
+  "price": 30000,
+  "image": "salad rau.jpg",
+  "category": "Salad",
+  "__v": 0
+},
+{
+  "_id": 30,
+  "name": "Sandwich nhân cá hồi ",
+  "description": "Sự kết hợp giữa cá hồi nướng trộn cùng sốt mayo béo ngậy hòa quyện, ăn cùng khoai tây chiên",
+  "price": 30000,
+  "image": "nhân cá hồi.jpg",
+  "category": "Sandwich",
+  "__v": 0
+},
+{
+  "_id": 31,
+  "name": "Sandwich nhân thịt nguội phô mai ",
+  "description": "Bao gồm thịt nguội thái lát kết hợp cùng phô mai keos sợi",
+  "price": 30000,
+  "image": "nhân thịt nguôi phô mai.jpg",
+  "category": "Sandwich",
+  "__v": 0
+},
+{
+  "_id": 32,
+  "name": "Bánh táo ",
+  "description": "Bánh táo làm theo công thức của Pháp cực ngon",
+  "price": 30000,
+  "image": "bánh táo.jpg",
+  "category": "Tart",
+  "__v": 0
+},
+{
+  "_id": 33,
+  "name": "Tart trứng phô mai ",
+  "description": "Bánh tart vị trứng phô mai là vị mới sản xuất của quán",
+  "price": 30000,
+  "image": "trứng phô mai.jpg",
+  "category": "Tart",
+  "__v": 0
+}]
