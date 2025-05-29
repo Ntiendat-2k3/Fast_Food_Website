@@ -15,6 +15,9 @@ import {
   Phone,
   Mail,
   Send,
+  Sparkles,
+  Zap,
+  Award,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { StoreContext } from "../../context/StoreContext"
@@ -24,7 +27,6 @@ const Home = () => {
   const [category, setCategory] = useState("All")
   const { food_list, url } = useContext(StoreContext)
   const [featuredItems, setFeaturedItems] = useState([])
-
 
   useEffect(() => {
     // Get 3 random items for featured section
@@ -61,17 +63,17 @@ const Home = () => {
     {
       title: "Giao hàng nhanh",
       description: "Chúng tôi giao đồ ăn trong vòng 30 phút trong khu vực của bạn.",
-      icon: <Truck className="h-8 w-8 text-white" />,
+      icon: <Truck className="h-8 w-8 text-slate-900" />,
     },
     {
       title: "Đặt hàng dễ dàng",
       description: "Đặt đồ ăn chỉ với vài cú nhấp chuột và thanh toán trực tuyến an toàn.",
-      icon: <ShoppingBag className="h-8 w-8 text-white" />,
+      icon: <ShoppingBag className="h-8 w-8 text-slate-900" />,
     },
     {
       title: "Phục vụ 24/7",
       description: "Dịch vụ khách hàng của chúng tôi hoạt động 24/7 để hỗ trợ bạn.",
-      icon: <Clock className="h-8 w-8 text-white" />,
+      icon: <Clock className="h-8 w-8 text-slate-900" />,
     },
   ]
 
@@ -100,11 +102,16 @@ const Home = () => {
   ]
 
   return (
-    <div className="">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80')] bg-cover bg-center opacity-20"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-400/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-yellow-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
 
+      {/* Hero Section */}
+      <section className="relative overflow-hidden pt-20">
         <div className="container mx-auto px-4 py-20 md:py-28 relative z-10">
           <div className="flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 mb-12 md:mb-0">
@@ -114,8 +121,16 @@ const Home = () => {
                 transition={{ duration: 0.7 }}
                 className="max-w-xl"
               >
+                <div className="flex items-center mb-4">
+                  <Sparkles className="text-yellow-400 mr-2" size={24} />
+                  <span className="text-yellow-400 font-medium">Chào mừng đến với GreenEats</span>
+                </div>
                 <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white leading-tight">
-                  Thưởng thức <span className="text-yellow-400">ẩm thực</span> tuyệt vời tại nhà
+                  Thưởng thức{" "}
+                  <span className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-400 bg-clip-text text-transparent">
+                    ẩm thực
+                  </span>{" "}
+                  tuyệt vời tại nhà
                 </h1>
                 <p className="text-gray-300 text-lg mb-8 leading-relaxed">
                   Đặt món ăn yêu thích của bạn chỉ với vài cú nhấp chuột. Chúng tôi giao hàng nhanh chóng và đảm bảo
@@ -124,13 +139,13 @@ const Home = () => {
                 <div className="flex flex-wrap gap-4">
                   <Link
                     to="/foods"
-                    className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium py-3 px-8 rounded-lg transition-all duration-300 flex items-center shadow-lg hover:shadow-yellow-400/20"
+                    className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 font-medium py-3 px-8 rounded-xl transition-all duration-300 flex items-center shadow-lg hover:shadow-yellow-400/25 hover:scale-105"
                   >
                     Đặt hàng ngay <ArrowRight size={18} className="ml-2" />
                   </Link>
                   <Link
                     to="/foods"
-                    className="bg-transparent hover:bg-white/10 border border-white/30 text-white font-medium py-3 px-8 rounded-lg transition-all duration-300"
+                    className="bg-slate-800/50 backdrop-blur-sm hover:bg-slate-700/50 border border-slate-600 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300"
                   >
                     Xem thực đơn
                   </Link>
@@ -149,14 +164,14 @@ const Home = () => {
                   alt="Delicious Burger"
                   className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                 />
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-xl">
+                <div className="absolute -bottom-6 -left-6 bg-slate-800/80 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700">
                   <div className="flex items-center">
                     <div className="bg-yellow-400 rounded-full p-2 mr-3">
-                      <Clock className="h-6 w-6 text-gray-900" />
+                      <Clock className="h-6 w-6 text-slate-900" />
                     </div>
                     <div>
-                      <p className="text-gray-900 font-bold">Giao hàng nhanh</p>
-                      <p className="text-gray-600 text-sm">30 phút hoặc miễn phí</p>
+                      <p className="text-white font-bold">Giao hàng nhanh</p>
+                      <p className="text-gray-300 text-sm">30 phút hoặc miễn phí</p>
                     </div>
                   </div>
                 </div>
@@ -166,12 +181,39 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Stats Section */}
+      <section className="py-16 relative">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { number: "10K+", label: "Khách hàng hài lòng", icon: <Heart className="h-6 w-6" /> },
+              { number: "500+", label: "Món ăn đa dạng", icon: <ShoppingBag className="h-6 w-6" /> },
+              { number: "50+", label: "Đối tác nhà hàng", icon: <Award className="h-6 w-6" /> },
+              { number: "24/7", label: "Phục vụ không ngừng", icon: <Zap className="h-6 w-6" /> },
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 text-center border border-slate-700 hover:border-yellow-400/50 transition-all duration-300"
+              >
+                <div className="text-yellow-400 mb-2 flex justify-center">{stat.icon}</div>
+                <div className="text-2xl font-bold text-white mb-1">{stat.number}</div>
+                <div className="text-gray-300 text-sm">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Categories Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-gray-700">Khám phá danh mục</h2>
-            <p className="text-gray-600 max-w-xl mx-auto">
+            <h2 className="text-3xl font-bold mb-4 text-white">Khám phá danh mục</h2>
+            <p className="text-gray-300 max-w-xl mx-auto">
               Tìm kiếm món ăn yêu thích của bạn từ nhiều danh mục khác nhau
             </p>
           </div>
@@ -179,8 +221,11 @@ const Home = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {categories.map((category, index) => (
               <Link to="/foods" key={index}>
-                <motion.div whileHover={{ y: -5 }} className="relative rounded-xl overflow-hidden shadow-md h-40 group">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20 z-10"></div>
+                <motion.div
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  className="relative rounded-xl overflow-hidden shadow-md h-40 group bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:border-yellow-400/50 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-800/50 to-transparent z-10"></div>
                   <img
                     src={category.image || "/placeholder.svg"}
                     alt={category.name}
@@ -188,6 +233,11 @@ const Home = () => {
                   />
                   <div className="absolute bottom-0 left-0 p-4 z-20">
                     <h3 className="text-white font-bold text-xl">{category.name}</h3>
+                  </div>
+                  <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-yellow-400 text-slate-900 p-1 rounded-full">
+                      <ArrowRight size={16} />
+                    </div>
                   </div>
                 </motion.div>
               </Link>
@@ -197,14 +247,19 @@ const Home = () => {
       </section>
 
       {/* Featured Menu Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-10">
             <h2 className="text-3xl font-bold">
-              <span className="text-gray-900">Thực đơn </span>
-              <span className="text-yellow-500">nổi bật</span>
+              <span className="text-white">Thực đơn </span>
+              <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                nổi bật
+              </span>
             </h2>
-            <Link to="/foods" className="text-gray-900 hover:text-yellow-500 flex items-center font-medium">
+            <Link
+              to="/foods"
+              className="text-yellow-400 hover:text-yellow-300 flex items-center font-medium transition-colors"
+            >
               Xem tất cả <ChevronRight size={18} className="ml-1" />
             </Link>
           </div>
@@ -217,32 +272,32 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow border border-gray-100"
+                className="bg-slate-800/50 backdrop-blur-sm rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-slate-700 hover:border-yellow-400/50 group"
               >
-                <div className="h-48 overflow-hidden relative group">
+                <div className="h-48 overflow-hidden relative">
                   <img
                     src={url + "/images/" + item.image || "/placeholder.svg"}
                     alt={item.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
-                  <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Heart className="h-5 w-5 text-red-500" />
+                  <div className="absolute top-3 right-3 bg-slate-800/80 backdrop-blur-sm rounded-full p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Heart className="h-5 w-5 text-yellow-400" />
                   </div>
                 </div>
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
-                    <div className="flex items-center bg-yellow-100 px-2 py-1 rounded-full">
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
-                      <span className="text-sm font-medium text-gray-900">4.8</span>
+                    <h3 className="text-xl font-bold text-white">{item.name}</h3>
+                    <div className="flex items-center bg-yellow-400/20 px-2 py-1 rounded-full">
+                      <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 mr-1" />
+                      <span className="text-sm font-medium text-yellow-400">4.8</span>
                     </div>
                   </div>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{item.description}</p>
+                  <p className="text-gray-300 mb-4 line-clamp-2">{item.description}</p>
                   <div className="flex justify-between items-center">
-                    <span className="text-xl font-bold text-yellow-500">{item.price.toLocaleString("vi-VN")} đ</span>
+                    <span className="text-xl font-bold text-yellow-400">{item.price.toLocaleString("vi-VN")} đ</span>
                     <Link
                       to={`/product/${slugify(item.name)}`}
-                      className="bg-gray-900 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                      className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 font-medium py-2 px-4 rounded-lg transition-all duration-300 text-sm hover:scale-105"
                     >
                       Đặt ngay
                     </Link>
@@ -255,11 +310,11 @@ const Home = () => {
       </section>
 
       {/* Special Offer Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-xl">
+          <div className="flex flex-col md:flex-row items-center bg-slate-800/50 backdrop-blur-sm rounded-2xl overflow-hidden shadow-xl border border-slate-700">
             <div className="md:w-1/2 p-8 md:p-12">
-              <span className="inline-block bg-yellow-400 text-gray-900 text-sm font-bold px-3 py-1 rounded-full mb-4">
+              <span className="inline-block bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 text-sm font-bold px-3 py-1 rounded-full mb-4">
                 Ưu đãi đặc biệt
               </span>
               <h2 className="text-3xl md:text-4xl font-bold mb-2 text-white">Combo burger đặc biệt</h2>
@@ -273,7 +328,7 @@ const Home = () => {
               </div>
               <Link
                 to="/foods"
-                className="inline-block bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium py-3 px-8 rounded-lg transition-colors shadow-lg"
+                className="inline-block bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 font-medium py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:scale-105"
               >
                 Đặt ngay
               </Link>
@@ -293,14 +348,16 @@ const Home = () => {
       </section>
 
       {/* Services Section */}
-      <section className="py-16 bg-gray-900 text-white">
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">
               <span className="text-white">Dịch vụ </span>
-              <span className="text-yellow-400">của chúng tôi</span>
+              <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                của chúng tôi
+              </span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <p className="text-gray-300 max-w-xl mx-auto">
               Chúng tôi cung cấp dịch vụ tốt nhất để đảm bảo thức ăn của bạn đến tươi ngon và đúng giờ.
             </p>
           </div>
@@ -313,13 +370,13 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-gray-800 rounded-xl p-8 shadow-lg hover:shadow-yellow-400/5 transition-all hover:-translate-y-1 border border-gray-700"
+                className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 shadow-lg hover:shadow-yellow-400/10 transition-all hover:-translate-y-1 border border-slate-700 hover:border-yellow-400/50 group"
               >
-                <div className="bg-yellow-400 rounded-xl w-16 h-16 flex items-center justify-center mb-6">
+                <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                   {service.icon}
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
-                <p className="text-gray-400">{service.description}</p>
+                <p className="text-gray-300">{service.description}</p>
               </motion.div>
             ))}
           </div>
@@ -327,14 +384,17 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 relative">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">
-              <span className="text-gray-900">Khách hàng</span>
-              <span className="text-yellow-500"> hài lòng</span>
+              <span className="text-white">Khách hàng</span>
+              <span className="bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+                {" "}
+                hài lòng
+              </span>
             </h2>
-            <p className="text-gray-600 max-w-xl mx-auto">
+            <p className="text-gray-300 max-w-xl mx-auto">
               Hãy xem khách hàng nói gì về trải nghiệm với dịch vụ giao đồ ăn của chúng tôi.
             </p>
           </div>
@@ -347,7 +407,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow border border-gray-100"
+                className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-yellow-400/50"
               >
                 <div className="flex items-center mb-4">
                   <img
@@ -356,11 +416,11 @@ const Home = () => {
                     className="w-14 h-14 rounded-full object-cover mr-4 border-2 border-yellow-400"
                   />
                   <div>
-                    <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
-                    <p className="text-gray-500 text-sm">{testimonial.role}</p>
+                    <h4 className="font-bold text-white">{testimonial.name}</h4>
+                    <p className="text-gray-300 text-sm">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="text-gray-600 italic mb-4">"{testimonial.comment}"</p>
+                <p className="text-gray-300 italic mb-4">"{testimonial.comment}"</p>
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="h-5 w-5 text-yellow-400 fill-yellow-400" />
@@ -373,49 +433,49 @@ const Home = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-16 bg-gray-100">
+      <section id="contact" className="py-16 relative">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-gray-700 text-center mb-12">Thông Tin Liên Hệ</h2>
+          <h2 className="text-3xl font-bold text-white text-center mb-12">Thông Tin Liên Hệ</h2>
 
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-8 h-8 text-yellow-500" />
+              <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-yellow-400/50 group">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-400/30 transition-colors">
+                  <MapPin className="w-8 h-8 text-yellow-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Địa Chỉ</h3>
-                <p className="text-gray-600">123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</p>
+                <h3 className="text-xl font-semibold mb-2 text-white">Địa Chỉ</h3>
+                <p className="text-gray-300">123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh</p>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-8 h-8 text-yellow-500" />
+              <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-yellow-400/50 group">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-400/30 transition-colors">
+                  <Phone className="w-8 h-8 text-yellow-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Điện Thoại</h3>
-                <p className="text-gray-600">+84 123 456 789</p>
+                <h3 className="text-xl font-semibold mb-2 text-white">Điện Thoại</h3>
+                <p className="text-gray-300">+84 123 456 789</p>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-yellow-500" />
+              <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-yellow-400/50 group">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-400/30 transition-colors">
+                  <Mail className="w-8 h-8 text-yellow-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Email</h3>
-                <p className="text-gray-600">info@greeneats.com</p>
+                <h3 className="text-xl font-semibold mb-2 text-white">Email</h3>
+                <p className="text-gray-300">info@greeneats.com</p>
               </div>
 
-              <div className="bg-white p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-shadow duration-300">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-8 h-8 text-yellow-500" />
+              <div className="bg-slate-800/50 backdrop-blur-sm p-6 rounded-lg shadow-md text-center hover:shadow-lg transition-all duration-300 border border-slate-700 hover:border-yellow-400/50 group">
+                <div className="w-16 h-16 bg-yellow-400/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-yellow-400/30 transition-colors">
+                  <Clock className="w-8 h-8 text-yellow-400" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Giờ Mở Cửa</h3>
-                <p className="text-gray-600">Thứ 2 - Chủ Nhật: 8:00 - 22:00</p>
+                <h3 className="text-xl font-semibold mb-2 text-white">Giờ Mở Cửa</h3>
+                <p className="text-gray-300">Thứ 2 - Chủ Nhật: 8:00 - 22:00</p>
               </div>
             </div>
 
             <div className="mt-12 text-center">
               <Link
                 to="/contact"
-                className="bg-yellow-500 text-white px-8 py-3 rounded-lg hover:bg-yellow-600 transition duration-300 inline-flex items-center"
+                className="bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 px-8 py-3 rounded-xl transition-all duration-300 inline-flex items-center hover:scale-105 shadow-lg"
               >
                 Chat Với Chúng Tôi
                 <Send className="ml-2 w-5 h-5" />

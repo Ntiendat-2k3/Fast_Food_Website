@@ -3,7 +3,8 @@
 import { useContext, useEffect, useState } from "react"
 import { StoreContext } from "../../context/StoreContext"
 import axios from "axios"
-import { Package, Clock, CheckCircle, CreditCard, Truck, Wallet, Landmark, Search } from "lucide-react"
+import { Package, Clock, CheckCircle, CreditCard, Truck, Wallet, Landmark, Search, Sparkles, Star } from "lucide-react"
+import { motion } from "framer-motion"
 
 const MyOrders = () => {
   const { url, token } = useContext(StoreContext)
@@ -49,14 +50,14 @@ const MyOrders = () => {
     switch (status) {
       case "Đang xử lý":
       case "Đang chuẩn bị đồ":
-        return <Clock size={18} className="text-yellow-500" />
+        return <Clock size={18} className="text-primary" />
       case "Đang giao hàng":
-        return <Truck size={18} className="text-blue-500" />
+        return <Truck size={18} className="text-blue-400" />
       case "Đã giao":
       case "Đã giao hàng":
-        return <CheckCircle size={18} className="text-green-500" />
+        return <CheckCircle size={18} className="text-green-400" />
       default:
-        return <Package size={18} className="text-gray-500" />
+        return <Package size={18} className="text-gray-400" />
     }
   }
 
@@ -64,44 +65,44 @@ const MyOrders = () => {
     switch (status) {
       case "Đang xử lý":
       case "Đang chuẩn bị đồ":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+        return "bg-primary/20 text-primary border border-primary/30"
       case "Đang giao hàng":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+        return "bg-blue-500/20 text-blue-400 border border-blue-500/30"
       case "Đã giao":
       case "Đã giao hàng":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        return "bg-green-500/20 text-green-400 border border-green-500/30"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+        return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
     }
   }
 
   const getPaymentMethodIcon = (method) => {
     switch (method) {
       case "COD":
-        return <Truck size={16} className="text-gray-600 dark:text-gray-300" />
+        return <Truck size={16} className="text-gray-300" />
       case "VNPay":
-        return <CreditCard size={16} className="text-blue-500" />
+        return <CreditCard size={16} className="text-blue-400" />
       case "MoMo":
-        return <Wallet size={16} className="text-pink-500" />
+        return <Wallet size={16} className="text-pink-400" />
       case "BankTransfer":
-        return <Landmark size={16} className="text-green-500" />
+        return <Landmark size={16} className="text-green-400" />
       default:
-        return <CreditCard size={16} className="text-gray-500" />
+        return <CreditCard size={16} className="text-gray-400" />
     }
   }
 
   const getPaymentStatusColor = (status) => {
     switch (status) {
       case "Đã thanh toán":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        return "bg-green-500/20 text-green-400 border border-green-500/30"
       case "Đang xử lý":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+        return "bg-primary/20 text-primary border border-primary/30"
       case "Thanh toán thất bại":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+        return "bg-red-500/20 text-red-400 border border-red-500/30"
       case "Chưa thanh toán":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+        return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+        return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
     }
   }
 
@@ -127,150 +128,183 @@ const MyOrders = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-dark-lighter rounded-xl shadow-lg overflow-hidden my-20 mx-4 md:mx-auto max-w-6xl transition-colors duration-300">
-      <div className="p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold text-dark dark:text-white mb-4 md:mb-0">Đơn hàng của tôi</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 pt-20 pb-16">
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
 
-          {/* Search Bar */}
-          {data.length > 0 && (
-            <div className="relative w-full md:w-64">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-700"
+        >
+          <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-slate-800/80 to-slate-700/80">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div className="flex items-center mb-4 md:mb-0">
+                <Sparkles className="text-primary mr-3" size={24} />
+                <h1 className="text-2xl font-bold text-white">Đơn hàng của tôi</h1>
               </div>
-              <input
-                type="text"
-                placeholder="Tìm kiếm đơn hàng..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark py-2 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          )}
-        </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-gray-500 dark:text-gray-400">Đang tải đơn hàng...</p>
-          </div>
-        ) : data.length === 0 ? (
-          <div className="text-center py-12">
-            <Package size={64} className="mx-auto text-gray-500 dark:text-gray-400 mb-4" />
-            <h2 className="text-xl text-gray-500 dark:text-gray-400 mb-2">Bạn chưa có đơn hàng nào</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">Hãy đặt món ăn đầu tiên của bạn ngay bây giờ</p>
-            <button
-              onClick={() => (window.location.href = "/foods")}
-              className="bg-primary hover:bg-primary-light text-dark py-2 px-6 rounded-lg transition-colors"
-            >
-              Xem thực đơn
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredOrders.map((order, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-dark-light rounded-lg border border-gray-200 dark:border-dark-lighter overflow-hidden"
-              >
-                {/* Order Header */}
-                <div className="bg-gray-50 dark:bg-dark p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 dark:border-dark-lighter">
-                  <div className="flex items-center mb-2 sm:mb-0">
-                    <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center mr-3">
-                      <Package size={16} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-dark dark:text-white font-medium text-sm">#{order._id.slice(-6)}</p>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">{formatDate(order.date)}</p>
-                    </div>
+              {/* Search Bar */}
+              {data.length > 0 && (
+                <div className="relative w-full md:w-64">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
                   </div>
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(order.status)}`}
-                    >
-                      {getStatusIcon(order.status)}
-                      <span className="ml-1">{order.status || "Đang xử lý"}</span>
-                    </span>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}
-                    >
-                      {order.paymentStatus || "Chưa thanh toán"}
-                    </span>
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm đơn hàng..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 block w-full rounded-xl border border-slate-600 bg-slate-700/50 py-2 px-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
                 </div>
+              )}
+            </div>
+          </div>
 
-                {/* Order Content */}
-                <div className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Order Items */}
-                    <div className="md:col-span-2">
-                      <h3 className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-2 font-medium">Sản phẩm</h3>
-                      <div className="space-y-2 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 bg-gray-100 dark:bg-dark rounded overflow-hidden mr-2 flex-shrink-0">
-                                <img
-                                  src={url + "/images/" + item.image || "/placeholder.svg"}
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <span className="text-dark dark:text-white truncate max-w-[120px] sm:max-w-[150px]">
-                                {item.name} <span className="text-gray-500 dark:text-gray-400">x{item.quantity}</span>
-                              </span>
-                            </div>
-                            <span className="text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                              {(item.price * item.quantity).toLocaleString("vi-VN")} đ
-                            </span>
-                          </div>
-                        ))}
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-gray-400">Đang tải đơn hàng...</p>
+              </div>
+            ) : data.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="text-center py-12"
+              >
+                <div className="bg-slate-700/50 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+                  <Package size={48} className="text-gray-400" />
+                </div>
+                <h2 className="text-xl text-gray-300 mb-2">Bạn chưa có đơn hàng nào</h2>
+                <p className="text-gray-400 mb-6">Hãy đặt món ăn đầu tiên của bạn ngay bây giờ</p>
+                <button
+                  onClick={() => (window.location.href = "/foods")}
+                  className="bg-gradient-to-r from-primary to-primary-dark text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 font-medium hover:scale-105"
+                >
+                  Xem thực đơn
+                </button>
+              </motion.div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map((order, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="bg-slate-700/30 backdrop-blur-sm rounded-xl border border-slate-600 overflow-hidden hover:border-primary/50 transition-all duration-300"
+                  >
+                    {/* Order Header */}
+                    <div className="bg-slate-800/50 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-600">
+                      <div className="flex items-center mb-2 sm:mb-0">
+                        <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center mr-3">
+                          <Package size={18} className="text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium text-sm">#{order._id.slice(-6)}</p>
+                          <p className="text-gray-400 text-xs">{formatDate(order.date)}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(order.status)}`}
+                        >
+                          {getStatusIcon(order.status)}
+                          <span className="ml-1">{order.status || "Đang xử lý"}</span>
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus)}`}
+                        >
+                          {order.paymentStatus || "Chưa thanh toán"}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Order Info */}
-                    <div className="border-t md:border-t-0 md:border-l border-gray-200 dark:border-dark-lighter pt-4 md:pt-0 md:pl-4">
-                      <h3 className="text-xs uppercase text-gray-500 dark:text-gray-400 mb-2 font-medium">Thông tin</h3>
-                      <div className="space-y-1 text-sm">
-                        <p className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Người nhận:</span>
-                          <span className="text-dark dark:text-white font-medium">{order.address.name}</span>
-                        </p>
-                        <p className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">SĐT:</span>
-                          <span className="text-dark dark:text-white">{order.address.phone}</span>
-                        </p>
-                        <p className="flex flex-col">
-                          <span className="text-gray-500 dark:text-gray-400">Địa chỉ:</span>
-                          <span className="text-dark dark:text-white text-right text-xs mt-1 break-words">
-                            {order.address.street}
-                          </span>
-                        </p>
-                        <div className="flex items-center justify-between pt-1">
-                          <div className="flex items-center">
-                            {getPaymentMethodIcon(order.paymentMethod)}
-                            <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                              {order.paymentMethod === "COD"
-                                ? "COD"
-                                : order.paymentMethod === "VNPay"
-                                  ? "VNPay"
-                                  : order.paymentMethod === "MoMo"
-                                    ? "MoMo"
-                                    : "Bank"}
-                            </span>
+                    {/* Order Content */}
+                    <div className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Order Items */}
+                        <div className="md:col-span-2">
+                          <h3 className="text-xs uppercase text-gray-400 mb-3 font-medium flex items-center">
+                            <Star className="mr-1" size={12} />
+                            Sản phẩm
+                          </h3>
+                          <div className="space-y-3 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
+                            {order.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between text-sm">
+                                <div className="flex items-center">
+                                  <div className="w-10 h-10 bg-slate-600/50 rounded-lg overflow-hidden mr-3 flex-shrink-0">
+                                    <img
+                                      src={url + "/images/" + item.image || "/placeholder.svg"}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <span className="text-white truncate max-w-[120px] sm:max-w-[150px]">
+                                    {item.name} <span className="text-gray-400">x{item.quantity}</span>
+                                  </span>
+                                </div>
+                                <span className="text-primary font-medium whitespace-nowrap">
+                                  {(item.price * item.quantity).toLocaleString("vi-VN")} đ
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                          <span className="text-lg font-bold text-primary">
-                            {order.amount.toLocaleString("vi-VN")} đ
-                          </span>
+                        </div>
+
+                        {/* Order Info */}
+                        <div className="border-t md:border-t-0 md:border-l border-slate-600 pt-4 md:pt-0 md:pl-4">
+                          <h3 className="text-xs uppercase text-gray-400 mb-3 font-medium">Thông tin</h3>
+                          <div className="space-y-2 text-sm">
+                            <p className="flex justify-between">
+                              <span className="text-gray-400">Người nhận:</span>
+                              <span className="text-white font-medium">{order.address.name}</span>
+                            </p>
+                            <p className="flex justify-between">
+                              <span className="text-gray-400">SĐT:</span>
+                              <span className="text-white">{order.address.phone}</span>
+                            </p>
+                            <p className="flex flex-col">
+                              <span className="text-gray-400">Địa chỉ:</span>
+                              <span className="text-white text-right text-xs mt-1 break-words">
+                                {order.address.street}
+                              </span>
+                            </p>
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-600">
+                              <div className="flex items-center">
+                                {getPaymentMethodIcon(order.paymentMethod)}
+                                <span className="ml-2 text-xs text-gray-400">
+                                  {order.paymentMethod === "COD"
+                                    ? "COD"
+                                    : order.paymentMethod === "VNPay"
+                                      ? "VNPay"
+                                      : order.paymentMethod === "MoMo"
+                                        ? "MoMo"
+                                        : "Bank"}
+                                </span>
+                              </div>
+                              <span className="text-lg font-bold text-primary">
+                                {order.amount.toLocaleString("vi-VN")} đ
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </motion.div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </motion.div>
       </div>
     </div>
   )
