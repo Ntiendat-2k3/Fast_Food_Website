@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { useContext } from "react"
 import {
@@ -27,6 +27,8 @@ const Home = () => {
   const [category, setCategory] = useState("All")
   const { food_list, url } = useContext(StoreContext)
   const [featuredItems, setFeaturedItems] = useState([])
+  const [scrollY, setScrollY] = useState(0)
+  const heroRef = useRef(null)
 
   useEffect(() => {
     // Get 3 random items for featured section
@@ -35,6 +37,24 @@ const Home = () => {
       setFeaturedItems(shuffled.slice(0, 3))
     }
   }, [food_list])
+
+  useEffect(() => {
+    // Parallax scroll effect
+    const handleScroll = () => {
+      // Check for reduced motion preference
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      if (prefersReducedMotion) return
+
+      setScrollY(window.scrollY)
+    }
+
+    const throttledHandleScroll = () => {
+      requestAnimationFrame(handleScroll)
+    }
+
+    window.addEventListener("scroll", throttledHandleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", throttledHandleScroll)
+  }, [])
 
   // Testimonials data
   const testimonials = [
@@ -101,6 +121,50 @@ const Home = () => {
     },
   ]
 
+  // Background food images for parallax
+  const backgroundImages = [
+    {
+      src: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.5,
+      position: { row: 1, col: 1 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1513104890138-7c749659a591?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.3,
+      position: { row: 1, col: 2 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1202&q=80",
+      speed: 0.7,
+      position: { row: 1, col: 3 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1603064752734-4c48eff53d05?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.4,
+      position: { row: 1, col: 4 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1484723091739-30a097e8f929?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.6,
+      position: { row: 2, col: 1 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.8,
+      position: { row: 2, col: 2 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.2,
+      position: { row: 2, col: 3 },
+    },
+    {
+      src: "https://images.unsplash.com/photo-1606787366850-de6330128bfc?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+      speed: 0.9,
+      position: { row: 2, col: 4 },
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
       {/* Animated Background Elements */}
@@ -111,9 +175,64 @@ const Home = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20">
-        <div className="container mx-auto px-4 py-20 md:py-28 relative z-10">
-          <div className="flex flex-col md:flex-row items-center">
+      <section ref={heroRef} className="relative overflow-hidden pt-20 min-h-screen">
+        {/* Parallax Food Background */}
+        <div className="absolute inset-0 z-0">
+          {/* Main gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/85 via-slate-900/80 to-slate-900/95 z-10"></div>
+
+          {/* Secondary blur overlay */}
+          <div className="absolute inset-0 z-[5]"></div>
+
+          {/* Parallax Background Grid */}
+          <div className="absolute inset-0 z-0">
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-4 h-full">
+              {backgroundImages.map((image, index) => (
+                <div
+                  key={index}
+                  className={`relative overflow-hidden ${image.position.col === 4 ? "hidden md:block" : ""}`}
+                  style={{
+                    transform: `translateY(${scrollY * image.speed}px)`,
+                    transition: "transform 0.1s ease-out",
+                  }}
+                >
+                  <img
+                    src={image.src || "/placeholder.svg"}
+                    alt=""
+                    className="w-full h-80 object-cover opacity-40 scale-110"
+                    loading="lazy"
+                  />
+                  {/* Individual image overlay for depth */}
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"
+                    style={{
+                      transform: `translateY(${scrollY * (image.speed * 0.5)}px)`,
+                    }}
+                  ></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Floating particles effect */}
+          <div className="absolute inset-0 z-[8]">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 bg-yellow-400/20 rounded-full animate-pulse"
+                style={{
+                  left: `${20 + i * 15}%`,
+                  top: `${30 + i * 10}%`,
+                  transform: `translateY(${scrollY * (0.1 + i * 0.05)}px)`,
+                  animationDelay: `${i * 0.5}s`,
+                }}
+              ></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-20 md:py-28 relative z-20">
+          <div className="flex flex-col md:flex-row items-center min-h-[70vh]">
             <div className="md:w-1/2 mb-12 md:mb-0">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -158,13 +277,21 @@ const Home = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="relative"
+                style={{
+                  transform: `translateY(${scrollY * -0.1}px)`,
+                }}
               >
                 <img
                   src="https://img.freepik.com/free-photo/delicious-burger-with-many-ingredients-isolated-white-background-tasty-cheeseburger-splash-sauce_90220-1266.jpg"
                   alt="Delicious Burger"
                   className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                 />
-                <div className="absolute -bottom-6 -left-6 bg-slate-800/80 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700">
+                <div
+                  className="absolute -bottom-6 -left-6 bg-slate-800/80 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-700"
+                  style={{
+                    transform: `translateY(${scrollY * -0.05}px)`,
+                  }}
+                >
                   <div className="flex items-center">
                     <div className="bg-yellow-400 rounded-full p-2 mr-3">
                       <Clock className="h-6 w-6 text-slate-900" />
@@ -176,6 +303,15 @@ const Home = () => {
                   </div>
                 </div>
               </motion.div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="animate-bounce">
+            <div className="w-6 h-10 border-2 border-yellow-400/50 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-yellow-400 rounded-full mt-2 animate-pulse"></div>
             </div>
           </div>
         </div>
