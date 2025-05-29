@@ -6,6 +6,7 @@ import { StoreContext } from "../context/StoreContext"
 import { useTheme } from "../context/ThemeContext"
 import { ShoppingCart, User, LogOut, Package, Menu, X, Sun, Moon, Bell, Heart } from "lucide-react"
 import axios from "axios"
+import { motion, AnimatePresence } from "framer-motion"
 
 const Navbar = ({ setShowLogin }) => {
   const { getTotalCartAmount, token, setToken, cartItems, url, user, setUser } = useContext(StoreContext)
@@ -142,15 +143,15 @@ const Navbar = ({ setShowLogin }) => {
   const getNotificationTypeStyle = (type) => {
     switch (type) {
       case "info":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+        return "bg-blue-500/20 text-blue-300 border border-blue-500/30"
       case "warning":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+        return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
       case "success":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        return "bg-green-500/20 text-green-300 border border-green-500/30"
       case "error":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+        return "bg-red-500/20 text-red-300 border border-red-500/30"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+        return "bg-gray-500/20 text-gray-300 border border-gray-500/30"
     }
   }
 
@@ -166,17 +167,59 @@ const Navbar = ({ setShowLogin }) => {
     })
   }
 
+  // Navigation items
+  const navItems = [
+    { path: "/", label: "Trang chủ" },
+    { path: "/foods", label: "Thực đơn" },
+    { path: "/myorders", label: "Đơn hàng" },
+    { path: "/contact", label: "Liên hệ" },
+  ]
+
+  // Mobile menu animation variants
+  const mobileMenuVariants = {
+    closed: {
+      opacity: 0,
+      height: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut",
+      },
+    },
+    open: {
+      opacity: 1,
+      height: "auto",
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut",
+      },
+    },
+  }
+
+  const menuItemVariants = {
+    closed: { x: -20, opacity: 0 },
+    open: (i) => ({
+      x: 0,
+      opacity: 1,
+      transition: {
+        delay: i * 0.1,
+        duration: 0.3,
+      },
+    }),
+  }
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-dark-light shadow-md py-2" : "bg-dark/80 py-4"
+        scrolled
+          ? "bg-slate-900/95 backdrop-blur-xl shadow-lg border-b border-slate-700"
+          : "bg-slate-900/80 backdrop-blur-md"
       }`}
     >
-      <div className="container mx-auto px-4 md:px-8">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <div className="bg-primary p-2 rounded-lg mr-2">
+          <Link to="/" className="flex items-center space-x-2 group">
+            <div className="bg-gradient-to-r from-primary to-primary-dark p-2 rounded-xl group-hover:scale-110 transition-transform duration-300">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -187,56 +230,37 @@ const Navbar = ({ setShowLogin }) => {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-dark"
+                className="text-slate-900"
               >
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-white">GreenEats</span>
+            <span className="text-xl lg:text-2xl font-bold text-white group-hover:text-primary transition-colors">
+              GreenEats
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              to="/"
-              className={`font-medium transition-colors ${
-                location.pathname === "/" ? "text-primary" : "text-white hover:text-primary"
-              }`}
-            >
-              Trang chủ
-            </Link>
-            <Link
-              to="/foods"
-              className={`font-medium transition-colors ${
-                location.pathname === "/foods" ? "text-primary" : "text-white hover:text-primary"
-              }`}
-            >
-              Thực đơn
-            </Link>
-            <Link
-              to="/myorders"
-              className={`font-medium transition-colors ${
-                location.pathname === "/myorders" ? "text-primary" : "text-white hover:text-primary"
-              }`}
-            >
-              Đơn hàng
-            </Link>
-            <Link
-              to="/contact"
-              className={`font-medium transition-colors ${
-                location.pathname === "/contact" ? "text-primary" : "text-white hover:text-primary"
-              }`}
-            >
-              Liên hệ
-            </Link>
+          <nav className="hidden lg:flex items-center space-x-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`font-medium transition-all duration-300 px-3 py-2 rounded-lg hover:bg-slate-800/50 ${
+                  location.pathname === item.path ? "text-primary bg-slate-800/30" : "text-white hover:text-primary"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Right Side Icons */}
-          <div className="flex items-center space-x-4">
-            {/* User Greeting - Show when logged in */}
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* User Greeting - Show when logged in on desktop */}
             {token && user && (
-              <div className="hidden md:flex items-center mr-2">
-                <span className="text-white font-medium">
+              <div className="hidden xl:flex items-center mr-2">
+                <span className="text-white font-medium text-sm">
                   Hi, <span className="text-primary">{user.name}</span>
                 </span>
               </div>
@@ -245,10 +269,10 @@ const Navbar = ({ setShowLogin }) => {
             {/* Theme Toggle */}
             <button
               onClick={toggleDarkMode}
-              className="p-2 text-white hover:text-primary transition-colors"
+              className="p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label={darkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}
             >
-              {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             {/* Notifications */}
@@ -256,142 +280,168 @@ const Navbar = ({ setShowLogin }) => {
               <div className="notifications-dropdown relative">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative p-2 text-white hover:text-primary transition-colors"
+                  className="relative p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-expanded={notificationsOpen}
                   aria-haspopup="true"
                 >
-                  <Bell size={24} />
+                  <Bell size={20} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadCount}
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
-                {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-dark-light rounded-xl shadow-custom py-2 z-10 max-h-96 overflow-y-auto">
-                    <div className="px-4 py-2 border-b border-gray-700">
-                      <h3 className="font-medium text-white">Thông báo</h3>
-                    </div>
-                    {notifications.length > 0 ? (
-                      <div>
-                        {notifications.map((notification) => (
-                          <div
-                            key={notification._id}
-                            className={`px-4 py-3 border-b border-gray-700 hover:bg-dark cursor-pointer ${
-                              !notification.read ? "bg-blue-900/10" : ""
-                            }`}
-                            onClick={() => markAsRead(notification._id)}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className={`font-medium ${!notification.read ? "text-primary" : "text-white"}`}>
-                                {notification.title}
-                              </h4>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeStyle(notification.type)}`}
-                              >
-                                {notification.type === "info" && "Thông tin"}
-                                {notification.type === "warning" && "Cảnh báo"}
-                                {notification.type === "success" && "Thành công"}
-                                {notification.type === "error" && "Lỗi"}
-                              </span>
+                <AnimatePresence>
+                  {notificationsOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700 py-2 z-10 max-h-96 overflow-y-auto"
+                    >
+                      <div className="px-4 py-3 border-b border-slate-700">
+                        <h3 className="font-medium text-white">Thông báo</h3>
+                      </div>
+                      {notifications.length > 0 ? (
+                        <div>
+                          {notifications.map((notification) => (
+                            <div
+                              key={notification._id}
+                              className={`px-4 py-3 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer transition-colors ${
+                                !notification.read ? "bg-blue-500/10" : ""
+                              }`}
+                              onClick={() => markAsRead(notification._id)}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <h4 className={`font-medium ${!notification.read ? "text-primary" : "text-white"}`}>
+                                  {notification.title}
+                                </h4>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeStyle(notification.type)}`}
+                                >
+                                  {notification.type === "info" && "Thông tin"}
+                                  {notification.type === "warning" && "Cảnh báo"}
+                                  {notification.type === "success" && "Thành công"}
+                                  {notification.type === "error" && "Lỗi"}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-300 mb-1">{notification.message}</p>
+                              <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
                             </div>
-                            <p className="text-sm text-gray-300 mb-1">{notification.message}</p>
-                            <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="px-4 py-6 text-center text-gray-400">
-                        <Bell size={24} className="mx-auto mb-2 opacity-50" />
-                        <p>Không có thông báo nào</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="px-4 py-6 text-center text-gray-400">
+                          <Bell size={24} className="mx-auto mb-2 opacity-50" />
+                          <p>Không có thông báo nào</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
             {/* Wishlist */}
             {token && (
-              <Link to="/wishlist" className="relative p-2 text-white hover:text-primary transition-colors">
-                <Heart size={24} />
+              <Link
+                to="/wishlist"
+                className="relative p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                <Heart size={20} />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {wishlistCount}
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
                 )}
               </Link>
             )}
 
-            <Link to="/cart" className="relative p-2 text-white hover:text-primary transition-colors">
-              <ShoppingCart size={24} />
+            {/* Cart */}
+            <Link
+              to="/cart"
+              className="relative p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <ShoppingCart size={20} />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {totalItems}
+                <span className="absolute -top-1 -right-1 bg-primary text-slate-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {totalItems > 9 ? "9+" : totalItems}
                 </span>
               )}
             </Link>
 
+            {/* Auth Section */}
             {!token ? (
               <button
                 onClick={() => setShowLogin(true)}
-                className="bg-primary hover:bg-primary-dark text-dark font-medium py-2 px-4 rounded-full transition-colors"
+                className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 font-medium py-2 px-4 lg:py-3 lg:px-6 rounded-xl transition-all duration-300 hover:scale-105 min-h-[44px]"
               >
-                Đăng nhập
+                <span className="hidden sm:inline">Đăng nhập</span>
+                <span className="sm:hidden">Login</span>
               </button>
             ) : (
               <div className="user-dropdown relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="p-2 text-white hover:text-primary transition-colors"
+                  className="p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-expanded={dropdownOpen}
                   aria-haspopup="true"
                 >
-                  <User size={24} />
+                  <User size={20} />
                 </button>
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-dark-light rounded-xl shadow-custom py-2 z-10">
-                    {/* User name in dropdown */}
-                    <div className="px-4 py-2 border-b border-gray-700">
-                      <p className="font-medium text-white">
-                        Hi, <span className="text-primary">{user?.name}</span>
-                      </p>
-                    </div>
-                    <Link
-                      to="/wishlist"
-                      className="block px-4 py-2 text-sm text-white hover:bg-dark hover:text-primary flex items-center"
-                      onClick={() => setDropdownOpen(false)}
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700 py-2 z-10"
                     >
-                      <Heart size={16} className="mr-2" />
-                      Danh sách yêu thích
-                    </Link>
-                    <Link
-                      to="/myorders"
-                      className="block px-4 py-2 text-sm text-white hover:bg-dark hover:text-primary flex items-center"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <Package size={16} className="mr-2" />
-                      Đơn hàng của tôi
-                    </Link>
-                    <button
-                      onClick={() => {
-                        logout()
-                        setDropdownOpen(false)
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-dark hover:text-primary flex items-center"
-                    >
-                      <LogOut size={16} className="mr-2" />
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
+                      {/* User name in dropdown */}
+                      <div className="px-4 py-3 border-b border-slate-700">
+                        <p className="font-medium text-white text-sm">
+                          Hi, <span className="text-primary">{user?.name}</span>
+                        </p>
+                      </div>
+                      <Link
+                        to="/wishlist"
+                        className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Heart size={16} className="mr-3" />
+                        Danh sách yêu thích
+                      </Link>
+                      <Link
+                        to="/myorders"
+                        className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <Package size={16} className="mr-3" />
+                        Đơn hàng của tôi
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout()
+                          setDropdownOpen(false)
+                        }}
+                        className="block w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                      >
+                        <LogOut size={16} className="mr-3" />
+                        Đăng xuất
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-white hover:text-primary transition-colors"
+              className="lg:hidden p-2 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Toggle mobile menu"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -399,83 +449,72 @@ const Navbar = ({ setShowLogin }) => {
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 bg-dark-light rounded-xl shadow-custom p-4 max-h-[calc(100vh-80px)] overflow-y-auto">
-            {/* User greeting in mobile menu */}
-            {token && user && (
-              <div className="py-2 px-4 mb-2 border-b border-gray-700">
-                <p className="font-medium text-white">
-                  Hi, <span className="text-primary">{user.name}</span>
-                </p>
-              </div>
-            )}
-            <nav className="flex flex-col space-y-4">
-              <Link
-                to="/"
-                className={`font-medium transition-colors py-2 px-4 rounded-lg ${
-                  location.pathname === "/"
-                    ? "text-primary bg-dark-lighter"
-                    : "text-white hover:text-primary hover:bg-dark-lighter"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Trang chủ
-              </Link>
-              <Link
-                to="/foods"
-                className={`font-medium transition-colors py-2 px-4 rounded-lg ${
-                  location.pathname === "/foods"
-                    ? "text-primary bg-dark-lighter"
-                    : "text-white hover:text-primary hover:bg-dark-lighter"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Thực đơn
-              </Link>
-              {token && (
-                <Link
-                  to="/wishlist"
-                  className={`font-medium transition-colors py-2 px-4 rounded-lg flex items-center ${
-                    location.pathname === "/wishlist"
-                      ? "text-primary bg-dark-lighter"
-                      : "text-white hover:text-primary hover:bg-dark-lighter"
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Heart size={16} className="mr-2" />
-                  Yêu thích
-                  {wishlistCount > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {wishlistCount}
-                    </span>
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={mobileMenuVariants}
+              className="lg:hidden overflow-hidden"
+            >
+              <div className="bg-slate-800/50 backdrop-blur-xl rounded-xl shadow-xl border border-slate-700 p-4 mt-4 mb-4">
+                {/* User greeting in mobile menu */}
+                {token && user && (
+                  <motion.div
+                    variants={menuItemVariants}
+                    custom={0}
+                    className="py-3 px-4 mb-3 border-b border-slate-700"
+                  >
+                    <p className="font-medium text-white">
+                      Hi, <span className="text-primary">{user.name}</span>
+                    </p>
+                  </motion.div>
+                )}
+                <nav className="flex flex-col space-y-2">
+                  {navItems.map((item, index) => (
+                    <motion.div key={item.path} variants={menuItemVariants} custom={index + 1}>
+                      <Link
+                        to={item.path}
+                        className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] ${
+                          location.pathname === item.path
+                            ? "text-primary bg-slate-700/50"
+                            : "text-white hover:text-primary hover:bg-slate-700/30"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    </motion.div>
+                  ))}
+                  {token && (
+                    <motion.div variants={menuItemVariants} custom={navItems.length + 1}>
+                      <Link
+                        to="/wishlist"
+                        className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center justify-between min-h-[48px] ${
+                          location.pathname === "/wishlist"
+                            ? "text-primary bg-slate-700/50"
+                            : "text-white hover:text-primary hover:bg-slate-700/30"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <div className="flex items-center">
+                          <Heart size={16} className="mr-3" />
+                          Yêu thích
+                        </div>
+                        {wishlistCount > 0 && (
+                          <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                            {wishlistCount > 9 ? "9+" : wishlistCount}
+                          </span>
+                        )}
+                      </Link>
+                    </motion.div>
                   )}
-                </Link>
-              )}
-              <Link
-                to="/myorders"
-                className={`font-medium transition-colors py-2 px-4 rounded-lg ${
-                  location.pathname === "/myorders"
-                    ? "text-primary bg-dark-lighter"
-                    : "text-white hover:text-primary hover:bg-dark-lighter"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Đơn hàng
-              </Link>
-              <Link
-                to="/contact"
-                className={`font-medium transition-colors py-2 px-4 rounded-lg ${
-                  location.pathname === "/contact"
-                    ? "text-primary bg-dark-lighter"
-                    : "text-white hover:text-primary hover:bg-dark-lighter"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Liên hệ
-              </Link>
-            </nav>
-          </div>
-        )}
+                </nav>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   )
