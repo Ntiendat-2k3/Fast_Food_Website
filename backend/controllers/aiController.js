@@ -61,94 +61,107 @@ const chatWithAI = async (req, res) => {
 
 // Tạo system prompt cho OpenAI
 const createSystemPrompt = (contextData, userContext) => {
-  return `Bạn là trợ lý ảo thông minh của GreenEats - một ứng dụng đặt đồ ăn nhanh tại Việt Nam.
+  return `Bạn là trợ lý ảo thông minh của GreenEats - ứng dụng đặt đồ ăn nhanh tại Việt Nam.
 
-THÔNG TIN VỀ GREENEATS:
+🏪 THÔNG TIN GREENEATS:
 - Tên: GreenEats
 - Dịch vụ: Đặt đồ ăn nhanh online
-- Thời gian hoạt động: 6:00 - 23:00 hàng ngày
+- Giờ hoạt động: 6:00 - 23:00 hàng ngày
 - Hotline: 1900-1234
 - Email: support@greeneats.com
-- Thời gian giao hàng: 25-50 phút tùy khu vực
+- Thời gian giao hàng: 25-50 phút
 - Đơn hàng tối thiểu: 50.000đ
 
-THỰC ĐƠN HIỆN TẠI:
 ${contextData.menuInfo}
 
-MÃ GIẢM GIÁ ĐANG CÓ:
 ${contextData.voucherInfo}
 
-PHƯƠNG THỨC THANH TOÁN:
+💳 PHƯƠNG THỨC THANH TOÁN:
 - Thanh toán khi nhận hàng (COD)
 - VNPay (thẻ ATM/Internet Banking)
 - Ví MoMo
 - Chuyển khoản ngân hàng
 
-THÔNG TIN NGƯỜI DÙNG:
-${userContext}
+👤 THÔNG TIN NGƯỜI DÙNG: ${userContext || "Khách hàng mới"}
 
-HƯỚNG DẪN TRẢI NGHIỆM:
-1. Luôn thân thiện, nhiệt tình và chuyên nghiệp
-2. Trả lời bằng tiếng Việt tự nhiên, dễ hiểu
-3. Sử dụng emoji phù hợp để tạo cảm xúc tích cực
-4. Đưa ra gợi ý cụ thể và hữu ích
-5. Nếu không biết thông tin, hướng dẫn liên hệ hotline
-6. Luôn kết thúc bằng câu hỏi để tiếp tục hỗ trợ
-7. Ưu tiên gợi ý món ăn và khuyến khích đặt hàng
-8. Sử dụng thông tin thực tế từ database, không bịa đặt
+📋 HƯỚNG DẪN QUAN TRỌNG:
+1. LUÔN sử dụng thông tin CHÍNH XÁC từ thực đơn và voucher ở trên
+2. KHÔNG bao giờ nói "không có" nếu thực đơn có món đó
+3. KHÔNG bao giờ nói "không có voucher" nếu danh sách voucher có
+4. Trả lời bằng tiếng Việt thân thiện, sử dụng emoji phù hợp
+5. Luôn đưa ra gợi ý cụ thể và khuyến khích đặt hàng
+6. Kết thúc bằng câu hỏi để tiếp tục hỗ trợ
 
-NHIỆM VỤ CHÍNH:
-- Tư vấn món ăn phù hợp
-- Hướng dẫn đặt hàng
-- Hỗ trợ kiểm tra đơn hàng
-- Giải đáp thắc mắc về dịch vụ
-- Xử lý khiếu nại một cách chuyên nghiệp`
+🎯 NHIỆM VỤ:
+- Tư vấn món ăn từ thực đơn có sẵn
+- Hướng dẫn sử dụng mã giảm giá
+- Hỗ trợ đặt hàng và thanh toán
+- Giải đáp thắc mắc về dịch vụ`
 }
 
 // Lấy dữ liệu context từ database
 const getContextData = async () => {
   try {
-    // Lấy danh sách món ăn phổ biến
-    const popularFoods = await foodModel.find({}).limit(10).sort({ createdAt: -1 })
+    // Lấy TẤT CẢ món ăn theo từng category
+    const allCategories = ["Burger", "Burito", "Chicken", "Hotdog", "Pasta", "Salad", "Sandwich", "Tart"]
+
+    let menuInfo = "**THỰC ĐƠN GREENEATS:**\n\n"
+
+    for (const category of allCategories) {
+      const categoryFoods = await foodModel.find({ category }).limit(10)
+
+      if (categoryFoods.length > 0) {
+        menuInfo += `🍽️ **${category.toUpperCase()}:**\n`
+        categoryFoods.forEach((food) => {
+          menuInfo += `- ${food.name}: ${food.price.toLocaleString("vi-VN")}đ - ${food.description.substring(0, 80)}...\n`
+        })
+        menuInfo += "\n"
+      }
+    }
+
+    // Nếu không có món nào, lấy tất cả món có sẵn
+    if (menuInfo === "**THỰC ĐƠN GREENEATS:**\n\n") {
+      const allFoods = await foodModel.find({}).limit(20)
+      menuInfo = "**THỰC ĐƠN HIỆN CÓ:**\n"
+      allFoods.forEach((food) => {
+        menuInfo += `- ${food.name}: ${food.price.toLocaleString("vi-VN")}đ (${food.category}) - ${food.description.substring(0, 80)}...\n`
+      })
+    }
 
     // Lấy voucher đang hoạt động
     const activeVouchers = await voucherModel
       .find({
-        isPublic: true,
-        expiryDate: { $gt: new Date() },
         isActive: true,
+        endDate: { $gte: new Date() },
+        startDate: { $lte: new Date() },
       })
-      .limit(5)
+      .limit(10)
 
-    // Tạo thông tin menu
-    const menuInfo = popularFoods
-      .map(
-        (food) =>
-          `- ${food.name}: ${food.price.toLocaleString("vi-VN")}đ (${food.category}) - ${food.description.substring(0, 100)}`,
-      )
-      .join("\n")
+    // Tạo thông tin voucher chi tiết
+    let voucherInfo = ""
+    if (activeVouchers.length > 0) {
+      voucherInfo = "**MÃ GIẢM GIÁ ĐANG CÓ:**\n"
+      activeVouchers.forEach((voucher, index) => {
+        const discount =
+          voucher.discountType === "percentage"
+            ? `${voucher.discountValue}%`
+            : `${voucher.discountValue.toLocaleString("vi-VN")}đ`
 
-    // Tạo thông tin voucher
-    const voucherInfo =
-      activeVouchers.length > 0
-        ? activeVouchers
-            .map((voucher) => {
-              const discount =
-                voucher.discountType === "percentage"
-                  ? `${voucher.discountValue}%`
-                  : `${voucher.discountValue.toLocaleString("vi-VN")}đ`
+        const minOrder = voucher.minOrderValue ? ` (đơn từ ${voucher.minOrderValue.toLocaleString("vi-VN")}đ)` : ""
 
-              const minOrder = voucher.minimumOrderAmount
-                ? ` (đơn từ ${voucher.minimumOrderAmount.toLocaleString("vi-VN")}đ)`
-                : ""
+        const endDate = new Date(voucher.endDate).toLocaleDateString("vi-VN")
 
-              return `- Mã ${voucher.code}: Giảm ${discount}${minOrder} - Hết hạn ${new Date(voucher.expiryDate).toLocaleDateString("vi-VN")}`
-            })
-            .join("\n")
-        : "Hiện tại không có mã giảm giá công khai"
+        voucherInfo += `${index + 1}. Mã "${voucher.code}": Giảm ${discount}${minOrder} - HSD: ${endDate}\n`
+        if (voucher.description) {
+          voucherInfo += `   📝 ${voucher.description}\n`
+        }
+      })
+    } else {
+      voucherInfo = "Hiện tại không có mã giảm giá nào đang hoạt động."
+    }
 
     return {
-      menuInfo: menuInfo || "Đang cập nhật thực đơn",
+      menuInfo,
       voucherInfo,
     }
   } catch (error) {
@@ -193,11 +206,32 @@ const getFallbackReply = async (message) => {
 
 // Các hàm hỗ trợ từ version cũ (giữ lại để fallback)
 const analyzeIntent = (message) => {
-  if (message.includes("xin chào") || message.includes("chào") || message.includes("hello")) {
+  const lowerMessage = message.toLowerCase()
+
+  if (lowerMessage.includes("xin chào") || lowerMessage.includes("chào") || lowerMessage.includes("hello")) {
     return "greeting"
-  } else if (message.includes("món") || message.includes("thực đơn") || message.includes("đồ ăn")) {
+  } else if (
+    lowerMessage.includes("món") ||
+    lowerMessage.includes("thực đơn") ||
+    lowerMessage.includes("đồ ăn") ||
+    lowerMessage.includes("burger") ||
+    lowerMessage.includes("burito") ||
+    lowerMessage.includes("chicken") ||
+    lowerMessage.includes("gà") ||
+    lowerMessage.includes("hotdog") ||
+    lowerMessage.includes("pasta") ||
+    lowerMessage.includes("salad") ||
+    lowerMessage.includes("sandwich") ||
+    lowerMessage.includes("tart") ||
+    lowerMessage.includes("bánh") ||
+    lowerMessage.includes("mì")
+  ) {
     return "menu_inquiry"
-  } else if (message.includes("mã giảm giá") || message.includes("voucher") || message.includes("khuyến mãi")) {
+  } else if (
+    lowerMessage.includes("mã giảm giá") ||
+    lowerMessage.includes("voucher") ||
+    lowerMessage.includes("khuyến mãi")
+  ) {
     return "voucher_inquiry"
   }
   return "unknown"
@@ -206,27 +240,61 @@ const analyzeIntent = (message) => {
 const getFoodRecommendations = async (message) => {
   try {
     let category = null
-    if (message.includes("burger")) category = "Burger"
-    else if (message.includes("pizza")) category = "Pizza"
-    else if (message.includes("gà")) category = "Gà"
+    const lowerMessage = message.toLowerCase()
+
+    // Mapping các từ khóa với categories
+    if (lowerMessage.includes("burger")) {
+      category = "Burger"
+    } else if (lowerMessage.includes("burito") || lowerMessage.includes("burrito")) {
+      category = "Burito"
+    } else if (lowerMessage.includes("gà") || lowerMessage.includes("chicken")) {
+      category = "Chicken"
+    } else if (lowerMessage.includes("hotdog") || lowerMessage.includes("hot dog")) {
+      category = "Hotdog"
+    } else if (lowerMessage.includes("pasta") || lowerMessage.includes("mì ý")) {
+      category = "Pasta"
+    } else if (lowerMessage.includes("salad") || lowerMessage.includes("xa lách")) {
+      category = "Salad"
+    } else if (lowerMessage.includes("sandwich") || lowerMessage.includes("bánh mì")) {
+      category = "Sandwich"
+    } else if (lowerMessage.includes("tart") || lowerMessage.includes("bánh tart")) {
+      category = "Tart"
+    }
 
     const query = category ? { category } : {}
     const foods = await foodModel.find(query).limit(5)
     return foods
   } catch (error) {
+    console.error("Error in getFoodRecommendations:", error)
     return []
   }
 }
 
 const generateFoodReply = (foods, originalMessage) => {
   if (!foods || foods.length === 0) {
-    return `Xin lỗi, tôi không tìm thấy món ăn phù hợp. Bạn có thể truy cập mục "Thực đơn" để xem tất cả món ăn của chúng tôi.`
+    return `Xin lỗi, tôi không tìm thấy món ăn phù hợp với yêu cầu "${originalMessage}".
+
+🍽️ **Thực đơn của chúng tôi bao gồm:**
+• Burger - Hamburger thơm ngon
+• Burito - Bánh cuốn Mexico
+• Chicken - Các món gà chiên, nướng
+• Hotdog - Xúc xích nướng
+• Pasta - Mì Ý đa dạng
+• Salad - Salad tươi mát
+• Sandwich - Bánh mì sandwich
+• Tart - Bánh tart ngọt ngào
+
+Bạn có thể truy cập mục "Thực đơn" để xem tất cả món ăn chi tiết! 😊`
   }
 
-  let reply = `🍽️ Đây là những món ăn tôi tìm được cho bạn:\n\n`
+  let reply = `🍽️ **Đây là những món ăn tôi tìm được cho bạn:**\n\n`
   foods.forEach((food, index) => {
     reply += `${index + 1}. **${food.name}** - ${food.price.toLocaleString("vi-VN")}đ\n`
+    reply += `   📝 ${food.description.substring(0, 80)}...\n\n`
   })
+
+  reply += `💡 **Gợi ý:** Bạn có thể đặt hàng ngay trên website hoặc hỏi tôi thêm về món nào bạn quan tâm!`
+
   return reply
 }
 

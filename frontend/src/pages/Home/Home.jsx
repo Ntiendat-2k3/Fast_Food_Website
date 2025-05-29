@@ -25,6 +25,7 @@ const Home = () => {
   const { food_list, url } = useContext(StoreContext)
   const [featuredItems, setFeaturedItems] = useState([])
 
+
   useEffect(() => {
     // Get 3 random items for featured section
     if (food_list.length > 0) {
