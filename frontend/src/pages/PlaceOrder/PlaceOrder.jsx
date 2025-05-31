@@ -28,6 +28,9 @@ const PlaceOrder = () => {
   const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems } = useContext(StoreContext)
   const location = useLocation()
   const appliedVoucher = location.state?.appliedVoucher || null
+  const buyNowMode = location.state?.buyNowMode || false
+  const tempCartItems = location.state?.tempCartItems || {}
+  const singleProduct = location.state?.singleProduct || null
 
   const [data, setData] = useState({
     name: "",
@@ -131,7 +134,6 @@ const PlaceOrder = () => {
   const placeOrder = async (event) => {
     event.preventDefault()
 
-    // Validate form before submission
     if (!validateForm()) {
       toast.error("Vui lòng kiểm tra lại thông tin giao hàng")
       return
@@ -140,13 +142,23 @@ const PlaceOrder = () => {
     setIsSubmitting(true)
 
     const orderItems = []
-    food_list.map((item) => {
-      if (cartItems[item.name] > 0) {
-        const itemInfo = { ...item }
-        itemInfo["quantity"] = cartItems[item.name]
-        orderItems.push(itemInfo)
-      }
-    })
+
+    if (buyNowMode && singleProduct) {
+      // Chỉ thêm sản phẩm được mua ngay
+      orderItems.push({
+        ...singleProduct,
+        quantity: singleProduct.quantity,
+      })
+    } else {
+      // Thêm tất cả sản phẩm trong giỏ hàng
+      food_list.map((item) => {
+        if (cartItems[item.name] > 0) {
+          const itemInfo = { ...item }
+          itemInfo["quantity"] = cartItems[item.name]
+          orderItems.push(itemInfo)
+        }
+      })
+    }
 
     // Calculate final amount with discount
     const subtotal = getTotalCartAmount()
@@ -157,7 +169,6 @@ const PlaceOrder = () => {
       if (appliedVoucher.voucherInfo.discountType === "percentage") {
         discountAmount = (subtotal * appliedVoucher.voucherInfo.discountValue) / 100
 
-        // Apply max discount if set
         if (
           appliedVoucher.voucherInfo.maxDiscountAmount &&
           discountAmount > appliedVoucher.voucherInfo.maxDiscountAmount
@@ -186,20 +197,16 @@ const PlaceOrder = () => {
       })
 
       if (response.data.success) {
-        // Xóa giỏ hàng sau khi đặt hàng thành công
-        setCartItems({})
+        // Chỉ xóa giỏ hàng nếu không phải chế độ mua ngay
+        if (!buyNowMode) {
+          setCartItems({})
+        }
 
         console.log("Order placed successfully:", response.data)
-        console.log(
-          "Redirecting to:",
-          paymentMethod === "COD" ? "/thankyou" : `/payment/${paymentMethod}/${response.data.orderId}`,
-        )
 
-        // Chuyển hướng dựa trên phương thức thanh toán
         if (paymentMethod === "COD") {
           navigate("/thankyou")
         } else {
-          // Chuyển hướng đến trang thanh toán
           navigate(`/payment/${paymentMethod}/${response.data.orderId}`)
         }
       } else {
@@ -218,10 +225,10 @@ const PlaceOrder = () => {
   useEffect(() => {
     if (!token) {
       navigate("/cart")
-    } else if (getTotalCartAmount() === 0) {
+    } else if (!buyNowMode && getTotalCartAmount() === 0) {
       navigate("/cart")
     }
-  }, [token])
+  }, [token, buyNowMode])
 
   // Calculate final amount with discount
   const getFinalAmount = () => {
@@ -276,6 +283,23 @@ const PlaceOrder = () => {
       description: "Chuyển khoản qua ngân hàng",
     },
   ]
+
+  const calculateTotalCartAmount = () => {
+    if (buyNowMode && singleProduct) {
+      return singleProduct.price * singleProduct.quantity
+    }
+
+    let totalAmount = 0
+    for (const item in cartItems) {
+      if (cartItems[item] > 0) {
+        const itemInfo = food_list.find((product) => product.name === item)
+        if (itemInfo) {
+          totalAmount += itemInfo.price * cartItems[item]
+        }
+      }
+    }
+    return totalAmount
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 pt-20 pb-16">
@@ -441,31 +465,54 @@ const PlaceOrder = () => {
                 <h2 className="text-xl font-semibold text-white mb-6">Đơn hàng của bạn</h2>
                 <div className="bg-slate-700/30 backdrop-blur-sm rounded-xl p-6 border border-slate-600">
                   <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                    {food_list.map((item, index) => {
-                      if (cartItems[item.name] > 0) {
-                        return (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <img
-                                src={url + "/images/" + item.image || "/placeholder.svg"}
-                                alt={item.name}
-                                className="w-12 h-12 object-cover rounded-lg mr-3 border border-slate-600"
-                              />
-                              <div>
-                                <p className="text-white">{item.name}</p>
-                                <p className="text-gray-400 text-sm">
-                                  {item.price.toLocaleString("vi-VN")} đ x {cartItems[item.name]}
-                                </p>
-                              </div>
-                            </div>
-                            <p className="text-primary font-medium">
-                              {(item.price * cartItems[item.name]).toLocaleString("vi-VN")} đ
+                    {buyNowMode && singleProduct ? (
+                      // Hiển thị chỉ sản phẩm được mua ngay
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <img
+                            src={url + "/images/" + singleProduct.image || "/placeholder.svg"}
+                            alt={singleProduct.name}
+                            className="w-12 h-12 object-cover rounded-lg mr-3 border border-slate-600"
+                          />
+                          <div>
+                            <p className="text-white">{singleProduct.name}</p>
+                            <p className="text-gray-400 text-sm">
+                              {singleProduct.price.toLocaleString("vi-VN")} đ x {singleProduct.quantity}
                             </p>
                           </div>
-                        )
-                      }
-                      return null
-                    })}
+                        </div>
+                        <p className="text-primary font-medium">
+                          {(singleProduct.price * singleProduct.quantity).toLocaleString("vi-VN")} đ
+                        </p>
+                      </div>
+                    ) : (
+                      // Hiển thị tất cả sản phẩm trong giỏ hàng
+                      food_list.map((item, index) => {
+                        if (cartItems[item.name] > 0) {
+                          return (
+                            <div key={index} className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <img
+                                  src={url + "/images/" + item.image || "/placeholder.svg"}
+                                  alt={item.name}
+                                  className="w-12 h-12 object-cover rounded-lg mr-3 border border-slate-600"
+                                />
+                                <div>
+                                  <p className="text-white">{item.name}</p>
+                                  <p className="text-gray-400 text-sm">
+                                    {item.price.toLocaleString("vi-VN")} đ x {cartItems[item.name]}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="text-primary font-medium">
+                                {(item.price * cartItems[item.name]).toLocaleString("vi-VN")} đ
+                              </p>
+                            </div>
+                          )
+                        }
+                        return null
+                      })
+                    )}
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-slate-600 space-y-3">
