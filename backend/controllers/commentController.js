@@ -1,6 +1,87 @@
 import commentModel from "../models/commentModel.js"
 import userModel from "../models/userModel.js"
 import mongoose from "mongoose"
+import orderModel from "../models/orderModel.js"
+import foodModel from "../models/foodModel.js"
+
+// Kiểm tra xem user đã mua sản phẩm này chưa
+const checkUserPurchase = async (userId, foodId) => {
+  try {
+    console.log(`=== CHECKING PURCHASE HISTORY ===`)
+    console.log(`User ID: ${userId}`)
+    console.log(`Food ID: ${foodId}`)
+
+    // Lấy thông tin sản phẩm để có tên sản phẩm
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      console.log("Food not found with ID:", foodId)
+      return false
+    }
+    console.log(`Food name: ${food.name}`)
+
+    // Tìm tất cả đơn hàng của user đã thanh toán và hoàn thành
+    const orders = await orderModel.find({
+      userId: userId,
+      payment: true, // Đã thanh toán
+      status: { $in: ["Đã giao", "Hoàn thành"] }, // Đã giao thành công
+    })
+    console.log(`Found ${orders.length} completed orders for user`)
+
+    if (orders.length === 0) {
+      console.log("No completed orders found for user")
+      return false
+    }
+
+    // Kiểm tra từng đơn hàng
+    for (let i = 0; i < orders.length; i++) {
+      const order = orders[i]
+      console.log(`\n--- Checking Order ${i + 1} ---`)
+      console.log(`Order ID: ${order._id}`)
+      console.log(`Order Status: ${order.status}`)
+      console.log(`Payment Status: ${order.payment}`)
+      console.log(`Items count: ${order.items ? order.items.length : 0}`)
+
+      if (!order.items || order.items.length === 0) {
+        console.log("No items in this order")
+        continue
+      }
+
+      // Kiểm tra từng item trong đơn hàng
+      for (let j = 0; j < order.items.length; j++) {
+        const item = order.items[j]
+        console.log(`\n  Item ${j + 1}:`, JSON.stringify(item, null, 2))
+
+        // Kiểm tra theo tên sản phẩm (cách phổ biến nhất)
+        if (item.name && item.name === food.name) {
+          console.log(`✅ MATCH FOUND by name: ${item.name} === ${food.name}`)
+          return true
+        }
+
+        // Kiểm tra theo ID nếu có
+        if (item._id && (item._id.toString() === foodId || item._id === foodId)) {
+          console.log(`✅ MATCH FOUND by _id: ${item._id}`)
+          return true
+        }
+
+        if (item.foodId && (item.foodId.toString() === foodId || item.foodId === foodId)) {
+          console.log(`✅ MATCH FOUND by foodId: ${item.foodId}`)
+          return true
+        }
+
+        if (item.id && (item.id.toString() === foodId || item.id === foodId)) {
+          console.log(`✅ MATCH FOUND by id: ${item.id}`)
+          return true
+        }
+      }
+    }
+
+    console.log("❌ No matching product found in any completed order")
+    return false
+  } catch (error) {
+    console.error("Error checking user purchase:", error)
+    return false
+  }
+}
 
 // Thêm bình luận mới
 const addComment = async (req, res) => {
@@ -34,6 +115,24 @@ const addComment = async (req, res) => {
     if (!user) {
       console.log("User not found with ID:", userId)
       return res.json({ success: false, message: "Không tìm thấy người dùng" })
+    }
+
+    // Kiểm tra xem user đã đánh giá sản phẩm này chưa
+    const existingComment = await commentModel.findOne({ userId, foodId })
+    if (existingComment) {
+      return res.json({
+        success: false,
+        message: "Bạn đã đánh giá sản phẩm này rồi. Bạn có thể chỉnh sửa đánh giá hiện có.",
+      })
+    }
+
+    // KIỂM TRA XEM USER ĐÃ MUA SẢN PHẨM NÀY CHƯA - BẮT BUỘC
+    const hasPurchased = await checkUserPurchase(userId, foodId)
+    if (!hasPurchased) {
+      return res.json({
+        success: false,
+        message: "Bạn cần mua và nhận được sản phẩm này trước khi có thể đánh giá",
+      })
     }
 
     // Tạo comment mới
@@ -305,6 +404,44 @@ const updateCommentStatus = async (req, res) => {
   }
 }
 
+// Kiểm tra xem user có thể đánh giá sản phẩm không
+const checkCanReview = async (req, res) => {
+  try {
+    const { userId, foodId } = req.params
+    console.log(`\n=== CHECK CAN REVIEW API ===`)
+    console.log(`User ID: ${userId}`)
+    console.log(`Food ID: ${foodId}`)
+
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(foodId)) {
+      return res.json({ success: false, message: "ID không hợp lệ" })
+    }
+
+    // Kiểm tra xem đã đánh giá chưa
+    const existingComment = await commentModel.findOne({ userId, foodId })
+    console.log(`Has existing review: ${!!existingComment}`)
+
+    // Kiểm tra xem đã mua sản phẩm chưa
+    const hasPurchased = await checkUserPurchase(userId, foodId)
+    console.log(`Has purchased: ${hasPurchased}`)
+
+    const canReview = hasPurchased && !existingComment
+    console.log(`Can review: ${canReview}`)
+
+    res.json({
+      success: true,
+      data: {
+        canReview,
+        hasPurchased,
+        hasReviewed: !!existingComment,
+        existingReview: existingComment,
+      },
+    })
+  } catch (error) {
+    console.error("Error checking review eligibility:", error)
+    res.json({ success: false, message: "Lỗi khi kiểm tra quyền đánh giá" })
+  }
+}
+
 export {
   addComment,
   updateComment,
@@ -314,4 +451,5 @@ export {
   deleteComment,
   replyToComment,
   getFoodRatingStats,
+  checkCanReview,
 }

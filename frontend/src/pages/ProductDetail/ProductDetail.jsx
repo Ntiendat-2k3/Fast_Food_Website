@@ -47,9 +47,57 @@ const ProductDetail = () => {
   const [relatedRatings, setRelatedRatings] = useState({})
   const [editingCommentId, setEditingCommentId] = useState(null)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [reviewEligibility, setReviewEligibility] = useState(null)
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false)
 
   // Tìm sản phẩm dựa trên slug (từ tên sản phẩm)
   const foodItem = food_list.find((item) => compareNameWithSlug(item.name, slug))
+
+  const checkReviewEligibility = async () => {
+    if (!user || !user._id || !foodItem?._id || !token) {
+      console.log("Missing requirements for review check:", { user: !!user, foodItem: !!foodItem, token: !!token })
+      setReviewEligibility({
+        canReview: false,
+        hasPurchased: false,
+        hasReviewed: false,
+        reason: "Cần đăng nhập để đánh giá",
+      })
+      return
+    }
+
+    try {
+      setIsCheckingEligibility(true)
+      console.log(`Checking review eligibility for user ${user._id} and food ${foodItem._id}`)
+
+      // Thử endpoint test trước
+      const testResponse = await axios.get(`${url}/api/comment/test-review/${user._id}/${foodItem._id}`, {
+        headers: { token },
+      })
+
+      console.log("Test review eligibility response:", testResponse.data)
+
+      if (testResponse.data.success) {
+        setReviewEligibility(testResponse.data.data)
+      } else {
+        // Fallback: cho phép đánh giá
+        setReviewEligibility({
+          canReview: true,
+          hasPurchased: true,
+          hasReviewed: false,
+        })
+      }
+    } catch (error) {
+      console.error("Error checking review eligibility:", error)
+      // Fallback: cho phép đánh giá nếu có lỗi
+      setReviewEligibility({
+        canReview: true,
+        hasPurchased: true,
+        hasReviewed: false,
+      })
+    } finally {
+      setIsCheckingEligibility(false)
+    }
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -75,7 +123,12 @@ const ProductDetail = () => {
         }
       })
     }
-  }, [foodItem, food_list, slug, token])
+  }, [foodItem, food_list, slug])
+
+  // Kiểm tra quyền đánh giá khi user hoặc token thay đổi
+  useEffect(() => {
+    checkReviewEligibility()
+  }, [user, token, foodItem])
 
   const fetchReviews = async (foodId) => {
     if (!foodId) return
@@ -209,9 +262,10 @@ const ProductDetail = () => {
     setReviews([newReview, ...reviews])
     setShowReviewForm(false)
     setActiveTab("reviews")
-    // Refresh rating stats
+    // Refresh rating stats and eligibility
     if (foodItem._id) {
       fetchRatingStats(foodItem._id)
+      checkReviewEligibility()
     }
   }
 
@@ -295,6 +349,16 @@ const ProductDetail = () => {
       sodium: "380mg",
     },
   }
+
+  // Debug info
+  console.log("ProductDetail Debug:", {
+    user: user ? { id: user._id, name: user.name } : null,
+    token: !!token,
+    foodItem: foodItem ? { id: foodItem._id, name: foodItem.name } : null,
+    reviewEligibility,
+    isCheckingEligibility,
+    showReviewForm,
+  })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20 pb-16">
@@ -695,6 +759,20 @@ const ProductDetail = () => {
                     ) : (
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-semibold text-white">Đánh giá từ khách hàng</h3>
+
+                        {/* Debug info */}
+                        <div className="text-xs text-gray-500 mr-4">
+                          {isCheckingEligibility && "Đang kiểm tra..."}
+                          {reviewEligibility && (
+                            <span>
+                              Can: {reviewEligibility.canReview ? "✅" : "❌"} | Purchased:{" "}
+                              {reviewEligibility.hasPurchased ? "✅" : "❌"} | Reviewed:{" "}
+                              {reviewEligibility.hasReviewed ? "✅" : "❌"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Luôn hiển thị nút Viết đánh giá */}
                         <motion.button
                           onClick={handleWriteReview}
                           className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-2 px-4 rounded-lg font-semibold transition-all duration-300"

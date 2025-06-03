@@ -8,6 +8,7 @@ import {
   deleteComment,
   replyToComment,
   getFoodRatingStats,
+  checkCanReview,
 } from "../controllers/commentController.js"
 import auth from "../middleware/auth.js"
 
@@ -36,5 +37,8 @@ router.post("/delete", auth, deleteComment)
 
 // Reply to a comment (admin only, requires authentication)
 router.post("/reply", auth, replyToComment)
+
+// Check if user can review a product (requires authentication)
+router.get("/can-review/:userId/:foodId", auth, checkCanReview)
 
 export default router

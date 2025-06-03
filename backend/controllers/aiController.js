@@ -71,6 +71,7 @@ const createSystemPrompt = (contextData, userContext) => {
 - Email: support@greeneats.com
 - Thời gian giao hàng: 25-50 phút
 - Đơn hàng tối thiểu: 50.000đ
+- Phí giao hàng: 15.000đ (miễn phí cho đơn từ 200.000đ)
 
 ${contextData.menuInfo}
 
@@ -82,20 +83,61 @@ ${contextData.voucherInfo}
 - Ví MoMo
 - Chuyển khoản ngân hàng
 
+🌐 HƯỚNG DẪN SỬ DỤNG WEBSITE:
+
+📱 CÁCH ĐẶT HÀNG:
+1. Chọn món ăn từ thực đơn
+2. Thêm vào giỏ hàng
+3. Xem giỏ hàng và điều chỉnh số lượng
+4. Nhập thông tin giao hàng
+5. Chọn phương thức thanh toán
+6. Xác nhận đặt hàng
+
+💬 CÁCH LIÊN HỆ VỚI ADMIN/CHỦ CỬA HÀNG:
+- Vào trang "Liên Hệ" trên website
+- Đăng nhập tài khoản (bắt buộc để chat)
+- Sử dụng khung chat trực tiếp với admin
+- Có thể gửi tin nhắn văn bản và hình ảnh
+- Admin sẽ phản hồi trong giờ hành chính
+
+🔐 QUẢN LÝ TÀI KHOẢN:
+- Đăng ký/Đăng nhập ở góc trên phải
+- Xem lịch sử đơn hàng trong "Đơn hàng của tôi"
+- Quản lý danh sách yêu thích
+- Cập nhật thông tin cá nhân
+
+📋 CÁC TÍNH NĂNG KHÁC:
+- Tìm kiếm món ăn theo tên hoặc danh mục
+- Đánh giá và bình luận món ăn
+- Theo dõi trạng thái đơn hàng real-time
+- Nhận thông báo về khuyến mãi
+
+🎯 TRẠNG THÁI ĐỚN HÀNG:
+- "Đang xử lý": Nhà hàng đang chuẩn bị
+- "Đang giao": Shipper đang trên đường
+- "Đã giao": Hoàn thành thành công
+- "Đã hủy": Đơn hàng bị hủy
+
 👤 THÔNG TIN NGƯỜI DÙNG: ${userContext || "Khách hàng mới"}
 
 📋 HƯỚNG DẪN QUAN TRỌNG:
-1. LUÔN sử dụng thông tin CHÍNH XÁC từ thực đơn và voucher ở trên
-2. KHÔNG bao giờ nói "không có" nếu thực đơn có món đó
-3. KHÔNG bao giờ nói "không có voucher" nếu danh sách voucher có
-4. Trả lời bằng tiếng Việt thân thiện, sử dụng emoji phù hợp
-5. Luôn đưa ra gợi ý cụ thể và khuyến khích đặt hàng
-6. Kết thúc bằng câu hỏi để tiếp tục hỗ trợ
+1. LUÔN sử dụng thông tin CHÍNH XÁC từ thực đơn và voucher
+2. Đưa ra hướng dẫn CỤ THỂ, CHI TIẾT cho từng câu hỏi
+3. Khi được hỏi về liên hệ admin: Hướng dẫn vào trang "Liên Hệ" → Đăng nhập → Sử dụng chat trực tiếp
+4. Khi được hỏi về đặt hàng: Hướng dẫn từng bước cụ thể
+5. Khi được hỏi về thanh toán: Giải thích các phương thức có sẵn
+6. Trả lời bằng tiếng Việt thân thiện, sử dụng emoji phù hợp
+7. Luôn đưa ra gợi ý cụ thể và khuyến khích sử dụng dịch vụ
+8. Kết thúc bằng câu hỏi để tiếp tục hỗ trợ
 
 🎯 NHIỆM VỤ:
 - Tư vấn món ăn từ thực đơn có sẵn
+- Hướng dẫn sử dụng website chi tiết
+- Hướng dẫn đặt hàng từng bước
+- Hướng dẫn liên hệ admin/support
+- Giải thích các tính năng của website
+- Hỗ trợ xử lý vấn đề kỹ thuật cơ bản
 - Hướng dẫn sử dụng mã giảm giá
-- Hỗ trợ đặt hàng và thanh toán
 - Giải đáp thắc mắc về dịch vụ`
 }
 
@@ -189,7 +231,71 @@ const getFallbackReply = async (message) => {
 
   switch (intent) {
     case "greeting":
-      return "Xin chào! Tôi là trợ lý ảo của GreenEats. Tôi có thể giúp bạn tìm món ăn ngon, kiểm tra đơn hàng hoặc giải đáp thắc mắc. Bạn cần hỗ trợ gì?"
+      return "Xin chào! 👋 Tôi là trợ lý ảo của GreenEats. Tôi có thể giúp bạn:\n\n🍽️ Tìm món ăn ngon\n📱 Hướng dẫn đặt hàng\n💬 Cách liên hệ admin\n🎫 Kiểm tra mã giảm giá\n📋 Theo dõi đơn hàng\n\nBạn cần hỗ trợ gì?"
+
+    case "contact_inquiry":
+      return `💬 **CÁCH LIÊN HỆ VỚI ADMIN/CHỦ CỬA HÀNG:**
+
+📱 **Chat trực tiếp:**
+1. Vào trang "Liên Hệ" trên website
+2. Đăng nhập tài khoản (bắt buộc)
+3. Sử dụng khung chat ở bên phải
+4. Gửi tin nhắn văn bản hoặc hình ảnh
+5. Admin sẽ phản hồi trong giờ hành chính
+
+📞 **Các cách khác:**
+• Hotline: 1900-1234 (6:00-23:00)
+• Email: support@greeneats.com
+• Địa chỉ: 123 Đường Nguyễn Văn Linh, Q7, TP.HCM
+
+Bạn có cần hướng dẫn thêm về cách sử dụng chat không? 😊`
+
+    case "order_guide":
+      return `📱 **HƯỚNG DẪN ĐẶT HÀNG CHI TIẾT:**
+
+**Bước 1:** Chọn món ăn
+• Duyệt thực đơn theo danh mục
+• Click vào món muốn đặt
+• Chọn số lượng và thêm vào giỏ
+
+**Bước 2:** Xem giỏ hàng
+• Click biểu tượng giỏ hàng
+• Kiểm tra món đã chọn
+• Điều chỉnh số lượng nếu cần
+
+**Bước 3:** Thanh toán
+• Nhập địa chỉ giao hàng
+• Chọn phương thức thanh toán
+• Áp dụng mã giảm giá (nếu có)
+• Xác nhận đặt hàng
+
+⏰ Thời gian giao: 25-50 phút
+💰 Đơn tối thiểu: 50.000đ
+
+Bạn cần hỗ trợ thêm bước nào không? 🤔`
+
+    case "payment_inquiry":
+      return `💳 **PHƯƠNG THỨC THANH TOÁN:**
+
+✅ **Thanh toán khi nhận hàng (COD)**
+• Trả tiền mặt cho shipper
+• An toàn, tiện lợi
+
+✅ **VNPay**
+• Thẻ ATM/Internet Banking
+• Thanh toán online ngay
+
+✅ **Ví MoMo**
+• Quét QR hoặc nhập số điện thoại
+• Nhanh chóng, bảo mật
+
+✅ **Chuyển khoản ngân hàng**
+• Chuyển trước khi giao hàng
+• Thông tin TK sẽ được cung cấp
+
+💡 **Lưu ý:** Tất cả phương thức đều an toàn và được bảo mật!
+
+Bạn muốn biết thêm về phương thức nào? 💰`
 
     case "menu_inquiry":
       const foods = await getFoodRecommendations(message)
@@ -199,8 +305,42 @@ const getFallbackReply = async (message) => {
       const vouchers = await getActiveVouchers()
       return generateVoucherReply(vouchers)
 
+    case "order_status":
+      return `📋 **CÁCH KIỂM TRA ĐỚN HÀNG:**
+
+**Nếu đã đăng nhập:**
+1. Vào "Đơn hàng của tôi"
+2. Xem danh sách đơn hàng
+3. Click vào đơn cần kiểm tra
+
+**Trạng thái đơn hàng:**
+🔄 Đang xử lý - Nhà hàng đang chuẩn bị
+🚚 Đang giao - Shipper đang trên đường
+✅ Đã giao - Hoàn thành thành công
+❌ Đã hủy - Đơn hàng bị hủy
+
+**Nếu chưa đăng nhập:**
+• Liên hệ hotline: 1900-1234
+• Chat với admin qua trang Liên Hệ
+
+Bạn cần hỗ trợ kiểm tra đơn hàng cụ thể không? 📱`
+
     default:
-      return "Xin lỗi, tôi đang gặp sự cố kỹ thuật. Vui lòng liên hệ hotline 1900-1234 để được hỗ trợ trực tiếp, hoặc thử lại sau ít phút."
+      return `Xin lỗi, tôi chưa hiểu rõ câu hỏi của bạn. 😅
+
+🤖 **Tôi có thể hỗ trợ bạn:**
+• Tìm món ăn và tư vấn thực đơn
+• Hướng dẫn đặt hàng chi tiết
+• Cách liên hệ admin/chủ cửa hàng
+• Thông tin mã giảm giá
+• Kiểm tra trạng thái đơn hàng
+• Hướng dẫn thanh toán
+
+Hoặc bạn có thể:
+📞 Gọi hotline: 1900-1234
+💬 Chat trực tiếp với admin tại trang "Liên Hệ"
+
+Bạn muốn hỏi về vấn đề gì cụ thể? 🤔`
   }
 }
 
@@ -210,6 +350,28 @@ const analyzeIntent = (message) => {
 
   if (lowerMessage.includes("xin chào") || lowerMessage.includes("chào") || lowerMessage.includes("hello")) {
     return "greeting"
+  } else if (
+    lowerMessage.includes("liên hệ") ||
+    lowerMessage.includes("nhắn tin") ||
+    lowerMessage.includes("chat") ||
+    lowerMessage.includes("admin") ||
+    lowerMessage.includes("chủ cửa hàng") ||
+    lowerMessage.includes("hỗ trợ")
+  ) {
+    return "contact_inquiry"
+  } else if (
+    lowerMessage.includes("đặt hàng") ||
+    lowerMessage.includes("order") ||
+    lowerMessage.includes("mua") ||
+    lowerMessage.includes("cách đặt")
+  ) {
+    return "order_guide"
+  } else if (
+    lowerMessage.includes("thanh toán") ||
+    lowerMessage.includes("payment") ||
+    lowerMessage.includes("trả tiền")
+  ) {
+    return "payment_inquiry"
   } else if (
     lowerMessage.includes("món") ||
     lowerMessage.includes("thực đơn") ||
@@ -233,6 +395,12 @@ const analyzeIntent = (message) => {
     lowerMessage.includes("khuyến mãi")
   ) {
     return "voucher_inquiry"
+  } else if (
+    lowerMessage.includes("đơn hàng") ||
+    lowerMessage.includes("kiểm tra") ||
+    lowerMessage.includes("trạng thái")
+  ) {
+    return "order_status"
   }
   return "unknown"
 }
