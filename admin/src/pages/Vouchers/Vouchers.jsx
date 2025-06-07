@@ -17,11 +17,17 @@ const Vouchers = ({ url }) => {
   const fetchVouchers = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(`${url}/api/voucher/list`)
+      const token = localStorage.getItem("token")
+      const response = await axios.get(`${url}/api/voucher/list`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
       if (response.data.success) {
         setVouchers(response.data.data)
       } else {
-        toast.error("Lỗi khi tải danh sách voucher")
+        toast.error(response.data.message || "Lỗi khi tải danh sách voucher")
       }
     } catch (error) {
       console.error("Error fetching vouchers:", error)
@@ -55,7 +61,17 @@ const Vouchers = ({ url }) => {
   const handleConfirmDelete = async () => {
     if (confirmModal.voucherId) {
       try {
-        const response = await axios.post(`${url}/api/voucher/delete`, { id: confirmModal.voucherId })
+        const token = localStorage.getItem("token")
+        const response = await axios.post(
+          `${url}/api/voucher/delete`,
+          { id: confirmModal.voucherId },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        )
+
         if (response.data.success) {
           toast.success("Xóa voucher thành công")
           fetchVouchers()

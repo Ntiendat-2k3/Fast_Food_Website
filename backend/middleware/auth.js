@@ -1,5 +1,8 @@
 import jwt from "jsonwebtoken"
 import userModel from "../models/userModel.js"
+import dotenv from "dotenv"
+
+dotenv.config()
 
 // Middleware to check if user is authenticated
 export const requireSignIn = async (req, res, next) => {
@@ -73,6 +76,60 @@ export const isAdmin = async (req, res, next) => {
       success: false,
       message: "Authorization failed: Server error",
     })
+  }
+}
+
+// Middleware to verify admin (combines authentication and admin check)
+export const verifyAdmin = async (req, res, next) => {
+  try {
+    console.log("Admin verification middleware - headers:", req.headers)
+
+    const token = req.headers.token || req.headers.authorization?.split(" ")[1]
+
+    if (!token) {
+      console.log("No token found in headers")
+      return res.json({ success: false, message: "Authentication failed: No token provided" })
+    }
+
+    console.log("Token received:", token.substring(0, 10) + "...")
+
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      console.log("Token decoded successfully:", decoded)
+
+      // Find the user by ID
+      const user = await userModel.findById(decoded.id)
+
+      if (!user) {
+        console.log("User not found with ID:", decoded.id)
+        return res.json({ success: false, message: "Authentication failed: User not found" })
+      }
+
+      // Check if user is admin
+      if (user.role !== "admin") {
+        console.log("Access denied - user is not admin:", user.name)
+        return res.json({
+          success: false,
+          message: "Authorization failed: Admin access required",
+        })
+      }
+
+      // Set the user ID in the request body
+      req.body.userId = decoded.id
+
+      // Set the user in the request object
+      req.user = user
+
+      console.log("Admin verification successful for user:", user.name)
+      next()
+    } catch (error) {
+      console.error("Token verification error:", error)
+      return res.json({ success: false, message: "Authentication failed: Invalid token" })
+    }
+  } catch (error) {
+    console.error("Admin verification middleware error:", error)
+    return res.json({ success: false, message: "Authentication failed: Server error" })
   }
 }
 

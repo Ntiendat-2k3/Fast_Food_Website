@@ -1,19 +1,58 @@
 import mongoose from "mongoose"
 
-const voucherSchema = new mongoose.Schema({
-  code: { type: String, required: true, unique: true },
-  discountType: { type: String, required: true, enum: ["percentage", "fixed"] }, // Loại giảm giá: phần trăm hoặc cố định
-  discountValue: { type: Number, required: true }, // Giá trị giảm giá
-  minOrderValue: { type: Number, default: 0 }, // Giá trị đơn hàng tối thiểu để áp dụng
-  maxDiscountAmount: { type: Number }, // Giảm tối đa (cho loại phần trăm)
-  startDate: { type: Date, required: true },
-  endDate: { type: Date, required: true },
-  isActive: { type: Boolean, default: true },
-  usageLimit: { type: Number, default: 0 }, // 0 = không giới hạn
-  usageCount: { type: Number, default: 0 }, // Số lần đã sử dụng
-  description: { type: String },
-  createdAt: { type: Date, default: Date.now },
-})
+const voucherSchema = new mongoose.Schema(
+  {
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      trim: true,
+    },
+    discountType: {
+      type: String,
+      enum: ["percentage", "fixed"],
+      required: true,
+    },
+    discountValue: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    minOrderValue: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    maxDiscountAmount: {
+      type: Number,
+      min: 0,
+    },
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
+      type: Date,
+      required: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    usageLimit: {
+      type: Number,
+      default: 0, // 0 means unlimited
+    },
+    usageCount: {
+      type: Number,
+      default: 0,
+    },
+    description: {
+      type: String,
+    },
+  },
+  { timestamps: true },
+)
 
-const voucherModel = mongoose.models.voucher || mongoose.model("voucher", voucherSchema)
-export default voucherModel
+export default mongoose.model("Voucher", voucherSchema)

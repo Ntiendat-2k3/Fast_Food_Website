@@ -122,8 +122,14 @@ const VoucherModal = ({ url, voucher, onClose, onSuccess }) => {
     }
 
     try {
+      const token = localStorage.getItem("token")
       const endpoint = voucher ? `${url}/api/voucher/update` : `${url}/api/voucher/add`
-      const response = await axios.post(endpoint, dataToSubmit)
+
+      const response = await axios.post(endpoint, dataToSubmit, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
       if (response.data.success) {
         toast.success(voucher ? "Cập nhật voucher thành công" : "Thêm voucher thành công")

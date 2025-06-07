@@ -15,7 +15,7 @@ const addVoucher = async (req, res) => {
 // Lấy danh sách voucher
 const listVouchers = async (req, res) => {
   try {
-    const vouchers = await voucherModel.find({})
+    const vouchers = await voucherModel.find({}).sort({ createdAt: -1 })
     res.json({ success: true, data: vouchers })
   } catch (error) {
     console.log(error)
