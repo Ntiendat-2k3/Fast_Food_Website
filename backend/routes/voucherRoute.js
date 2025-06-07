@@ -5,14 +5,20 @@ import {
   updateVoucher,
   deleteVoucher,
   applyVoucher,
+  getActiveVouchers,
 } from "../controllers/voucherController.js"
+import { verifyToken, verifyAdmin } from "../middleware/auth.js"
 
-const voucherRouter = express.Router()
+const router = express.Router()
 
-voucherRouter.post("/add", addVoucher)
-voucherRouter.get("/list", listVouchers)
-voucherRouter.post("/update", updateVoucher)
-voucherRouter.post("/delete", deleteVoucher)
-voucherRouter.post("/apply", applyVoucher)
+// Admin routes
+router.post("/add", verifyToken, verifyAdmin, addVoucher)
+router.get("/list", verifyToken, verifyAdmin, listVouchers)
+router.post("/update", verifyToken, verifyAdmin, updateVoucher)
+router.post("/delete", verifyToken, verifyAdmin, deleteVoucher)
 
-export default voucherRouter
+// Public routes
+router.post("/apply", applyVoucher)
+router.get("/active", getActiveVouchers)
+
+export default router

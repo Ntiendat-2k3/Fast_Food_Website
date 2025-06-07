@@ -4,6 +4,8 @@ import userModel from "../models/userModel.js"
 // placing user order from frontend
 const placeOrder = async (req, res) => {
   try {
+    console.log("Order data received:", req.body) // Debug log
+
     const newOrder = new orderModel({
       userId: req.body.userId,
       items: req.body.items,
@@ -12,7 +14,15 @@ const placeOrder = async (req, res) => {
       date: new Date(), // Đảm bảo đặt ngày đúng
       paymentMethod: req.body.paymentMethod || "COD", // Phương thức thanh toán
       paymentStatus: req.body.paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
+      voucherCode: req.body.voucherCode || null, // Lưu mã giảm giá nếu có
+      discountAmount: req.body.discountAmount || 0, // Lưu số tiền được giảm
     })
+
+    console.log("New order to be saved:", {
+      voucherCode: newOrder.voucherCode,
+      discountAmount: newOrder.discountAmount,
+    }) // Debug log
+
     await newOrder.save()
     await userModel.findByIdAndUpdate(req.body.userId, { cartData: {} })
 
@@ -25,7 +35,7 @@ const placeOrder = async (req, res) => {
         req.body.paymentMethod === "COD" ? "/thankyou" : `/payment/${req.body.paymentMethod}/${newOrder._id}`,
     })
   } catch (error) {
-    console.log(error)
+    console.log("Error placing order:", error)
     res.json({ success: false, message: "Lỗi khi đặt hàng" })
   }
 }
@@ -67,9 +77,18 @@ const userOrders = async (req, res) => {
 const listOrders = async (req, res) => {
   try {
     const orders = await orderModel.find({})
+    console.log(
+      "Orders from database:",
+      orders.map((order) => ({
+        id: order._id,
+        voucherCode: order.voucherCode,
+        discountAmount: order.discountAmount,
+      })),
+    ) // Debug log
+
     res.json({ success: true, data: orders })
   } catch (error) {
-    console.log(error)
+    console.log("Error listing orders:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
   }
 }

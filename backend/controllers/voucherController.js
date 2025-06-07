@@ -106,4 +106,27 @@ const applyVoucher = async (req, res) => {
   }
 }
 
-export { addVoucher, listVouchers, updateVoucher, deleteVoucher, applyVoucher }
+// Lấy danh sách voucher đang hoạt động
+const getActiveVouchers = async (req, res) => {
+  try {
+    const currentDate = new Date()
+    const vouchers = await voucherModel
+      .find({
+        isActive: true,
+        startDate: { $lte: currentDate },
+        endDate: { $gte: currentDate },
+        $or: [
+          { usageLimit: 0 }, // Không giới hạn
+          { $expr: { $lt: ["$usageCount", "$usageLimit"] } }, // Còn lượt sử dụng
+        ],
+      })
+      .select("code discountType discountValue minOrderValue maxDiscountAmount description")
+
+    res.json({ success: true, data: vouchers })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi lấy danh sách voucher" })
+  }
+}
+
+export { addVoucher, listVouchers, updateVoucher, deleteVoucher, applyVoucher, getActiveVouchers }

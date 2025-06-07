@@ -15,6 +15,7 @@ import {
   CreditCard,
   Wallet,
   Landmark,
+  Tag,
 } from "lucide-react"
 import ConfirmModal from "../../components/ConfirmModal"
 import Pagination from "../../components/Pagination"
@@ -37,6 +38,9 @@ const Orders = ({ url }) => {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  // Phí ship cố định
+  const SHIPPING_FEE = 14000
+
   // Fetch all orders from API
   const fetchAllOrders = async () => {
     setLoading(true)
@@ -47,6 +51,7 @@ const Orders = ({ url }) => {
         const sortedOrders = response.data.data.sort((a, b) => {
           return new Date(b.date) - new Date(a.date)
         })
+        console.log("Orders data:", sortedOrders) // Debug log
         setOrders(sortedOrders)
         setFilteredOrders(sortedOrders)
       } else {
@@ -114,7 +119,8 @@ const Orders = ({ url }) => {
         (order) =>
           order.address.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           order.address.phone.includes(searchTerm) ||
-          order._id.toLowerCase().includes(searchTerm.toLowerCase()),
+          order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (order.voucherCode && order.voucherCode.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
@@ -221,6 +227,11 @@ const Orders = ({ url }) => {
     })
   }
 
+  // Format currency
+  const formatCurrency = (amount) => {
+    return amount?.toLocaleString("vi-VN") + " đ" || "0 đ"
+  }
+
   const currentItems = getCurrentItems()
 
   return (
@@ -236,7 +247,7 @@ const Orders = ({ url }) => {
             </div>
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên, SĐT hoặc mã đơn hàng..."
+              placeholder="Tìm kiếm theo tên, SĐT, mã đơn hàng hoặc mã giảm giá..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark py-2 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -366,7 +377,34 @@ const Orders = ({ url }) => {
                             {order.address.street}
                           </span>
                         </p>
-                        <div className="flex items-center justify-between pt-1">
+
+                        {/* Phí ship cố định */}
+                        <p className="flex justify-between items-center">
+                          <span className="text-gray-500 dark:text-gray-400">Phí ship:</span>
+                          <span className="text-dark dark:text-white">{formatCurrency(SHIPPING_FEE)}</span>
+                        </p>
+
+                        {/* Thông tin mã giảm giá - Hiển thị nổi bật hơn */}
+                        {order.voucherCode && (
+                          <div className="mt-2 p-2 bg-primary/5 dark:bg-primary/10 rounded-lg border border-primary/20">
+                            <div className="flex items-center mb-1">
+                              <Tag size={14} className="text-primary mr-1.5" />
+                              <span className="text-gray-700 dark:text-gray-300 font-medium">Mã giảm giá:</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-primary font-medium bg-primary/10 px-2 py-0.5 rounded">
+                                {order.voucherCode}
+                              </span>
+                              {order.discountAmount > 0 && (
+                                <span className="text-green-500 font-medium">
+                                  -{formatCurrency(order.discountAmount)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-200 dark:border-gray-700">
                           <div className="flex items-center">
                             {getPaymentMethodIcon(order.paymentMethod)}
                             <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
@@ -379,9 +417,10 @@ const Orders = ({ url }) => {
                                     : "Bank"}
                             </span>
                           </div>
-                          <span className="text-lg font-bold text-primary">
-                            {order.amount.toLocaleString("vi-VN")} đ
-                          </span>
+                          <div className="flex flex-col items-end">
+
+                            <span className="text-lg font-bold text-primary">{formatCurrency(order.amount)}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
