@@ -26,8 +26,14 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Plus,
+  Edit,
+  Trash2,
+  Home,
+  Star,
+  RefreshCw,
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 
 const PlaceOrder = () => {
   const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems } = useContext(StoreContext)
@@ -60,6 +66,15 @@ const PlaceOrder = () => {
   const [showVoucherList, setShowVoucherList] = useState(false)
   const [loadingVouchers, setLoadingVouchers] = useState(false)
 
+  // Address management
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
+  const [showAddressForm, setShowAddressForm] = useState(false)
+  const [addressFormMode, setAddressFormMode] = useState("add") // "add" or "edit"
+  const [currentEditAddress, setCurrentEditAddress] = useState(null)
+  const [showAddressModal, setShowAddressModal] = useState(false)
+
   const onChangeHandler = (event) => {
     const name = event.target.name
     const value = event.target.value
@@ -74,6 +89,11 @@ const PlaceOrder = () => {
   const validateForm = () => {
     let isValid = true
     const newErrors = { name: "", street: "", phone: "" }
+
+    // If using saved address, no need to validate form
+    if (selectedAddressId) {
+      return true
+    }
 
     // Validate name
     if (!data.name.trim()) {
@@ -140,6 +160,217 @@ const PlaceOrder = () => {
     }
   }
 
+  // Lấy danh sách địa chỉ đã lưu
+  const fetchSavedAddresses = async () => {
+    if (!token) return
+
+    setLoadingAddresses(true)
+    try {
+      const response = await axios.get(`${url}/api/address/list`, {
+        headers: { token },
+      })
+
+      if (response.data.success) {
+        setSavedAddresses(response.data.data)
+
+        // Nếu có địa chỉ mặc định, chọn nó
+        const defaultAddress = response.data.data.find((addr) => addr.isDefault)
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress._id)
+          // Cập nhật form data với địa chỉ mặc định
+          setData({
+            name: defaultAddress.name,
+            street: defaultAddress.street,
+            phone: defaultAddress.phone,
+          })
+        }
+      } else {
+        console.error("Failed to fetch addresses:", response.data.message)
+      }
+    } catch (error) {
+      console.error("Error fetching addresses:", error)
+      toast.error("Không thể tải địa chỉ đã lưu")
+    } finally {
+      setLoadingAddresses(false)
+    }
+  }
+
+  // Thêm địa chỉ mới
+  const handleAddAddress = async (e) => {
+    e.preventDefault()
+
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin địa chỉ")
+      return
+    }
+
+    try {
+      const response = await axios.post(
+        `${url}/api/address/add`,
+        {
+          name: data.name,
+          street: data.street,
+          phone: data.phone,
+          isDefault: savedAddresses.length === 0, // Mặc định nếu là địa chỉ đầu tiên
+        },
+        {
+          headers: { token },
+        },
+      )
+
+      if (response.data.success) {
+        setSavedAddresses(response.data.data)
+        setSelectedAddressId(response.data.data[0]._id) // Chọn địa chỉ vừa thêm
+        setShowAddressForm(false)
+        setShowAddressModal(false)
+        toast.success("Thêm địa chỉ thành công")
+      } else {
+        toast.error(response.data.message || "Không thể thêm địa chỉ")
+      }
+    } catch (error) {
+      console.error("Error adding address:", error)
+      toast.error("Đã xảy ra lỗi khi thêm địa chỉ")
+    }
+  }
+
+  // Cập nhật địa chỉ
+  const handleUpdateAddress = async (e) => {
+    e.preventDefault()
+
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin địa chỉ")
+      return
+    }
+
+    try {
+      const response = await axios.put(
+        `${url}/api/address/update`,
+        {
+          addressId: currentEditAddress._id,
+          name: data.name,
+          street: data.street,
+          phone: data.phone,
+          isDefault: currentEditAddress.isDefault,
+        },
+        {
+          headers: { token },
+        },
+      )
+
+      if (response.data.success) {
+        setSavedAddresses(response.data.data)
+        setShowAddressForm(false)
+        setShowAddressModal(false)
+        toast.success("Cập nhật địa chỉ thành công")
+      } else {
+        toast.error(response.data.message || "Không thể cập nhật địa chỉ")
+      }
+    } catch (error) {
+      console.error("Error updating address:", error)
+      toast.error("Đã xảy ra lỗi khi cập nhật địa chỉ")
+    }
+  }
+
+  // Xóa địa chỉ
+  const handleDeleteAddress = async (addressId) => {
+    try {
+      const response = await axios.delete(`${url}/api/address/delete`, {
+        headers: { token },
+        data: { addressId },
+      })
+
+      if (response.data.success) {
+        setSavedAddresses(response.data.data)
+
+        // Nếu đang chọn địa chỉ bị xóa, reset selection
+        if (selectedAddressId === addressId) {
+          setSelectedAddressId(null)
+          // Nếu còn địa chỉ khác, chọn địa chỉ đầu tiên
+          if (response.data.data.length > 0) {
+            setSelectedAddressId(response.data.data[0]._id)
+            setData({
+              name: response.data.data[0].name,
+              street: response.data.data[0].street,
+              phone: response.data.data[0].phone,
+            })
+          } else {
+            setData({ name: "", street: "", phone: "" })
+          }
+        }
+
+        toast.success("Xóa địa chỉ thành công")
+      } else {
+        toast.error(response.data.message || "Không thể xóa địa chỉ")
+      }
+    } catch (error) {
+      console.error("Error deleting address:", error)
+      toast.error("Đã xảy ra lỗi khi xóa địa chỉ")
+    }
+  }
+
+  // Đặt địa chỉ mặc định
+  const handleSetDefaultAddress = async (addressId) => {
+    try {
+      const response = await axios.put(
+        `${url}/api/address/set-default`,
+        {
+          addressId,
+        },
+        {
+          headers: { token },
+        },
+      )
+
+      if (response.data.success) {
+        setSavedAddresses(response.data.data)
+        toast.success("Đặt địa chỉ mặc định thành công")
+      } else {
+        toast.error(response.data.message || "Không thể đặt địa chỉ mặc định")
+      }
+    } catch (error) {
+      console.error("Error setting default address:", error)
+      toast.error("Đã xảy ra lỗi khi đặt địa chỉ mặc định")
+    }
+  }
+
+  // Chọn địa chỉ
+  const handleSelectAddress = (address) => {
+    setSelectedAddressId(address._id)
+    setData({
+      name: address.name,
+      street: address.street,
+      phone: address.phone,
+    })
+  }
+
+  // Mở form chỉnh sửa địa chỉ
+  const handleEditAddress = (address) => {
+    setAddressFormMode("edit")
+    setCurrentEditAddress(address)
+    setData({
+      name: address.name,
+      street: address.street,
+      phone: address.phone,
+    })
+    setShowAddressForm(true)
+    setShowAddressModal(true)
+  }
+
+  // Mở form thêm địa chỉ mới
+  const handleAddNewAddress = () => {
+    // Kiểm tra giới hạn địa chỉ
+    if (savedAddresses.length >= 3) {
+      toast.error("Bạn chỉ có thể lưu tối đa 3 địa chỉ. Vui lòng xóa địa chỉ cũ trước khi thêm mới.")
+      return
+    }
+
+    setAddressFormMode("add")
+    setCurrentEditAddress(null)
+    setData({ name: "", street: "", phone: "" })
+    setShowAddressForm(true)
+    setShowAddressModal(true)
+  }
+
   const handleApplyVoucher = async (code = voucherCode) => {
     if (!code.trim()) {
       setVoucherError("Vui lòng nhập mã giảm giá")
@@ -191,7 +422,8 @@ const PlaceOrder = () => {
   const placeOrder = async (event) => {
     event.preventDefault()
 
-    if (!validateForm()) {
+    // Nếu không chọn địa chỉ đã lưu, kiểm tra form
+    if (!selectedAddressId && !validateForm()) {
       toast.error("Vui lòng kiểm tra lại thông tin giao hàng")
       return
     }
@@ -239,8 +471,15 @@ const PlaceOrder = () => {
 
     const finalAmount = subtotal + shippingFee - discountAmount
 
+    // Sử dụng địa chỉ đã chọn hoặc địa chỉ nhập mới
+    const addressData = selectedAddressId ? savedAddresses.find((addr) => addr._id === selectedAddressId) : data
+
     const orderData = {
-      address: data,
+      address: {
+        name: addressData.name,
+        street: addressData.street,
+        phone: addressData.phone,
+      },
       items: orderItems,
       amount: finalAmount,
       paymentMethod: paymentMethod,
@@ -289,7 +528,8 @@ const PlaceOrder = () => {
 
   useEffect(() => {
     fetchAvailableVouchers()
-  }, [])
+    fetchSavedAddresses()
+  }, [token])
 
   // Calculate final amount with discount
   const getFinalAmount = () => {
@@ -375,136 +615,246 @@ const PlaceOrder = () => {
                   Thông tin vận chuyển
                 </h2>
 
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <Info className="h-5 w-5 text-blue-400" />
+                {/* Saved Addresses Section */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-white">Địa chỉ đã lưu</h3>
+                    <button
+                      onClick={handleAddNewAddress}
+                      className="flex items-center text-sm bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-1 px-3 rounded-lg transition-all duration-300"
+                    >
+                      <Plus size={16} className="mr-1" />
+                      Thêm địa chỉ mới
+                    </button>
+                  </div>
+
+                  {loadingAddresses ? (
+                    <div className="flex justify-center py-4">
+                      <RefreshCw size={24} className="animate-spin text-yellow-400" />
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-blue-300">
-                        Vui lòng nhập đầy đủ thông tin giao hàng để đảm bảo đơn hàng được giao đến đúng địa chỉ.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <form onSubmit={placeOrder} className="space-y-4">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      className={`w-full bg-slate-700/50 text-white border ${
-                        errors.name ? "border-red-500" : "border-slate-600"
-                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
-                      required
-                      name="name"
-                      onChange={onChangeHandler}
-                      value={data.name}
-                      type="text"
-                      placeholder="Họ tên người nhận"
-                    />
-                    {errors.name && (
-                      <div className="text-red-400 text-sm mt-1 flex items-center">
-                        <AlertCircle size={14} className="mr-1" />
-                        {errors.name}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
-                    <textarea
-                      className={`w-full bg-slate-700/50 text-white border ${
-                        errors.street ? "border-red-500" : "border-slate-600"
-                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-h-[100px]`}
-                      required
-                      name="street"
-                      onChange={onChangeHandler}
-                      value={data.street}
-                      placeholder="Địa chỉ giao hàng chi tiết (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)"
-                    />
-                    {errors.street && (
-                      <div className="text-red-400 text-sm mt-1 flex items-center">
-                        <AlertCircle size={14} className="mr-1" />
-                        {errors.street}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      className={`w-full bg-slate-700/50 text-white border ${
-                        errors.phone ? "border-red-500" : "border-slate-600"
-                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
-                      required
-                      name="phone"
-                      onChange={onChangeHandler}
-                      value={data.phone}
-                      type="text"
-                      placeholder="Số điện thoại liên hệ (VD: 0912345678)"
-                    />
-                    {errors.phone && (
-                      <div className="text-red-400 text-sm mt-1 flex items-center">
-                        <AlertCircle size={14} className="mr-1" />
-                        {errors.phone}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-6">
-                    <h3 className="text-lg font-medium text-white mb-4">Phương thức thanh toán</h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      {paymentMethods.map((method) => (
+                  ) : savedAddresses.length > 0 ? (
+                    <div className="space-y-3">
+                      {savedAddresses.map((address) => (
                         <div
-                          key={method.id}
+                          key={address._id}
+                          onClick={() => handleSelectAddress(address)}
                           className={`border ${
-                            paymentMethod === method.id
+                            selectedAddressId === address._id
                               ? "border-yellow-400 bg-yellow-400/10"
                               : "border-slate-600 bg-slate-700/30"
                           } rounded-xl p-4 cursor-pointer hover:border-yellow-400/50 transition-all duration-300`}
-                          onClick={() => setPaymentMethod(method.id)}
                         >
-                          <div className="flex items-center">
-                            <div
-                              className={`w-5 h-5 rounded-full border-2 ${
-                                paymentMethod === method.id ? "border-yellow-400" : "border-gray-400"
-                              } flex items-center justify-center mr-3`}
-                            >
-                              {paymentMethod === method.id && (
-                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                              )}
-                            </div>
-                            <div className="flex items-center flex-1">
-                              {method.icon}
-                              <div className="ml-3">
-                                <span className="text-white font-medium">{method.name}</span>
-                                <p className="text-gray-400 text-sm">{method.description}</p>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start">
+                              <div
+                                className={`mt-1 w-5 h-5 rounded-full border-2 ${
+                                  selectedAddressId === address._id ? "border-yellow-400" : "border-gray-400"
+                                } flex items-center justify-center mr-3 flex-shrink-0`}
+                              >
+                                {selectedAddressId === address._id && (
+                                  <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                )}
                               </div>
+                              <div>
+                                <div className="flex items-center">
+                                  <span className="text-white font-medium">{address.name}</span>
+                                  {address.isDefault && (
+                                    <span className="ml-2 text-xs bg-green-500/20 text-green-400 py-0.5 px-2 rounded-full flex items-center">
+                                      <Home size={10} className="mr-1" />
+                                      Mặc định
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-gray-300 text-sm mt-1">{address.phone}</p>
+                                <p className="text-gray-400 text-sm mt-1">{address.street}</p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEditAddress(address)
+                                }}
+                                className="text-blue-400 hover:text-blue-300 transition-colors p-1"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              {!address.isDefault && (
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleSetDefaultAddress(address._id)
+                                    }}
+                                    className="text-yellow-400 hover:text-yellow-300 transition-colors p-1"
+                                    title="Đặt làm mặc định"
+                                  >
+                                    <Star size={16} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteAddress(address._id)
+                                    }}
+                                    className="text-red-400 hover:text-red-300 transition-colors p-1"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="bg-slate-700/30 border border-slate-600 rounded-xl p-4 text-center">
+                      <p className="text-gray-400">Bạn chưa có địa chỉ nào được lưu</p>
+                      <button
+                        onClick={handleAddNewAddress}
+                        className="mt-2 flex items-center mx-auto text-sm bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 py-1 px-3 rounded-lg transition-all duration-300"
+                      >
+                        <Plus size={16} className="mr-1" />
+                        Thêm địa chỉ mới
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 py-3 rounded-xl flex items-center justify-center transition-all duration-300 mt-6 disabled:opacity-70 font-medium hover:scale-105"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-900 mr-3"></div>
-                        Đang xử lý...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={20} className="mr-2" />
-                        Xác nhận đặt hàng
-                      </>
-                    )}
-                  </button>
-                </form>
+                {/* New Address Form */}
+                {(!savedAddresses.length || !selectedAddressId) && (
+                  <>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <Info className="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-blue-300">
+                            Vui lòng nhập đầy đủ thông tin giao hàng để đảm bảo đơn hàng được giao đến đúng địa chỉ.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <form onSubmit={placeOrder} className="space-y-4">
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          className={`w-full bg-slate-700/50 text-white border ${
+                            errors.name ? "border-red-500" : "border-slate-600"
+                          } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
+                          required
+                          name="name"
+                          onChange={onChangeHandler}
+                          value={data.name}
+                          type="text"
+                          placeholder="Họ tên người nhận"
+                        />
+                        {errors.name && (
+                          <div className="text-red-400 text-sm mt-1 flex items-center">
+                            <AlertCircle size={14} className="mr-1" />
+                            {errors.name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
+                        <textarea
+                          className={`w-full bg-slate-700/50 text-white border ${
+                            errors.street ? "border-red-500" : "border-slate-600"
+                          } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-h-[100px]`}
+                          required
+                          name="street"
+                          onChange={onChangeHandler}
+                          value={data.street}
+                          placeholder="Địa chỉ giao hàng chi tiết (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)"
+                        />
+                        {errors.street && (
+                          <div className="text-red-400 text-sm mt-1 flex items-center">
+                            <AlertCircle size={14} className="mr-1" />
+                            {errors.street}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          className={`w-full bg-slate-700/50 text-white border ${
+                            errors.phone ? "border-red-500" : "border-slate-600"
+                          } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
+                          required
+                          name="phone"
+                          onChange={onChangeHandler}
+                          value={data.phone}
+                          type="text"
+                          placeholder="Số điện thoại liên hệ (VD: 0912345678)"
+                        />
+                        {errors.phone && (
+                          <div className="text-red-400 text-sm mt-1 flex items-center">
+                            <AlertCircle size={14} className="mr-1" />
+                            {errors.phone}
+                          </div>
+                        )}
+                      </div>
+                    </form>
+                  </>
+                )}
+
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-white mb-4">Phương thức thanh toán</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {paymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className={`border ${
+                          paymentMethod === method.id
+                            ? "border-yellow-400 bg-yellow-400/10"
+                            : "border-slate-600 bg-slate-700/30"
+                        } rounded-xl p-4 cursor-pointer hover:border-yellow-400/50 transition-all duration-300`}
+                        onClick={() => setPaymentMethod(method.id)}
+                      >
+                        <div className="flex items-center">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 ${
+                              paymentMethod === method.id ? "border-yellow-400" : "border-gray-400"
+                            } flex items-center justify-center mr-3`}
+                          >
+                            {paymentMethod === method.id && <div className="w-3 h-3 rounded-full bg-yellow-400"></div>}
+                          </div>
+                          <div className="flex items-center flex-1">
+                            {method.icon}
+                            <div className="ml-3">
+                              <span className="text-white font-medium">{method.name}</span>
+                              <p className="text-gray-400 text-sm">{method.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  onClick={placeOrder}
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 py-3 rounded-xl flex items-center justify-center transition-all duration-300 mt-6 disabled:opacity-70 font-medium hover:scale-105"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-slate-900 mr-3"></div>
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={20} className="mr-2" />
+                      Xác nhận đặt hàng
+                    </>
+                  )}
+                </button>
               </div>
 
               <div>
@@ -735,7 +1085,129 @@ const PlaceOrder = () => {
           </div>
         </motion.div>
       </div>
-      <ToastContainer />
+
+      {/* Address Modal */}
+      <AnimatePresence>
+        {showAddressModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-800 rounded-xl shadow-xl border border-slate-700 w-full max-w-md overflow-hidden"
+            >
+              <div className="p-5 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-700 flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-white">
+                  {addressFormMode === "add" ? "Thêm địa chỉ mới" : "Chỉnh sửa địa chỉ"}
+                </h3>
+                <button
+                  onClick={() => setShowAddressModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="p-5">
+                <form
+                  onSubmit={addressFormMode === "add" ? handleAddAddress : handleUpdateAddress}
+                  className="space-y-4"
+                >
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      className={`w-full bg-slate-700/50 text-white border ${
+                        errors.name ? "border-red-500" : "border-slate-600"
+                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
+                      required
+                      name="name"
+                      onChange={onChangeHandler}
+                      value={data.name}
+                      type="text"
+                      placeholder="Họ tên người nhận"
+                    />
+                    {errors.name && (
+                      <div className="text-red-400 text-sm mt-1 flex items-center">
+                        <AlertCircle size={14} className="mr-1" />
+                        {errors.name}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
+                    <textarea
+                      className={`w-full bg-slate-700/50 text-white border ${
+                        errors.street ? "border-red-500" : "border-slate-600"
+                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-h-[100px]`}
+                      required
+                      name="street"
+                      onChange={onChangeHandler}
+                      value={data.street}
+                      placeholder="Địa chỉ giao hàng chi tiết (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)"
+                    />
+                    {errors.street && (
+                      <div className="text-red-400 text-sm mt-1 flex items-center">
+                        <AlertCircle size={14} className="mr-1" />
+                        {errors.street}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      className={`w-full bg-slate-700/50 text-white border ${
+                        errors.phone ? "border-red-500" : "border-slate-600"
+                      } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent`}
+                      required
+                      name="phone"
+                      onChange={onChangeHandler}
+                      value={data.phone}
+                      type="text"
+                      placeholder="Số điện thoại liên hệ (VD: 0912345678)"
+                    />
+                    {errors.phone && (
+                      <div className="text-red-400 text-sm mt-1 flex items-center">
+                        <AlertCircle size={14} className="mr-1" />
+                        {errors.phone}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddressModal(false)}
+                      className="flex-1 bg-slate-600 hover:bg-slate-500 text-white py-2 px-4 rounded-xl transition-all duration-300"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 py-2 px-4 rounded-xl transition-all duration-300 font-medium"
+                    >
+                      {addressFormMode === "add" ? "Thêm địa chỉ" : "Cập nhật"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </div>
   )
 }
