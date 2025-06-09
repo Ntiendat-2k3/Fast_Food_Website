@@ -13,7 +13,8 @@ import messageRouter from "./routes/messageRoute.js"
 import notificationRouter from "./routes/notificationRoute.js"
 import voucherRouter from "./routes/voucherRoute.js"
 import wishlistRouter from "./routes/wishlistRoute.js"
-import addressRoute from "./routes/addressRoute.js"
+import addressRouter from "./routes/addressRoute.js"
+import purchaseHistoryRouter from "./routes/purchaseHistoryRoute.js"
 import "dotenv/config"
 
 // app config
@@ -39,7 +40,8 @@ app.use("/api/message", messageRouter)
 app.use("/api/notification", notificationRouter)
 app.use("/api/voucher", voucherRouter)
 app.use("/api/wishlist", wishlistRouter)
-app.use("/api/address", addressRoute)
+app.use("/api/address", addressRouter)
+app.use("/api/purchase-history", purchaseHistoryRouter)
 app.use("/api/ai", aiRouter)
 app.use("/images", express.static("uploads"))
 

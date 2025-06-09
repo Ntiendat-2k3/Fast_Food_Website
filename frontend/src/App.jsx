@@ -17,6 +17,7 @@ import Contact from "./pages/Contact/Contact"
 import Payment from "./pages/Payment/Payment"
 import Thankyou from "./pages/Thankyou/Thankyou"
 import Wishlist from "./pages/Wishlist/Wishlist"
+import PurchaseHistory from "./pages/PurchaseHistory/PurchaseHistory"
 import AIAssistant from "./components/AIAssistant"
 import { MessageCircle } from "lucide-react"
 
@@ -41,6 +42,7 @@ const App = () => {
           <Route path="/payment/:method/:orderId" element={<Payment />} />
           <Route path="/thankyou" element={<Thankyou />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/purchase-history" element={<PurchaseHistory />} />
         </Routes>
       </div>
       <Footer />

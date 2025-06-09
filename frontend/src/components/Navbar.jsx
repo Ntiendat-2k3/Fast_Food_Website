@@ -4,7 +4,7 @@ import { useState, useContext, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { StoreContext } from "../context/StoreContext"
 import { useTheme } from "../context/ThemeContext"
-import { ShoppingCart, User, LogOut, Package, Menu, X, Sun, Moon, Bell, Heart } from "lucide-react"
+import { ShoppingCart, User, LogOut, Package, Menu, X, Sun, Moon, Bell, Heart, History } from "lucide-react"
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -421,6 +421,14 @@ const Navbar = ({ setShowLogin }) => {
                         <Package size={16} className="mr-3" />
                         Đơn hàng của tôi
                       </Link>
+                      <Link
+                        to="/purchase-history"
+                        className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <History size={16} className="mr-3" />
+                        Lịch sử mua hàng
+                      </Link>
                       <button
                         onClick={() => {
                           logout()
@@ -488,27 +496,43 @@ const Navbar = ({ setShowLogin }) => {
                     </motion.div>
                   ))}
                   {token && (
-                    <motion.div variants={menuItemVariants} custom={navItems.length + 1}>
-                      <Link
-                        to="/wishlist"
-                        className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center justify-between min-h-[48px] ${
-                          location.pathname === "/wishlist"
-                            ? "text-primary bg-slate-700/50"
-                            : "text-white hover:text-primary hover:bg-slate-700/30"
-                        }`}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <div className="flex items-center">
-                          <Heart size={16} className="mr-3" />
-                          Yêu thích
-                        </div>
-                        {wishlistCount > 0 && (
-                          <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                            {wishlistCount > 9 ? "9+" : wishlistCount}
-                          </span>
-                        )}
-                      </Link>
-                    </motion.div>
+                    <>
+                      <motion.div variants={menuItemVariants} custom={navItems.length + 1}>
+                        <Link
+                          to="/wishlist"
+                          className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center justify-between min-h-[48px] ${
+                            location.pathname === "/wishlist"
+                              ? "text-primary bg-slate-700/50"
+                              : "text-white hover:text-primary hover:bg-slate-700/30"
+                          }`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <div className="flex items-center">
+                            <Heart size={16} className="mr-3" />
+                            Yêu thích
+                          </div>
+                          {wishlistCount > 0 && (
+                            <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                              {wishlistCount > 9 ? "9+" : wishlistCount}
+                            </span>
+                          )}
+                        </Link>
+                      </motion.div>
+                      <motion.div variants={menuItemVariants} custom={navItems.length + 2}>
+                        <Link
+                          to="/purchase-history"
+                          className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] ${
+                            location.pathname === "/purchase-history"
+                              ? "text-primary bg-slate-700/50"
+                              : "text-white hover:text-primary hover:bg-slate-700/30"
+                          }`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <History size={16} className="mr-3" />
+                          Lịch sử mua hàng
+                        </Link>
+                      </motion.div>
+                    </>
                   )}
                 </nav>
               </div>
