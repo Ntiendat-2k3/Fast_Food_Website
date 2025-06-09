@@ -1,20 +1,24 @@
-import express from "express"
-import {
-  getPurchaseHistory,
-  getPurchaseStatistics,
-  addPurchaseReview,
-} from "../controllers/purchaseHistoryController.js"
-import { requireSignIn } from "../middleware/auth.js"
+// import express from "express"
+// import { requireSignIn, verifyAdmin } from "../middleware/auth.js"
+// import {
+//   getUserPurchaseHistory,
+//   addToPurchaseHistory,
+//   deletePurchaseHistory,
+//   getPurchaseHistoryDetail,
+// } from "../controllers/purchaseHistoryController.js"
 
-const purchaseHistoryRouter = express.Router()
+// const router = express.Router()
 
-// Get purchase history with filters
-purchaseHistoryRouter.get("/list", requireSignIn, getPurchaseHistory)
+// // Lấy lịch sử mua hàng của người dùng
+// router.post("/user", requireSignIn, getUserPurchaseHistory)
 
-// Get purchase statistics
-purchaseHistoryRouter.get("/statistics", requireSignIn, getPurchaseStatistics)
+// // Thêm vào lịch sử mua hàng (thường được gọi tự động khi đơn hàng hoàn thành)
+// router.post("/add", requireSignIn, addToPurchaseHistory)
 
-// Add review to purchase
-purchaseHistoryRouter.post("/review", requireSignIn, addPurchaseReview)
+// // Xóa lịch sử mua hàng (chỉ admin)
+// router.delete("/:id", verifyAdmin, deletePurchaseHistory)
 
-export default purchaseHistoryRouter
+// // Lấy chi tiết một bản ghi lịch sử mua hàng
+// router.get("/:id", requireSignIn, getPurchaseHistoryDetail)
+
+// export default router

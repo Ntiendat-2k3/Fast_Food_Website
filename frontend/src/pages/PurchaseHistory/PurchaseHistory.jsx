@@ -52,40 +52,6 @@ const PurchaseHistory = () => {
     }
   }, [token, navigate])
 
-  // Test server connection
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        console.log("Testing server connection...")
-        console.log("URL:", url)
-
-        // Test basic server connection
-        const serverTest = await axios.get(`${url}/`)
-        console.log("Server test:", serverTest.data)
-
-        // Test routes endpoint
-        const routesTest = await axios.get(`${url}/api/routes`)
-        console.log("Available routes:", routesTest.data)
-
-        // Test order router
-        const orderTest = await axios.get(`${url}/api/order/test`)
-        console.log("Order router test:", orderTest.data)
-      } catch (error) {
-        console.error("Connection test failed:", error)
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          url: error.config?.url,
-        })
-      }
-    }
-
-    if (url) {
-      testConnection()
-    }
-  }, [url])
-
   // Fetch purchase history
   useEffect(() => {
     const fetchPurchaseHistory = async () => {
@@ -107,73 +73,42 @@ const PurchaseHistory = () => {
 
         console.log("Request data:", requestData)
 
-        const fullUrl = `${url}/api/order/purchase-history`
-        console.log("Full URL:", fullUrl)
-
-        const config = {
-          headers: {
-            token: token,
-            "Content-Type": "application/json",
+        // Sửa từ GET thành POST và thêm userId vào body
+        const response = await axios.post(
+          `${url}/api/order/purchase-history`,
+          requestData, // Thêm userId vào body
+          {
+            headers: { token },
+            params: {
+              // Vẫn giữ các query params
+              page: currentPage,
+              status: statusFilter,
+              timeRange: timeFilter,
+              search: searchQuery,
+              sortBy: sortBy,
+            },
           },
-          params: {
-            page: currentPage,
-            status: statusFilter,
-            timeRange: timeFilter,
-            search: searchQuery,
-            sortBy: sortBy,
-          },
-        }
+        )
 
-        console.log("Request config:", config)
-
-        const response = await axios.post(fullUrl, requestData, config)
-
-        console.log("Full response:", response)
-        console.log("Response data:", response.data)
+        console.log("Purchase history response:", response.data)
 
         if (response.data.success) {
           setOrders(response.data.data || [])
           setTotalPages(response.data.totalPages || 1)
           setTotalOrders(response.data.totalOrders || 0)
           setTotalSpent(response.data.totalSpent || 0)
-
-          console.log("Data set successfully:", {
-            orders: response.data.data?.length || 0,
-            totalPages: response.data.totalPages,
-            totalOrders: response.data.totalOrders,
-            totalSpent: response.data.totalSpent,
-          })
         } else {
-          console.log("API returned error:", response.data.message)
           toast.error(response.data.message || "Không thể tải lịch sử mua hàng")
         }
       } catch (error) {
         console.error("Error fetching purchase history:", error)
-        console.error("Error details:", {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          url: error.config?.url,
-          headers: error.config?.headers,
-        })
-
-        if (error.response?.status === 404) {
-          toast.error("API endpoint không tồn tại. Vui lòng kiểm tra server.")
-        } else {
-          toast.error("Lỗi khi tải lịch sử mua hàng: " + (error.response?.data?.message || error.message))
-        }
+        toast.error("Lỗi khi tải lịch sử mua hàng")
       } finally {
         setLoading(false)
       }
     }
 
-    // Chỉ gọi API khi có token và user
-    if (token && user) {
-      fetchPurchaseHistory()
-    } else {
-      console.log("Waiting for token and user...")
-      setLoading(false)
-    }
+    fetchPurchaseHistory()
   }, [url, token, user, currentPage, statusFilter, timeFilter, searchQuery, sortBy])
 
   // Format date
@@ -300,20 +235,6 @@ const PurchaseHistory = () => {
     toast.info("Tính năng mua lại đang được phát triển")
   }
 
-  // Show loading if waiting for user data
-  if (!token || !user) {
-    return (
-      <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-b from-slate-900 to-slate-800">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-12">
-            <RefreshCw className="animate-spin text-primary mb-4" size={40} />
-            <p className="text-gray-400">Đang tải thông tin người dùng...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 bg-gradient-to-b from-slate-900 to-slate-800">
       <div className="max-w-6xl mx-auto">
@@ -343,17 +264,6 @@ const PurchaseHistory = () => {
                 <p className="text-white font-bold text-xl">{formatCurrency(totalSpent)}</p>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Debug Info */}
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-4 mb-6">
-          <h3 className="text-white font-medium mb-2">Debug Info</h3>
-          <div className="text-sm text-gray-400 space-y-1">
-            <p>Server URL: {url}</p>
-            <p>Token: {token ? "✅ Available" : "❌ Missing"}</p>
-            <p>User: {user ? `✅ ${user.name} (${user._id})` : "❌ Missing"}</p>
-            <p>API Endpoint: {url}/api/order/purchase-history</p>
           </div>
         </div>
 

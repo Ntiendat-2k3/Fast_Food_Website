@@ -1,345 +1,276 @@
-import purchaseHistoryModel from "../models/purchaseHistoryModel.js"
-import orderModel from "../models/orderModel.js"
+// import PurchaseHistory from "../models/purchaseHistoryModel.js"
+// import Order from "../models/orderModel.js"
 
-// Move completed order to purchase history
-const moveOrderToPurchaseHistory = async (orderId) => {
-  try {
-    // Get the completed order
-    const order = await orderModel.findById(orderId)
-    if (!order) {
-      throw new Error("Order not found")
-    }
+// // Lấy lịch sử mua hàng của người dùng
+// export const getUserPurchaseHistory = async (req, res) => {
+//   try {
+//     const { userId } = req.body
+//     const { page = 1, limit = 10, sortBy = "newest", search = "", timeRange = "all" } = req.query
 
-    // Check if already in purchase history
-    const existingHistory = await purchaseHistoryModel.findOne({ orderId: orderId })
-    if (existingHistory) {
-      console.log("Order already in purchase history:", orderId)
-      return existingHistory
-    }
+//     console.log("Getting purchase history for user:", userId)
+//     console.log("Query params:", { page, limit, sortBy, search, timeRange })
 
-    // Calculate total item count
-    const totalItemCount = order.items.reduce((total, item) => total + item.quantity, 0)
+//     if (!userId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Không tìm thấy ID người dùng",
+//       })
+//     }
 
-    // Create purchase history record
-    const purchaseHistory = new purchaseHistoryModel({
-      userId: order.userId,
-      orderId: order._id.toString(),
-      items: order.items,
-      amount: order.amount,
-      address: order.address,
-      orderDate: order.date,
-      completedDate: new Date(),
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus,
-      voucherCode: order.voucherCode,
-      discountAmount: order.discountAmount,
-      shippingFee: order.shippingFee || 0,
-      finalStatus: order.status,
-      totalItemCount: totalItemCount,
-    })
+//     // Build query
+//     const query = { userId }
 
-    await purchaseHistory.save()
-    console.log("Order moved to purchase history:", orderId)
-    return purchaseHistory
-  } catch (error) {
-    console.error("Error moving order to purchase history:", error)
-    throw error
-  }
-}
+//     // Add search filter
+//     if (search) {
+//       query.$or = [
+//         { "items.name": { $regex: search, $options: "i" } },
+//         { voucherCode: { $regex: search, $options: "i" } },
+//         { "deliveryAddress.fullName": { $regex: search, $options: "i" } },
+//         { "deliveryAddress.phone": { $regex: search, $options: "i" } },
+//       ]
+//     }
 
-// Get purchase history with advanced filtering
-const getPurchaseHistory = async (req, res) => {
-  try {
-    const userId = req.body.userId
-    const {
-      page = 1,
-      limit = 10,
-      status = "all",
-      timeRange = "all",
-      search = "",
-      sortBy = "newest",
-      minAmount = 0,
-      maxAmount = null,
-    } = req.query
+//     // Add time range filter
+//     if (timeRange !== "all") {
+//       const now = new Date()
+//       let startDate
 
-    // Build filter object
-    const filter = { userId }
+//       switch (timeRange) {
+//         case "7days":
+//           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+//           break
+//         case "30days":
+//           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+//           break
+//         case "3months":
+//           startDate = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000)
+//           break
+//         case "6months":
+//           startDate = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000)
+//           break
+//         case "1year":
+//           startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+//           break
+//       }
 
-    // Amount range filter
-    if (minAmount > 0 || maxAmount) {
-      filter.amount = {}
-      if (minAmount > 0) filter.amount.$gte = Number(minAmount)
-      if (maxAmount) filter.amount.$lte = Number(maxAmount)
-    }
+//       if (startDate) {
+//         query.purchaseDate = { $gte: startDate }
+//       }
+//     }
 
-    // Time range filter
-    if (timeRange !== "all") {
-      const now = new Date()
-      let startDate
+//     // Sort options
+//     let sortOptions = {}
+//     switch (sortBy) {
+//       case "newest":
+//         sortOptions = { purchaseDate: -1 }
+//         break
+//       case "oldest":
+//         sortOptions = { purchaseDate: 1 }
+//         break
+//       case "highest":
+//         sortOptions = { totalAmount: -1 }
+//         break
+//       case "lowest":
+//         sortOptions = { totalAmount: 1 }
+//         break
+//       default:
+//         sortOptions = { purchaseDate: -1 }
+//     }
 
-      switch (timeRange) {
-        case "7days":
-          startDate = new Date(now.setDate(now.getDate() - 7))
-          break
-        case "30days":
-          startDate = new Date(now.setDate(now.getDate() - 30))
-          break
-        case "3months":
-          startDate = new Date(now.setMonth(now.getMonth() - 3))
-          break
-        case "6months":
-          startDate = new Date(now.setMonth(now.getMonth() - 6))
-          break
-        case "1year":
-          startDate = new Date(now.setFullYear(now.getFullYear() - 1))
-          break
-        default:
-          startDate = null
-      }
+//     // Calculate pagination
+//     const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit)
 
-      if (startDate) {
-        filter.completedDate = { $gte: startDate }
-      }
-    }
+//     // Execute query
+//     const purchases = await PurchaseHistory.find(query)
+//       .sort(sortOptions)
+//       .skip(skip)
+//       .limit(Number.parseInt(limit))
+//       .lean()
 
-    // Search filter
-    if (search) {
-      filter.$or = [
-        { orderId: { $regex: search, $options: "i" } },
-        { "address.name": { $regex: search, $options: "i" } },
-        { "address.phone": { $regex: search, $options: "i" } },
-        { voucherCode: { $regex: search, $options: "i" } },
-      ]
-    }
+//     const totalPurchases = await PurchaseHistory.countDocuments(query)
+//     const totalPages = Math.ceil(totalPurchases / Number.parseInt(limit))
 
-    // Sort options
-    let sortOptions = {}
-    switch (sortBy) {
-      case "newest":
-        sortOptions = { completedDate: -1 }
-        break
-      case "oldest":
-        sortOptions = { completedDate: 1 }
-        break
-      case "highest":
-        sortOptions = { amount: -1 }
-        break
-      case "lowest":
-        sortOptions = { amount: 1 }
-        break
-      case "most_items":
-        sortOptions = { totalItemCount: -1 }
-        break
-      default:
-        sortOptions = { completedDate: -1 }
-    }
+//     // Calculate statistics
+//     const allPurchases = await PurchaseHistory.find({ userId })
+//     const totalSpent = allPurchases.reduce((sum, purchase) => sum + purchase.totalAmount, 0)
+//     const totalItems = allPurchases.reduce((sum, purchase) => {
+//       return sum + purchase.items.reduce((itemSum, item) => itemSum + item.quantity, 0)
+//     }, 0)
 
-    // Calculate pagination
-    const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit)
+//     res.status(200).json({
+//       success: true,
+//       data: purchases,
+//       pagination: {
+//         totalPages,
+//         currentPage: Number.parseInt(page),
+//         totalItems: totalPurchases,
+//       },
+//       stats: {
+//         totalSpent,
+//         totalOrders: allPurchases.length,
+//         totalItems,
+//       },
+//     })
+//   } catch (error) {
+//     console.error("Error getting purchase history:", error)
+//     res.status(500).json({
+//       success: false,
+//       message: "Lỗi khi lấy lịch sử mua hàng",
+//       error: error.message,
+//     })
+//   }
+// }
 
-    // Get purchase history with pagination
-    const purchases = await purchaseHistoryModel
-      .find(filter)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(Number.parseInt(limit))
-      .lean()
+// // Thêm vào lịch sử mua hàng khi đơn hàng hoàn thành
+// export const addToPurchaseHistory = async (req, res) => {
+//   try {
+//     const { orderId } = req.body
 
-    // Get total count for pagination
-    const totalPurchases = await purchaseHistoryModel.countDocuments(filter)
-    const totalPages = Math.ceil(totalPurchases / Number.parseInt(limit))
+//     // Kiểm tra xem đơn hàng đã tồn tại trong lịch sử chưa
+//     const existingRecord = await PurchaseHistory.findOne({ orderId })
+//     if (existingRecord) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Đơn hàng này đã được thêm vào lịch sử mua hàng",
+//       })
+//     }
 
-    // Calculate statistics
-    const stats = await purchaseHistoryModel.aggregate([
-      { $match: { userId } },
-      {
-        $group: {
-          _id: null,
-          totalSpent: { $sum: "$amount" },
-          totalOrders: { $sum: 1 },
-          totalItems: { $sum: "$totalItemCount" },
-          avgOrderValue: { $avg: "$amount" },
-          totalSavings: { $sum: "$discountAmount" },
-        },
-      },
-    ])
+//     // Lấy thông tin đơn hàng
+//     const order = await Order.findById(orderId)
+//     if (!order) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Không tìm thấy đơn hàng",
+//       })
+//     }
 
-    const statistics =
-      stats.length > 0
-        ? stats[0]
-        : {
-            totalSpent: 0,
-            totalOrders: 0,
-            totalItems: 0,
-            avgOrderValue: 0,
-            totalSavings: 0,
-          }
+//     // Chỉ thêm vào lịch sử nếu đơn hàng đã hoàn thành
+//     if (order.status !== "Đã giao hàng") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Chỉ đơn hàng đã hoàn thành mới được thêm vào lịch sử mua hàng",
+//       })
+//     }
 
-    // Get monthly spending for the last 12 months
-    const monthlyStats = await purchaseHistoryModel.aggregate([
-      {
-        $match: {
-          userId,
-          completedDate: {
-            $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$completedDate" },
-            month: { $month: "$completedDate" },
-          },
-          totalSpent: { $sum: "$amount" },
-          orderCount: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ])
+//     // Tạo bản ghi lịch sử mua hàng
+//     const purchaseHistory = new PurchaseHistory({
+//       userId: order.userId,
+//       orderId: order._id,
+//       items: order.items,
+//       totalAmount: order.amount,
+//       paymentMethod: order.paymentMethod,
+//       paymentStatus: order.paymentStatus,
+//       deliveryAddress: order.address,
+//       purchaseDate: order.date,
+//       voucherCode: order.voucherCode,
+//       discountAmount: order.discountAmount,
+//     })
 
-    res.json({
-      success: true,
-      data: purchases,
-      pagination: {
-        currentPage: Number.parseInt(page),
-        totalPages,
-        totalPurchases,
-        hasNextPage: Number.parseInt(page) < totalPages,
-        hasPrevPage: Number.parseInt(page) > 1,
-      },
-      statistics,
-      monthlyStats,
-    })
-  } catch (error) {
-    console.error("Error getting purchase history:", error)
-    res.json({
-      success: false,
-      message: "Lỗi khi lấy lịch sử mua hàng",
-    })
-  }
-}
+//     await purchaseHistory.save()
 
-// Get purchase statistics
-const getPurchaseStatistics = async (req, res) => {
-  try {
-    const userId = req.body.userId
+//     res.status(201).json({
+//       success: true,
+//       message: "Đã thêm vào lịch sử mua hàng",
+//       data: purchaseHistory,
+//     })
+//   } catch (error) {
+//     console.error("Error adding to purchase history:", error)
+//     res.status(500).json({
+//       success: false,
+//       message: "Lỗi khi thêm vào lịch sử mua hàng",
+//       error: error.message,
+//     })
+//   }
+// }
 
-    // Overall statistics
-    const overallStats = await purchaseHistoryModel.aggregate([
-      { $match: { userId } },
-      {
-        $group: {
-          _id: null,
-          totalSpent: { $sum: "$amount" },
-          totalOrders: { $sum: 1 },
-          totalItems: { $sum: "$totalItemCount" },
-          avgOrderValue: { $avg: "$amount" },
-          totalSavings: { $sum: "$discountAmount" },
-          maxOrderValue: { $max: "$amount" },
-          minOrderValue: { $min: "$amount" },
-        },
-      },
-    ])
+// // Tự động thêm vào lịch sử mua hàng khi cập nhật trạng thái đơn hàng thành "Đã giao hàng"
+// export const autoAddToPurchaseHistory = async (orderId) => {
+//   try {
+//     // Kiểm tra xem đơn hàng đã tồn tại trong lịch sử chưa
+//     const existingRecord = await PurchaseHistory.findOne({ orderId })
+//     if (existingRecord) {
+//       console.log("Đơn hàng đã tồn tại trong lịch sử mua hàng")
+//       return
+//     }
 
-    // Most ordered items
-    const topItems = await purchaseHistoryModel.aggregate([
-      { $match: { userId } },
-      { $unwind: "$items" },
-      {
-        $group: {
-          _id: "$items.name",
-          totalQuantity: { $sum: "$items.quantity" },
-          totalSpent: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
-          orderCount: { $sum: 1 },
-        },
-      },
-      { $sort: { totalQuantity: -1 } },
-      { $limit: 10 },
-    ])
+//     // Lấy thông tin đơn hàng
+//     const order = await Order.findById(orderId)
+//     if (!order) {
+//       console.log("Không tìm thấy đơn hàng")
+//       return
+//     }
 
-    // Payment method distribution
-    const paymentMethods = await purchaseHistoryModel.aggregate([
-      { $match: { userId } },
-      {
-        $group: {
-          _id: "$paymentMethod",
-          count: { $sum: 1 },
-          totalAmount: { $sum: "$amount" },
-        },
-      },
-      { $sort: { count: -1 } },
-    ])
+//     // Tạo bản ghi lịch sử mua hàng
+//     const purchaseHistory = new PurchaseHistory({
+//       userId: order.userId,
+//       orderId: order._id,
+//       items: order.items,
+//       totalAmount: order.amount,
+//       paymentMethod: order.paymentMethod,
+//       paymentStatus: order.paymentStatus,
+//       deliveryAddress: order.address,
+//       purchaseDate: order.date,
+//       voucherCode: order.voucherCode,
+//       discountAmount: order.discountAmount,
+//     })
 
-    // Recent activity (last 30 days)
-    const recentActivity = await purchaseHistoryModel.aggregate([
-      {
-        $match: {
-          userId,
-          completedDate: {
-            $gte: new Date(new Date().setDate(new Date().getDate() - 30)),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          recentSpent: { $sum: "$amount" },
-          recentOrders: { $sum: 1 },
-        },
-      },
-    ])
+//     await purchaseHistory.save()
+//     console.log("Đã tự động thêm đơn hàng vào lịch sử mua hàng")
+//   } catch (error) {
+//     console.error("Error auto adding to purchase history:", error)
+//   }
+// }
 
-    res.json({
-      success: true,
-      overallStats: overallStats[0] || {},
-      topItems,
-      paymentMethods,
-      recentActivity: recentActivity[0] || { recentSpent: 0, recentOrders: 0 },
-    })
-  } catch (error) {
-    console.error("Error getting purchase statistics:", error)
-    res.json({
-      success: false,
-      message: "Lỗi khi lấy thống kê mua hàng",
-    })
-  }
-}
+// // Xóa lịch sử mua hàng (chỉ admin)
+// export const deletePurchaseHistory = async (req, res) => {
+//   try {
+//     const { id } = req.params
 
-// Add rating and review to purchase
-const addPurchaseReview = async (req, res) => {
-  try {
-    const { purchaseId, rating, review } = req.body
-    const userId = req.body.userId
+//     const result = await PurchaseHistory.findByIdAndDelete(id)
+//     if (!result) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Không tìm thấy bản ghi lịch sử mua hàng",
+//       })
+//     }
 
-    const purchase = await purchaseHistoryModel.findOneAndUpdate(
-      { _id: purchaseId, userId },
-      {
-        customerRating: rating,
-        customerReview: review,
-      },
-      { new: true },
-    )
+//     res.status(200).json({
+//       success: true,
+//       message: "Đã xóa bản ghi lịch sử mua hàng",
+//     })
+//   } catch (error) {
+//     console.error("Error deleting purchase history:", error)
+//     res.status(500).json({
+//       success: false,
+//       message: "Lỗi khi xóa lịch sử mua hàng",
+//       error: error.message,
+//     })
+//   }
+// }
 
-    if (!purchase) {
-      return res.json({
-        success: false,
-        message: "Không tìm thấy đơn hàng",
-      })
-    }
+// // Lấy chi tiết một bản ghi lịch sử mua hàng
+// export const getPurchaseHistoryDetail = async (req, res) => {
+//   try {
+//     const { id } = req.params
 
-    res.json({
-      success: true,
-      message: "Đánh giá đã được lưu",
-      data: purchase,
-    })
-  } catch (error) {
-    console.error("Error adding purchase review:", error)
-    res.json({
-      success: false,
-      message: "Lỗi khi thêm đánh giá",
-    })
-  }
-}
+//     const purchase = await PurchaseHistory.findById(id).lean()
+//     if (!purchase) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Không tìm thấy bản ghi lịch sử mua hàng",
+//       })
+//     }
 
-export { moveOrderToPurchaseHistory, getPurchaseHistory, getPurchaseStatistics, addPurchaseReview }
+//     res.status(200).json({
+//       success: true,
+//       data: purchase,
+//     })
+//   } catch (error) {
+//     console.error("Error getting purchase history detail:", error)
+//     res.status(500).json({
+//       success: false,
+//       message: "Lỗi khi lấy chi tiết lịch sử mua hàng",
+//       error: error.message,
+//     })
+//   }
+// }
