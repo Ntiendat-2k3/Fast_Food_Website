@@ -75,6 +75,8 @@ const PlaceOrder = () => {
   const [currentEditAddress, setCurrentEditAddress] = useState(null)
   const [showAddressModal, setShowAddressModal] = useState(false)
 
+  const [selectedCartItems, setSelectedCartItems] = useState({})
+
   const onChangeHandler = (event) => {
     const name = event.target.name
     const value = event.target.value
@@ -127,7 +129,7 @@ const PlaceOrder = () => {
     return isValid
   }
 
-  // Tính tổng giá trị đơn hàng chính xác
+  // Tính tổng giá trị đơn hàng chính xác (chỉ sản phẩm đã chọn)
   const calculateOrderAmount = () => {
     if (buyNowMode && singleProduct) {
       return singleProduct.price * singleProduct.quantity
@@ -135,7 +137,7 @@ const PlaceOrder = () => {
 
     let totalAmount = 0
     for (const item in cartItems) {
-      if (cartItems[item] > 0) {
+      if (cartItems[item] > 0 && selectedCartItems[item]) {
         const itemInfo = food_list.find((product) => product.name === item)
         if (itemInfo) {
           totalAmount += itemInfo.price * cartItems[item]
@@ -430,6 +432,20 @@ const PlaceOrder = () => {
 
     setIsSubmitting(true)
 
+    // Add this validation in placeOrder function before creating orderItems
+    if (!buyNowMode && Object.keys(selectedCartItems).length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán")
+      setIsSubmitting(false)
+      return
+    }
+
+    const hasSelectedItems = Object.values(selectedCartItems).some(Boolean)
+    if (!buyNowMode && !hasSelectedItems) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán")
+      setIsSubmitting(false)
+      return
+    }
+
     const orderItems = []
 
     if (buyNowMode && singleProduct) {
@@ -439,9 +455,9 @@ const PlaceOrder = () => {
         quantity: singleProduct.quantity,
       })
     } else {
-      // Thêm tất cả sản phẩm trong giỏ hàng
+      // Chỉ thêm sản phẩm đã được chọn trong giỏ hàng
       food_list.map((item) => {
-        if (cartItems[item.name] > 0) {
+        if (cartItems[item.name] > 0 && selectedCartItems[item.name]) {
           const itemInfo = { ...item }
           itemInfo["quantity"] = cartItems[item.name]
           orderItems.push(itemInfo)
@@ -530,6 +546,21 @@ const PlaceOrder = () => {
     fetchAvailableVouchers()
     fetchSavedAddresses()
   }, [token])
+
+  // Load selected items from localStorage
+  useEffect(() => {
+    const storedSelectedItems = localStorage.getItem("selectedCartItems")
+    if (storedSelectedItems) {
+      try {
+        const parsedSelectedItems = JSON.parse(storedSelectedItems)
+        setSelectedCartItems(parsedSelectedItems)
+        console.log("Loaded selected items:", parsedSelectedItems)
+      } catch (error) {
+        console.error("Error parsing selected items:", error)
+        setSelectedCartItems({})
+      }
+    }
+  }, [])
 
   // Calculate final amount with discount
   const getFinalAmount = () => {
@@ -882,9 +913,9 @@ const PlaceOrder = () => {
                         </p>
                       </div>
                     ) : (
-                      // Hiển thị tất cả sản phẩm trong giỏ hàng
+                      // Hiển thị chỉ sản phẩm đã chọn trong giỏ hàng
                       food_list.map((item, index) => {
-                        if (cartItems[item.name] > 0) {
+                        if (cartItems[item.name] > 0 && selectedCartItems[item.name]) {
                           return (
                             <div key={index} className="flex items-center justify-between">
                               <div className="flex items-center">
