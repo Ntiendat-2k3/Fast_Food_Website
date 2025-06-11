@@ -120,4 +120,39 @@ const removeFood = async (req, res) => {
   }
 }
 
-export { addFood, listFood, searchFood, getFoodById, updateFood, removeFood }
+// remove multiple food items
+const removeMultipleFood = async (req, res) => {
+  try {
+    const { ids } = req.body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.json({ success: false, message: "Danh sách ID không hợp lệ" })
+    }
+
+    // Get all foods to delete their images
+    const foods = await foodModel.find({ _id: { $in: ids } })
+
+    // Delete images
+    foods.forEach((food) => {
+      if (food.image) {
+        fs.unlink(`uploads/${food.image}`, (err) => {
+          if (err) console.log("Error deleting image:", err)
+        })
+      }
+    })
+
+    // Delete foods from database
+    const result = await foodModel.deleteMany({ _id: { $in: ids } })
+
+    res.json({
+      success: true,
+      message: `Đã xóa ${result.deletedCount} sản phẩm`,
+      deletedCount: result.deletedCount,
+    })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi xóa sản phẩm" })
+  }
+}
+
+export { addFood, listFood, searchFood, getFoodById, updateFood, removeFood, removeMultipleFood }
