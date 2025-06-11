@@ -72,7 +72,7 @@ const Sidebar = ({ onLogout }) => {
     },
     {
       path: "/comments",
-      name: "Đánh giá",
+      name: "Quản lý người dùng",
       icon: <MessageSquare size={20} />,
     },
     {
@@ -82,7 +82,7 @@ const Sidebar = ({ onLogout }) => {
     },
     {
       path: "/chat",
-      name: "Tin nhắn",
+      name: "Quản lý tin nhắn",
       icon: <MessageSquare size={20} />,
     },
   ]

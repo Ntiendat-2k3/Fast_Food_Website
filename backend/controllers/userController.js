@@ -3,7 +3,86 @@ import blacklistModel from "../models/blacklistModel.js"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import validator from "validator"
-import mongoose from "mongoose" // Import mongoose
+import mongoose from "mongoose"
+import { OAuth2Client } from "google-auth-library"
+
+// Initialize Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+// Google Login
+const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body
+
+    if (!credential) {
+      return res.json({ success: false, message: "Google credential is required" })
+    }
+
+    // Verify Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+
+    const payload = ticket.getPayload()
+    const { sub: googleId, email, name, picture } = payload
+
+    console.log("Google login payload:", { googleId, email, name })
+
+    // Check if user exists with this Google ID
+    let user = await userModel.findOne({ googleId })
+
+    if (!user) {
+      // Check if user exists with this email (from regular registration)
+      user = await userModel.findOne({ email })
+
+      if (user) {
+        // Link Google account to existing user
+        user.googleId = googleId
+        user.avatar = picture
+        user.authProvider = "google"
+        await user.save()
+      } else {
+        // Create new user
+        user = new userModel({
+          name,
+          email,
+          googleId,
+          avatar: picture,
+          authProvider: "google",
+          role: "user",
+        })
+        await user.save()
+      }
+    }
+
+    // Check if user is blacklisted
+    const isBlacklisted = await blacklistModel.findOne({ userId: user._id })
+    if (isBlacklisted) {
+      return res.json({
+        success: false,
+        message: "Tài khoản của bạn đã bị chặn. Lý do: " + isBlacklisted.reason,
+      })
+    }
+
+    const token = createToken(user._id)
+
+    // Return user data (excluding password) along with the token
+    const userData = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.avatar,
+      authProvider: user.authProvider,
+    }
+
+    res.json({ success: true, token, user: userData })
+  } catch (error) {
+    console.error("Google login error:", error)
+    res.json({ success: false, message: "Google login failed" })
+  }
+}
 
 // Get user profile
 const getUserProfile = async (req, res) => {
@@ -53,6 +132,14 @@ const loginUser = async (req, res) => {
       return res.json({ success: false, message: "User doesn't exist." })
     }
 
+    // Check if user registered with Google
+    if (user.authProvider === "google" && !user.password) {
+      return res.json({
+        success: false,
+        message: "Tài khoản này được đăng ký bằng Google. Vui lòng sử dụng đăng nhập Google.",
+      })
+    }
+
     // Check if user is blacklisted
     const isBlacklisted = await blacklistModel.findOne({ userId: user._id })
     if (isBlacklisted) {
@@ -76,6 +163,8 @@ const loginUser = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
+      authProvider: user.authProvider,
     }
 
     res.json({ success: true, token, user: userData })
@@ -114,6 +203,8 @@ const adminLogin = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
+      authProvider: user.authProvider,
     }
 
     res.json({ success: true, token, user: userData })
@@ -155,6 +246,7 @@ const registerUser = async (req, res) => {
       email: email,
       password: hashedPassword,
       role: role || "user", // Default to 'user' if not specified
+      authProvider: "local",
     })
 
     const user = await newUser.save()
@@ -166,6 +258,7 @@ const registerUser = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      authProvider: user.authProvider,
     }
 
     res.json({ success: true, token, user: userData })
@@ -284,4 +377,14 @@ const getBlacklist = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, getUserProfile, adminLogin, getAllUsers, blockUser, unblockUser, getBlacklist }
+export {
+  loginUser,
+  registerUser,
+  getUserProfile,
+  adminLogin,
+  getAllUsers,
+  blockUser,
+  unblockUser,
+  getBlacklist,
+  googleLogin,
+}

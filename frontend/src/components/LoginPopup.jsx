@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useState } from "react"
+import { useContext, useState, useEffect } from "react"
 import { StoreContext } from "../context/StoreContext"
 import axios from "axios"
 import { X, Mail, Lock, User } from "lucide-react"
@@ -16,6 +16,75 @@ const LoginPopup = ({ setShowLogin }) => {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // Initialize Google Sign-In
+  useEffect(() => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: "312113444363-2urqmtu2ev7npltlgljj4vcnf8g623np.apps.googleusercontent.com", // Replace with your actual Google Client ID
+        callback: handleGoogleResponse,
+      })
+    }
+  }, [])
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      setLoading(true)
+      setError("")
+      console.log("Google response received:", response)
+
+      const result = await axios.post(`${url}/api/user/google-login`, {
+        credential: response.credential,
+      })
+
+      console.log("Google login response:", result.data)
+
+      if (result.data.success) {
+        // Store token
+        localStorage.setItem("token", result.data.token)
+        setToken(result.data.token)
+
+        // Store user data
+        if (result.data.user) {
+          console.log("Google user data received:", result.data.user)
+          localStorage.setItem("user", JSON.stringify(result.data.user))
+          setUser(result.data.user)
+          setShowLogin(false)
+          alert("Đăng nhập Google thành công!")
+        }
+      } else {
+        setError(result.data.message || "Đăng nhập Google thất bại")
+        alert(result.data.message || "Đăng nhập Google thất bại")
+      }
+    } catch (error) {
+      console.error("Google login error:", error)
+      setError("Đăng nhập Google thất bại: " + (error.response?.data?.message || error.message))
+      alert("Đăng nhập Google thất bại: " + (error.response?.data?.message || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const renderGoogleButton = () => {
+    if (window.google) {
+      window.google.accounts.id.renderButton(document.getElementById("google-signin-button"), {
+        theme: "outline",
+        size: "large",
+        width: "100%",
+        text: currState === "Login" ? "signin_with" : "signup_with",
+        shape: "rectangular",
+      })
+    }
+  }
+
+  useEffect(() => {
+    // Render Google button when component mounts or state changes
+    const timer = setTimeout(() => {
+      renderGoogleButton()
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [currState])
 
   const onChangeHandler = (event) => {
     const name = event.target.name
@@ -178,6 +247,23 @@ const LoginPopup = ({ setShowLogin }) => {
           </div>
 
           {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>}
+
+          {/* Google Sign-In Button */}
+          <div className="mb-6">
+            <div id="google-signin-button" className="w-full flex justify-center"></div>
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-dark-card text-gray-500 dark:text-gray-400">
+                Hoặc tiếp tục với email
+              </span>
+            </div>
+          </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             {currState === "Sign Up" && (

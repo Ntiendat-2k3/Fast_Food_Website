@@ -8,12 +8,14 @@ import {
   blockUser,
   unblockUser,
   getBlacklist,
+  googleLogin,
 } from "../controllers/userController.js"
 import auth, { verifyAdmin } from "../middleware/auth.js"
 
 const router = express.Router()
 
 router.post("/login", loginUser)
+router.post("/google-login", googleLogin)
 router.post("/admin/login", adminLogin)
 router.post("/register", registerUser)
 router.get("/profile", auth, getUserProfile)

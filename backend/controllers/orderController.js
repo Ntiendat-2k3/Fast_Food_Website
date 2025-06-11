@@ -1,7 +1,125 @@
-import orderModel from "../models/orderModel" // Declare the orderModel variable
+import orderModel from "../models/orderModel.js" // Declare the orderModel variable
+
+// placing user order from frontend
+const placeOrder = async (req, res) => {
+  try {
+    console.log("Order data received:", req.body) // Debug log
+
+    const newOrder = new orderModel({
+      userId: req.body.userId,
+      items: req.body.items,
+      amount: req.body.amount,
+      address: req.body.address,
+      date: new Date(), // Đảm bảo đặt ngày đúng
+      paymentMethod: req.body.paymentMethod || "COD", // Phương thức thanh toán
+      paymentStatus: req.body.paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
+      voucherCode: req.body.voucherCode || null, // Lưu mã giảm giá nếu có
+      discountAmount: req.body.discountAmount || 0, // Lưu số tiền được giảm
+    })
+
+    console.log("New order to be saved:", {
+      voucherCode: newOrder.voucherCode,
+      discountAmount: newOrder.discountAmount,
+    }) // Debug log
+
+    await newOrder.save()
+    await userModel.findByIdAndUpdate(req.body.userId, { cartData: {} })
+
+    // Trả về thông tin đơn hàng
+    res.json({
+      success: true,
+      message: "Đặt hàng thành công",
+      orderId: newOrder._id,
+      redirectUrl:
+        req.body.paymentMethod === "COD" ? "/thankyou" : `/payment/${req.body.paymentMethod}/${newOrder._id}`,
+    })
+  } catch (error) {
+    console.log("Error placing order:", error)
+    res.json({ success: false, message: "Lỗi khi đặt hàng" })
+  }
+}
+
+const verifyOrder = async (req, res) => {
+  const { orderId, success, paymentMethod } = req.body
+  try {
+    if (success === "true") {
+      await orderModel.findByIdAndUpdate(orderId, {
+        paymentStatus: "Đã thanh toán",
+        paymentMethod: paymentMethod,
+      })
+      res.json({ success: true, message: "Thanh toán thành công" })
+    } else {
+      // Không xóa đơn hàng, chỉ cập nhật trạng thái thanh toán
+      await orderModel.findByIdAndUpdate(orderId, {
+        paymentStatus: "Thanh toán thất bại",
+      })
+      res.json({ success: true, message: "Thanh toán thất bại" })
+    }
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi xác minh thanh toán" })
+  }
+}
+
+// user orders for frontend
+const userOrders = async (req, res) => {
+  try {
+    const orders = await orderModel.find({ userId: req.body.userId })
+    res.json({ success: true, data: orders })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+  }
+}
+
+// Listing orders for admin panel
+const listOrders = async (req, res) => {
+  try {
+    const orders = await orderModel.find({})
+    console.log(
+      "Orders from database:",
+      orders.map((order) => ({
+        id: order._id,
+        voucherCode: order.voucherCode,
+        discountAmount: order.discountAmount,
+      })),
+    ) // Debug log
+
+    res.json({ success: true, data: orders })
+  } catch (error) {
+    console.log("Error listing orders:", error)
+    res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+  }
+}
+
+// api for updating order status
+const updateStatus = async (req, res) => {
+  try {
+    await orderModel.findByIdAndUpdate(req.body.orderId, {
+      status: req.body.status,
+    })
+    res.json({ success: true, message: "Cập nhật trạng thái thành công" })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái" })
+  }
+}
+
+// api for updating payment status
+const updatePaymentStatus = async (req, res) => {
+  try {
+    await orderModel.findByIdAndUpdate(req.body.orderId, {
+      paymentStatus: req.body.paymentStatus,
+    })
+    res.json({ success: true, message: "Cập nhật trạng thái thanh toán thành công" })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái thanh toán" })
+  }
+}
 
 // Lấy lịch sử mua hàng của người dùng
-export const getUserPurchaseHistory = async (req, res) => {
+const getUserPurchaseHistory = async (req, res) => {
   try {
     const { userId } = req.body
     const { page = 1, limit = 10, sortBy = "newest", search = "", timeRange = "all", status = "all" } = req.query
@@ -139,3 +257,5 @@ export const getUserPurchaseHistory = async (req, res) => {
     })
   }
 }
+
+export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus, updatePaymentStatus, getUserPurchaseHistory}
