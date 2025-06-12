@@ -21,7 +21,7 @@ const LoginPopup = ({ setShowLogin }) => {
   useEffect(() => {
     if (window.google) {
       window.google.accounts.id.initialize({
-        client_id: "312113444363-2urqmtu2ev7npltlgljj4vcnf8g623np.apps.googleusercontent.com", // Replace with your actual Google Client ID
+        client_id: "312113444363-2urqmtu2ev7npltlgljj4vcnf8g623np.apps.googleusercontent.com",
         callback: handleGoogleResponse,
       })
     }
