@@ -1,37 +1,57 @@
-import orderModel from "../models/orderModel.js" // Declare the orderModel variable
+import orderModel from "../models/orderModel.js"
+import userModel from "../models/userModel.js" // Thêm import userModel
 
 // placing user order from frontend
 const placeOrder = async (req, res) => {
   try {
     console.log("Order data received:", req.body) // Debug log
 
+    // Kiểm tra dữ liệu đầu vào
+    const { userId, items, amount, address, paymentMethod, voucherCode, discountAmount } = req.body
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.json({ success: false, message: "Không có sản phẩm nào trong đơn hàng" })
+    }
+
+    if (!address || !address.name || !address.street || !address.phone) {
+      return res.json({ success: false, message: "Thông tin địa chỉ không đầy đủ" })
+    }
+
+    // Tạo đơn hàng mới
     const newOrder = new orderModel({
-      userId: req.body.userId,
-      items: req.body.items,
-      amount: req.body.amount,
-      address: req.body.address,
-      date: new Date(), // Đảm bảo đặt ngày đúng
-      paymentMethod: req.body.paymentMethod || "COD", // Phương thức thanh toán
-      paymentStatus: req.body.paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
-      voucherCode: req.body.voucherCode || null, // Lưu mã giảm giá nếu có
-      discountAmount: req.body.discountAmount || 0, // Lưu số tiền được giảm
+      userId: userId,
+      items: items,
+      amount: amount,
+      address: address,
+      date: new Date(),
+      paymentMethod: paymentMethod || "COD",
+      paymentStatus: paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
+      voucherCode: voucherCode || null,
+      discountAmount: discountAmount || 0,
     })
 
     console.log("New order to be saved:", {
+      userId: newOrder.userId,
+      items: newOrder.items.length,
+      amount: newOrder.amount,
       voucherCode: newOrder.voucherCode,
       discountAmount: newOrder.discountAmount,
     }) // Debug log
 
-    await newOrder.save()
-    await userModel.findByIdAndUpdate(req.body.userId, { cartData: {} })
+    // Lưu đơn hàng
+    const savedOrder = await newOrder.save()
+
+    // Xóa giỏ hàng của người dùng
+    if (userId) {
+      await userModel.findByIdAndUpdate(userId, { cartData: {} })
+    }
 
     // Trả về thông tin đơn hàng
     res.json({
       success: true,
       message: "Đặt hàng thành công",
-      orderId: newOrder._id,
-      redirectUrl:
-        req.body.paymentMethod === "COD" ? "/thankyou" : `/payment/${req.body.paymentMethod}/${newOrder._id}`,
+      orderId: savedOrder._id,
+      redirectUrl: paymentMethod === "COD" ? "/thankyou" : `/payment/${paymentMethod}/${savedOrder._id}`,
     })
   } catch (error) {
     console.log("Error placing order:", error)
@@ -39,6 +59,7 @@ const placeOrder = async (req, res) => {
   }
 }
 
+// Các hàm khác giữ nguyên
 const verifyOrder = async (req, res) => {
   const { orderId, success, paymentMethod } = req.body
   try {
@@ -258,4 +279,4 @@ const getUserPurchaseHistory = async (req, res) => {
   }
 }
 
-export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus, updatePaymentStatus, getUserPurchaseHistory}
+export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus, updatePaymentStatus, getUserPurchaseHistory }
