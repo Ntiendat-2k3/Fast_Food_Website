@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useRef } from "react"
 import axios from "axios"
-import { Send, ImageIcon, Search, MoreVertical, X, Loader, ArrowDown } from "lucide-react"
+import UserList from "../../components/chat/UserList"
+import ChatHeader from "../../components/chat/ChatHeader"
+import MessageList from "../../components/chat/MessageList"
+import MessageInput from "../../components/chat/MessageInput"
+import ImageGallery from "../../components/chat/ImageGallery"
 
 const Chat = () => {
   const [users, setUsers] = useState([])
@@ -250,6 +254,11 @@ const Chat = () => {
     setLoadedImages((prev) => ({ ...prev, [id]: true })) // Mark as loaded to remove spinner
   }
 
+  const clearSelectedImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+  }
+
   return (
     <div className="bg-black text-white min-h-screen">
       <div className="container mx-auto p-4">
@@ -257,218 +266,50 @@ const Chat = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[calc(100vh-150px)]">
           {/* User List */}
-          <div className="bg-gray-900 rounded-lg overflow-hidden">
-            <div className="p-3 border-b border-gray-800">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm người dùng..."
-                  className="w-full bg-gray-800 text-white p-2 pl-8 rounded-md"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-
-            <div className="overflow-y-auto h-[calc(100%-56px)]">
-              {filteredUsers.length === 0 ? (
-                <div className="text-center text-gray-400 p-4">Không có người dùng nào</div>
-              ) : (
-                filteredUsers.map((user) => (
-                  <div
-                    key={user._id}
-                    className={`p-3 border-b border-gray-800 cursor-pointer hover:bg-gray-800 ${
-                      selectedUser && selectedUser._id === user._id ? "bg-gray-800" : ""
-                    }`}
-                    onClick={() => handleUserSelect(user)}
-                  >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-lg font-bold">
-                        {user.userName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="ml-3">
-                        <div className="font-medium">{user.userName}</div>
-                        <div className="text-xs text-gray-400">{new Date(user.lastMessage).toLocaleDateString()}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          <UserList
+            users={users}
+            selectedUser={selectedUser}
+            onSelectUser={handleUserSelect}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
 
           {/* Chat Area */}
           <div className="bg-gray-900 rounded-lg overflow-hidden col-span-3 flex flex-col">
             {selectedUser ? (
               <>
-                <div className="bg-gray-800 p-3 border-b border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
-                        {selectedUser.userName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="ml-3 font-medium">{selectedUser.userName}</div>
-                    </div>
-                    <button
-                      onClick={() => setShowGallery(!showGallery)}
-                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                      title="Xem ảnh đã gửi"
-                    >
-                      <MoreVertical size={20} />
-                    </button>
-                  </div>
-                </div>
+                <ChatHeader user={selectedUser} onToggleGallery={() => setShowGallery(!showGallery)} />
 
-                <div className="flex-1 p-4 overflow-y-auto relative" ref={messagesContainerRef}>
-                  {messages.length === 0 ? (
-                    <div className="text-center text-gray-400 mt-8">
-                      <p>Không có tin nhắn nào</p>
-                    </div>
-                  ) : (
-                    messages.map((msg, index) => (
-                      <div
-                        key={msg._id || index}
-                        className={`mb-4 flex ${msg.isAdmin ? "justify-end" : "justify-start"}`}
-                      >
-                        <div className={`max-w-[70%] p-3 rounded-lg ${msg.isAdmin ? "bg-blue-600" : "bg-gray-700"}`}>
-                          {msg.content && <p>{msg.content}</p>}
+                <MessageList
+                  messages={messages}
+                  loadedImages={loadedImages}
+                  onImageLoad={handleImageLoad}
+                  onImageError={handleImageError}
+                  baseUrl={baseUrl}
+                  isNearBottom={isNearBottom}
+                  showScrollButton={showScrollButton}
+                  unreadCount={unreadCount}
+                  onScroll={handleScroll}
+                  scrollToBottom={scrollToBottom}
+                  messagesContainerRef={messagesContainerRef}
+                />
 
-                          {msg.image && (
-                            <div className="relative mt-2">
-                              {!loadedImages[msg._id] && (
-                                <div className="flex justify-center items-center py-4">
-                                  <Loader className="animate-spin h-6 w-6 text-white" />
-                                </div>
-                              )}
-                              <img
-                                src={`${baseUrl}/images/${msg.image}`}
-                                alt="Message attachment"
-                                className={`rounded-md max-w-full cursor-pointer ${!loadedImages[msg._id] ? "hidden" : ""}`}
-                                style={{ maxHeight: "200px" }}
-                                onClick={() => window.open(`${baseUrl}/images/${msg.image}`, "_blank")}
-                                onLoad={() => handleImageLoad(msg._id)}
-                                onError={() => handleImageError(msg._id)}
-                              />
-                            </div>
-                          )}
+                <MessageInput
+                  newMessage={newMessage}
+                  onMessageChange={setNewMessage}
+                  onSendMessage={handleSendMessage}
+                  onImageUpload={handleImageUpload}
+                  imagePreview={imagePreview}
+                  onClearImage={clearSelectedImage}
+                  loading={loading}
+                />
 
-                          <div className="text-xs mt-1 text-gray-300">
-                            {new Date(msg.createdAt).toLocaleTimeString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-
-                  {/* Scroll to bottom button with unread count */}
-                  {showScrollButton && (
-                    <button
-                      onClick={scrollToBottom}
-                      className="absolute bottom-4 right-4 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center"
-                      title="Cuộn xuống tin nhắn mới nhất"
-                    >
-                      <ArrowDown size={20} />
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {unreadCount > 9 ? "9+" : unreadCount}
-                        </span>
-                      )}
-                    </button>
-                  )}
-                </div>
-
-                <div className="p-3 border-t border-gray-700">
-                  {imagePreview && (
-                    <div className="relative mb-2 inline-block">
-                      <img
-                        src={imagePreview || "/placeholder.svg"}
-                        alt="Preview"
-                        className="h-20 w-auto rounded-md border border-gray-300"
-                      />
-                      <button
-                        onClick={() => {
-                          setSelectedImage(null)
-                          setImagePreview(null)
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSendMessage} className="flex items-center">
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      className="flex-1 bg-gray-800 text-white p-2 rounded-l-md focus:outline-none"
-                      placeholder="Nhập tin nhắn..."
-                      disabled={loading}
-                    />
-                    <label className="bg-gray-700 px-3 py-2 cursor-pointer">
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        disabled={loading}
-                      />
-                      <ImageIcon size={20} className="text-gray-300" />
-                    </label>
-                    <button
-                      type="submit"
-                      className="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700 disabled:opacity-50"
-                      disabled={loading}
-                    >
-                      {loading ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Image Gallery Modal */}
-                {showGallery && (
-                  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-900 rounded-lg max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-                      <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-                        <h3 className="text-lg font-medium">Ảnh đã gửi</h3>
-                        <button onClick={() => setShowGallery(false)} className="p-1 rounded-full hover:bg-gray-700">
-                          <X size={20} />
-                        </button>
-                      </div>
-
-                      <div className="p-4 overflow-y-auto flex-1">
-                        {galleryImages.length === 0 ? (
-                          <div className="text-center text-gray-400 py-8">
-                            <p>Không có ảnh nào</p>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            {galleryImages.map((image) => (
-                              <div
-                                key={image.id}
-                                className="aspect-square overflow-hidden rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                onClick={() => handleGalleryImageSelect(image.url)}
-                              >
-                                <img
-                                  src={image.url || "/placeholder.svg"}
-                                  alt="Shared image"
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.onerror = null
-                                    e.target.src =
-                                      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f0f0f0'/%3E%3Cpath d='M100 70 A10 10 0 1 0 100 90 A10 10 0 1 0 100 70 Z' fill='%23888'/%3E%3Cpath d='M80 120 L100 100 L120 120 L130 110 L140 130 L60 130 L70 110 Z' fill='%23888'/%3E%3C/svg%3E"
-                                  }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <ImageGallery
+                  isOpen={showGallery}
+                  onClose={() => setShowGallery(false)}
+                  images={galleryImages}
+                  onSelectImage={handleGalleryImageSelect}
+                />
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center">
