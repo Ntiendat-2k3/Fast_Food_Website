@@ -44,30 +44,36 @@ export const useReviews = (foodItem) => {
       setIsCheckingEligibility(true)
       console.log(`Checking review eligibility for user ${user._id} and food ${foodItem._id}`)
 
-      // Thử endpoint test trước
-      const testResponse = await axios.get(`${url}/api/comment/test-review/${user._id}/${foodItem._id}`, {
+      // Sử dụng endpoint chính thức
+      const response = await axios.get(`${url}/api/comment/can-review/${user._id}/${foodItem._id}`, {
         headers: { token },
       })
 
-      console.log("Test review eligibility response:", testResponse.data)
+      console.log("Review eligibility response:", response.data)
 
-      if (testResponse.data.success) {
-        setReviewEligibility(testResponse.data.data)
+      if (response.data.success) {
+        setReviewEligibility(response.data.data)
+
+        // Log thông tin debug
+        if (response.data.data.debug) {
+          console.log("Debug info:", response.data.data.debug)
+        }
       } else {
-        // Fallback: cho phép đánh giá
         setReviewEligibility({
-          canReview: true,
-          hasPurchased: true,
+          canReview: false,
+          hasPurchased: false,
           hasReviewed: false,
+          reason: response.data.message || "Không thể kiểm tra quyền đánh giá",
         })
       }
     } catch (error) {
       console.error("Error checking review eligibility:", error)
-      // Fallback: cho phép đánh giá nếu có lỗi
+      // Trong trường hợp lỗi, vẫn cho phép thử đánh giá
       setReviewEligibility({
         canReview: true,
         hasPurchased: true,
         hasReviewed: false,
+        reason: "Không thể kiểm tra, cho phép thử đánh giá",
       })
     } finally {
       setIsCheckingEligibility(false)

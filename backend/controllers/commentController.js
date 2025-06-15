@@ -19,27 +19,48 @@ const checkUserPurchase = async (userId, foodId) => {
     }
     console.log(`Food name: ${food.name}`)
 
-    // Tìm tất cả đơn hàng của user đã thanh toán và hoàn thành
-    const orders = await orderModel.find({
-      userId: userId,
-      payment: true, // Đã thanh toán
-      status: { $in: ["Đã giao", "Hoàn thành"] }, // Đã giao thành công
-    })
-    console.log(`Found ${orders.length} completed orders for user`)
+    // Tìm TẤT CẢ đơn hàng của user
+    const allOrders = await orderModel.find({ userId: userId })
+    console.log(`\n=== ALL ORDERS FOR USER ===`)
+    console.log(`Total orders found: ${allOrders.length}`)
 
-    if (orders.length === 0) {
-      console.log("No completed orders found for user")
+    if (allOrders.length === 0) {
+      console.log("❌ No orders found for user")
       return false
     }
 
-    // Kiểm tra từng đơn hàng
-    for (let i = 0; i < orders.length; i++) {
-      const order = orders[i]
-      console.log(`\n--- Checking Order ${i + 1} ---`)
+    // Sửa logic filter đơn hàng hợp lệ
+    const validOrders = allOrders.filter((order) => {
+      // Điều kiện thanh toán: payment = true HOẶC paymentStatus = "Đã thanh toán"
+      const isPaid = order.payment === true || order.paymentStatus === "Đã thanh toán"
+
+      // Điều kiện trạng thái: không phải "Hủy" hoặc "Cancelled"
+      const validStatus = order.status && !["Hủy", "Cancelled"].includes(order.status)
+
+      console.log(`\nOrder ${order._id} validation:`)
+      console.log(`- payment: ${order.payment}`)
+      console.log(`- paymentStatus: ${order.paymentStatus}`)
+      console.log(`- status: ${order.status}`)
+      console.log(`- isPaid: ${isPaid}`)
+      console.log(`- validStatus: ${validStatus}`)
+      console.log(`- final result: ${isPaid && validStatus}`)
+
+      return isPaid && validStatus
+    })
+
+    console.log(`\n=== VALID ORDERS ===`)
+    console.log(`Valid orders count: ${validOrders.length}`)
+
+    if (validOrders.length === 0) {
+      console.log("❌ No valid orders found")
+      return false
+    }
+
+    // Kiểm tra từng đơn hàng hợp lệ
+    for (let i = 0; i < validOrders.length; i++) {
+      const order = validOrders[i]
+      console.log(`\n--- Checking Valid Order ${i + 1} ---`)
       console.log(`Order ID: ${order._id}`)
-      console.log(`Order Status: ${order.status}`)
-      console.log(`Payment Status: ${order.payment}`)
-      console.log(`Items count: ${order.items ? order.items.length : 0}`)
 
       if (!order.items || order.items.length === 0) {
         console.log("No items in this order")
@@ -49,37 +70,137 @@ const checkUserPurchase = async (userId, foodId) => {
       // Kiểm tra từng item trong đơn hàng
       for (let j = 0; j < order.items.length; j++) {
         const item = order.items[j]
-        console.log(`\n  Item ${j + 1}:`, JSON.stringify(item, null, 2))
+        console.log(`\n  Checking Item ${j + 1}:`)
+        console.log(`  - Item name: "${item.name}"`)
+        console.log(`  - Food name: "${food.name}"`)
+        console.log(`  - Item foodId: ${item.foodId}`)
+        console.log(`  - Target foodId: ${foodId}`)
 
-        // Kiểm tra theo tên sản phẩm (cách phổ biến nhất)
-        if (item.name && item.name === food.name) {
-          console.log(`✅ MATCH FOUND by name: ${item.name} === ${food.name}`)
-          return true
+        // Kiểm tra theo nhiều cách khác nhau
+        let isMatch = false
+
+        // 1. Kiểm tra theo foodId (ưu tiên cao nhất)
+        if (item.foodId) {
+          const itemFoodId = item.foodId.toString()
+          const targetFoodId = foodId.toString()
+          if (itemFoodId === targetFoodId) {
+            console.log(`  ✅ MATCH FOUND by foodId: ${item.foodId} === ${foodId}`)
+            isMatch = true
+          }
         }
 
-        // Kiểm tra theo ID nếu có
-        if (item._id && (item._id.toString() === foodId || item._id === foodId)) {
-          console.log(`✅ MATCH FOUND by _id: ${item._id}`)
-          return true
+        // 2. Kiểm tra theo tên sản phẩm (case-insensitive)
+        if (!isMatch && item.name && food.name) {
+          const itemName = item.name.toLowerCase().trim()
+          const foodName = food.name.toLowerCase().trim()
+          if (itemName === foodName) {
+            console.log(`  ✅ MATCH FOUND by name: "${item.name}" === "${food.name}"`)
+            isMatch = true
+          }
         }
 
-        if (item.foodId && (item.foodId.toString() === foodId || item.foodId === foodId)) {
-          console.log(`✅ MATCH FOUND by foodId: ${item.foodId}`)
-          return true
+        // 3. Kiểm tra theo _id
+        if (!isMatch && item._id) {
+          const itemId = item._id.toString()
+          const targetFoodId = foodId.toString()
+          if (itemId === targetFoodId) {
+            console.log(`  ✅ MATCH FOUND by _id: ${item._id}`)
+            isMatch = true
+          }
         }
 
-        if (item.id && (item.id.toString() === foodId || item.id === foodId)) {
-          console.log(`✅ MATCH FOUND by id: ${item.id}`)
+        // 4. Kiểm tra theo id
+        if (!isMatch && item.id) {
+          const itemIdField = item.id.toString()
+          const targetFoodId = foodId.toString()
+          if (itemIdField === targetFoodId) {
+            console.log(`  ✅ MATCH FOUND by id: ${item.id}`)
+            isMatch = true
+          }
+        }
+
+        if (isMatch) {
+          console.log(`  🎉 PURCHASE CONFIRMED!`)
           return true
+        } else {
+          console.log(`  ❌ No match for this item`)
         }
       }
     }
 
-    console.log("❌ No matching product found in any completed order")
+    console.log("❌ No matching product found in any valid order")
     return false
   } catch (error) {
     console.error("Error checking user purchase:", error)
     return false
+  }
+}
+
+// Thêm endpoint debug để xem dữ liệu thực tế
+const debugUserOrders = async (req, res) => {
+  try {
+    const { userId, foodId } = req.params
+
+    console.log(`=== DEBUG USER ORDERS ===`)
+    console.log(`User ID: ${userId}`)
+    console.log(`Food ID: ${foodId}`)
+
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(foodId)) {
+      return res.json({ success: false, message: "ID không hợp lệ" })
+    }
+
+    // Lấy thông tin user
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy user" })
+    }
+
+    // Lấy thông tin food
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+    }
+
+    // Lấy tất cả đơn hàng của user
+    const orders = await orderModel.find({ userId: userId }).sort({ date: -1 })
+
+    // Kiểm tra purchase
+    const hasPurchased = await checkUserPurchase(userId, foodId)
+
+    // Kiểm tra existing comment
+    const existingComment = await commentModel.findOne({ userId, foodId })
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+        food: {
+          id: food._id,
+          name: food.name,
+          category: food.category,
+        },
+        orders: orders.map((order) => ({
+          id: order._id,
+          status: order.status,
+          payment: order.payment,
+          paymentStatus: order.paymentStatus,
+          date: order.date,
+          amount: order.amount,
+          itemsCount: order.items ? order.items.length : 0,
+          items: order.items || [],
+        })),
+        hasPurchased,
+        hasReviewed: !!existingComment,
+        canReview: hasPurchased && !existingComment,
+      },
+    })
+  } catch (error) {
+    console.error("Error in debug:", error)
+    res.json({ success: false, message: "Lỗi debug: " + error.message })
   }
 }
 
@@ -416,6 +537,18 @@ const checkCanReview = async (req, res) => {
       return res.json({ success: false, message: "ID không hợp lệ" })
     }
 
+    // Kiểm tra user tồn tại
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy người dùng" })
+    }
+
+    // Kiểm tra sản phẩm tồn tại
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+    }
+
     // Kiểm tra xem đã đánh giá chưa
     const existingComment = await commentModel.findOne({ userId, foodId })
     console.log(`Has existing review: ${!!existingComment}`)
@@ -427,6 +560,10 @@ const checkCanReview = async (req, res) => {
     const canReview = hasPurchased && !existingComment
     console.log(`Can review: ${canReview}`)
 
+    // Thêm thông tin debug về đơn hàng
+    const userOrders = await orderModel.find({ userId }).select("status payment paymentStatus items date")
+    console.log(`User has ${userOrders.length} total orders`)
+
     res.json({
       success: true,
       data: {
@@ -434,6 +571,17 @@ const checkCanReview = async (req, res) => {
         hasPurchased,
         hasReviewed: !!existingComment,
         existingReview: existingComment,
+        debug: {
+          userName: user.name,
+          foodName: food.name,
+          totalOrders: userOrders.length,
+          paidOrders: userOrders.filter((o) => o.payment === true || o.paymentStatus === "Đã thanh toán").length,
+          orderStatuses: userOrders.map((o) => ({
+            status: o.status,
+            payment: o.payment,
+            paymentStatus: o.paymentStatus,
+          })),
+        },
       },
     })
   } catch (error) {
@@ -452,4 +600,5 @@ export {
   replyToComment,
   getFoodRatingStats,
   checkCanReview,
+  debugUserOrders,
 }

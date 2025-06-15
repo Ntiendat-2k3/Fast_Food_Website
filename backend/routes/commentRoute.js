@@ -9,6 +9,7 @@ import {
   replyToComment,
   getFoodRatingStats,
   checkCanReview,
+  debugUserOrders,
 } from "../controllers/commentController.js"
 import auth from "../middleware/auth.js"
 
@@ -40,5 +41,8 @@ router.post("/reply", auth, replyToComment)
 
 // Check if user can review a product (requires authentication)
 router.get("/can-review/:userId/:foodId", auth, checkCanReview)
+
+// Debug endpoint to see user orders and purchase data
+router.get("/debug/:userId/:foodId", auth, debugUserOrders)
 
 export default router

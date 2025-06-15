@@ -5,6 +5,8 @@ import OrderItemsList from "./OrderItemsList"
 import OrderInfo from "./OrderInfo"
 
 const OrderCard = ({ order, index, url, formatDate }) => {
+  console.log(order)
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
