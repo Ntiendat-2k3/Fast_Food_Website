@@ -35,6 +35,7 @@ import VoucherList from "../../components/voucher/VoucherList"
 import AnimatedBackground from "../../components/ui/AnimatedBackground"
 import PageHeader from "../../components/ui/PageHeader"
 import ConfirmButton from "../../components/ui/ConfirmButton"
+import ShippingCalculator from "../../components/address/ShippingCalculator"
 
 const PlaceOrder = () => {
   const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems, userData } = useContext(StoreContext)
@@ -77,6 +78,8 @@ const PlaceOrder = () => {
   const [showAddressModal, setShowAddressModal] = useState(false)
 
   const [selectedCartItems, setSelectedCartItems] = useState({})
+  const [shippingInfo, setShippingInfo] = useState(null)
+  const [selectedAddressData, setSelectedAddressData] = useState(null)
 
   const navigate = useNavigate()
 
@@ -500,6 +503,16 @@ const PlaceOrder = () => {
     return discountAmount
   }
 
+  const handleShippingUpdate = (shipping) => {
+    setShippingInfo(shipping)
+  }
+
+  const handleAddressSelect = (addressData) => {
+    setSelectedAddressData(addressData)
+    // Reset shipping info when address changes
+    setShippingInfo(null)
+  }
+
   // Sửa lại hàm placeOrder để khớp với yêu cầu của backend
   const placeOrder = async (event) => {
     event.preventDefault()
@@ -562,7 +575,7 @@ const PlaceOrder = () => {
 
     // Tính toán giá trị đơn hàng
     const subtotal = calculateOrderAmount()
-    const shippingFee = 14000
+    const shippingFee = shippingInfo?.shippingFee || 14000
     let discountAmount = 0
 
     if (currentAppliedVoucher) {
@@ -658,10 +671,9 @@ const PlaceOrder = () => {
     fetchSavedAddresses()
   }, [token])
 
-  // Calculate final amount with discount
   const getFinalAmount = () => {
     const subtotal = calculateOrderAmount()
-    const shippingFee = 14000
+    const shippingFee = shippingInfo?.shippingFee || 14000 // Default 14k nếu chưa tính
 
     if (!currentAppliedVoucher) {
       return subtotal + shippingFee
@@ -671,7 +683,6 @@ const PlaceOrder = () => {
     if (currentAppliedVoucher.voucherInfo.discountType === "percentage") {
       discountAmount = (subtotal * currentAppliedVoucher.voucherInfo.discountValue) / 100
 
-      // Apply max discount if set
       if (
         currentAppliedVoucher.voucherInfo.maxDiscountAmount &&
         discountAmount > currentAppliedVoucher.voucherInfo.maxDiscountAmount
@@ -742,6 +753,18 @@ const PlaceOrder = () => {
                 isLoading={loadingAddresses}
               />
 
+              {/* Shipping Calculator */}
+              {(selectedAddressId || selectedAddressData) && (
+                <ShippingCalculator
+                  selectedAddress={
+                    selectedAddressId
+                      ? savedAddresses.find((addr) => addr._id === selectedAddressId)?.street
+                      : data.street
+                  }
+                  onShippingUpdate={handleShippingUpdate}
+                />
+              )}
+
               {/* New Address Form */}
               {(!savedAddresses.length || !selectedAddressId) && (
                 <>
@@ -758,7 +781,13 @@ const PlaceOrder = () => {
                     </div>
                   </div>
 
-                  <AddressForm data={data} errors={errors} onChangeHandler={onChangeHandler} onSubmit={placeOrder} />
+                  <AddressForm
+                    data={data}
+                    errors={errors}
+                    onChangeHandler={onChangeHandler}
+                    onSubmit={placeOrder}
+                    onAddressSelect={handleAddressSelect}
+                  />
                 </>
               )}
 

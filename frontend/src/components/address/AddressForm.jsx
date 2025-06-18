@@ -1,7 +1,30 @@
 "use client"
-import { AlertCircle, MapPin, Phone, User } from "lucide-react"
+import { AlertCircle, Phone, User } from "lucide-react"
+import AddressAutocomplete from "./AddressAutocomplete"
 
-const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", onCancel }) => {
+const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", onCancel, onAddressSelect }) => {
+  const handleAddressChange = (address) => {
+    onChangeHandler({
+      target: {
+        name: "street",
+        value: address,
+      },
+    })
+  }
+
+  const handleAddressSelect = (addressData) => {
+    // Update form data with selected address
+    onChangeHandler({
+      target: {
+        name: "street",
+        value: addressData.address,
+      },
+    })
+
+    // Notify parent component about address selection
+    onAddressSelect?.(addressData)
+  }
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="relative">
@@ -26,16 +49,12 @@ const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", on
       </div>
 
       <div className="relative">
-        <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
-        <textarea
-          className={`w-full bg-slate-700/50 text-white border ${
-            errors.street ? "border-red-500" : "border-slate-600"
-          } rounded-xl py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent min-h-[100px]`}
-          required
-          name="street"
-          onChange={onChangeHandler}
+        <AddressAutocomplete
           value={data.street}
-          placeholder="Địa chỉ giao hàng chi tiết (số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố)"
+          onChange={handleAddressChange}
+          onAddressSelect={handleAddressSelect}
+          placeholder="Nhập địa chỉ giao hàng chi tiết..."
+          className="w-full"
         />
         {errors.street && (
           <div className="text-red-400 text-sm mt-1 flex items-center">
