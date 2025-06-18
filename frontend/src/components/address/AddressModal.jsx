@@ -3,7 +3,15 @@ import { X } from "lucide-react"
 import { motion } from "framer-motion"
 import AddressForm from "./AddressForm"
 
-const AddressModal = ({ isOpen, onClose, formMode, formData, formErrors, onChangeHandler, onSubmit }) => {
+const AddressModal = ({
+  isOpen,
+  onClose,
+  formMode = "add",
+  formData = { name: "", street: "", phone: "" },
+  formErrors = {},
+  onChangeHandler,
+  onSubmit,
+}) => {
   if (!isOpen) return null
 
   return (

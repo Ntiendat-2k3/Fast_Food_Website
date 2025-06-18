@@ -22,15 +22,14 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  AlertCircle,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 // Imported components
 import AddressListSection from "../../components/address/AddressListSection"
-import AddressForm from "../../components/address/AddressForm"
 import AddressModal from "../../components/address/AddressModal"
-import PaymentMethodSection from "../../components/payment/PaymentMethodSection"
-import OrderSummary from "../../components/order/OrderSummary"
+import OrderSummaryNew from "../../components/order/OrderSummaryNew"
 import VoucherList from "../../components/voucher/VoucherList"
 import AnimatedBackground from "../../components/ui/AnimatedBackground"
 import PageHeader from "../../components/ui/PageHeader"
@@ -190,6 +189,23 @@ const PlaceOrder = () => {
       }
     }
     return totalAmount
+  }
+
+  // Lấy danh sách sản phẩm để hiển thị
+  const getOrderItems = () => {
+    if (buyNowMode && singleProduct) {
+      return [singleProduct]
+    }
+
+    const items = food_list
+      .filter((item) => cartItems[item.name] > 0 && selectedCartItems[item.name])
+      .map((item) => ({
+        ...item,
+        quantity: cartItems[item.name],
+      }))
+
+    console.log("Order items:", items)
+    return items
   }
 
   // Lấy danh sách voucher có sẵn
@@ -523,6 +539,12 @@ const PlaceOrder = () => {
       return
     }
 
+    // Kiểm tra phí ship đã được tính chưa
+    if (!shippingInfo) {
+      toast.error("Vui lòng tính phí vận chuyển trước khi đặt hàng")
+      return
+    }
+
     setIsSubmitting(true)
 
     // Kiểm tra xem có sản phẩm nào được chọn không
@@ -575,7 +597,7 @@ const PlaceOrder = () => {
 
     // Tính toán giá trị đơn hàng
     const subtotal = calculateOrderAmount()
-    const shippingFee = shippingInfo?.shippingFee || 14000
+    const shippingFee = shippingInfo.shippingFee || 0
     let discountAmount = 0
 
     if (currentAppliedVoucher) {
@@ -601,6 +623,12 @@ const PlaceOrder = () => {
       date: new Date(),
       voucherCode: currentAppliedVoucher?.voucherInfo?.code || null,
       discountAmount: discountAmount,
+      shippingFee: shippingFee,
+      shippingInfo: {
+        distance: shippingInfo.distance,
+        duration: shippingInfo.duration,
+        estimatedDelivery: shippingInfo.duration,
+      },
     }
 
     try {
@@ -673,14 +701,14 @@ const PlaceOrder = () => {
 
   const getFinalAmount = () => {
     const subtotal = calculateOrderAmount()
-    const shippingFee = shippingInfo?.shippingFee || 14000 // Default 14k nếu chưa tính
+    const shippingFee = shippingInfo?.shippingFee || 0
 
     if (!currentAppliedVoucher) {
       return subtotal + shippingFee
     }
 
     let discountAmount = 0
-    if (currentAppliedVoucher.voucherInfo.discountType === "percentage") {
+    if (currentAppliedVoucher.voucherInfo?.discountType === "percentage") {
       discountAmount = (subtotal * currentAppliedVoucher.voucherInfo.discountValue) / 100
 
       if (
@@ -689,8 +717,10 @@ const PlaceOrder = () => {
       ) {
         discountAmount = currentAppliedVoucher.voucherInfo.maxDiscountAmount
       }
-    } else {
+    } else if (currentAppliedVoucher.voucherInfo) {
       discountAmount = currentAppliedVoucher.voucherInfo.discountValue
+    } else {
+      discountAmount = currentAppliedVoucher.discountAmount || 0
     }
 
     return subtotal + shippingFee - discountAmount
@@ -723,6 +753,21 @@ const PlaceOrder = () => {
     },
   ]
 
+  // Tính toán các giá trị để truyền vào OrderSummaryNew
+  const orderItems = getOrderItems()
+  const subtotalAmount = calculateOrderAmount()
+  const shippingFeeAmount = shippingInfo?.shippingFee || 0
+  const discountAmount = currentAppliedVoucher?.discountAmount || 0
+  const totalAmount = getFinalAmount()
+
+  console.log("PlaceOrder calculated values:", {
+    orderItems,
+    subtotalAmount,
+    shippingFeeAmount,
+    discountAmount,
+    totalAmount,
+  })
+
   return (
     <AnimatedBackground>
       <motion.div
@@ -754,7 +799,7 @@ const PlaceOrder = () => {
               />
 
               {/* Shipping Calculator */}
-              {(selectedAddressId || selectedAddressData) && (
+              {(selectedAddressId || data.street) && (
                 <ShippingCalculator
                   selectedAddress={
                     selectedAddressId
@@ -765,164 +810,238 @@ const PlaceOrder = () => {
                 />
               )}
 
-              {/* New Address Form */}
-              {(!savedAddresses.length || !selectedAddressId) && (
-                <>
-                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <Info className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div className="ml-3">
-                        <p className="text-sm text-blue-300">
-                          Vui lòng nhập đầy đủ thông tin giao hàng để đảm bảo đơn hàng được giao đến đúng địa chỉ.
-                        </p>
-                      </div>
+              {/* Manual Address Form (if no saved address selected) */}
+              {!selectedAddressId && (
+                <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600 mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Nhập địa chỉ mới</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <input
+                        name="name"
+                        onChange={onChangeHandler}
+                        value={data.name}
+                        type="text"
+                        placeholder="Họ và tên người nhận"
+                        className={`w-full p-3 bg-slate-800/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all ${
+                          errors.name ? "border-red-500" : "border-slate-600"
+                        }`}
+                      />
+                      {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
+                    </div>
+
+                    <div>
+                      <input
+                        name="street"
+                        onChange={onChangeHandler}
+                        value={data.street}
+                        type="text"
+                        placeholder="Địa chỉ chi tiết (số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố)"
+                        className={`w-full p-3 bg-slate-800/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all ${
+                          errors.street ? "border-red-500" : "border-slate-600"
+                        }`}
+                      />
+                      {errors.street && <p className="text-red-400 text-sm mt-1">{errors.street}</p>}
+                    </div>
+
+                    <div>
+                      <input
+                        name="phone"
+                        onChange={onChangeHandler}
+                        value={data.phone}
+                        type="tel"
+                        placeholder="Số điện thoại (VD: 0912345678)"
+                        className={`w-full p-3 bg-slate-800/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all ${
+                          errors.phone ? "border-red-500" : "border-slate-600"
+                        }`}
+                      />
+                      {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
                     </div>
                   </div>
-
-                  <AddressForm
-                    data={data}
-                    errors={errors}
-                    onChangeHandler={onChangeHandler}
-                    onSubmit={placeOrder}
-                    onAddressSelect={handleAddressSelect}
-                  />
-                </>
+                </div>
               )}
 
-              <PaymentMethodSection
-                methods={paymentMethods}
-                selectedMethod={paymentMethod}
-                onSelectMethod={setPaymentMethod}
-              />
+              {/* Payment Method Section */}
+              <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <CreditCard className="mr-2 text-yellow-400" size={20} />
+                  Phương thức thanh toán
+                </h3>
 
-              <ConfirmButton
-                icon={<CreditCard size={20} />}
-                text="Xác nhận đặt hàng"
-                loading={isSubmitting}
-                onClick={placeOrder}
-                className="mt-6"
-              />
+                <div className="space-y-3">
+                  {paymentMethods.map((method) => (
+                    <label
+                      key={method.id}
+                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                        paymentMethod === method.id
+                          ? "border-yellow-400 bg-yellow-400/10"
+                          : "border-slate-600 bg-slate-800/30 hover:bg-slate-700/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={method.id}
+                        checked={paymentMethod === method.id}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="sr-only"
+                      />
+                      <div className="flex items-center flex-1">
+                        {method.icon}
+                        <div className="ml-3">
+                          <div className="text-white font-medium">{method.name}</div>
+                          <div className="text-gray-400 text-sm">{method.description}</div>
+                        </div>
+                      </div>
+                      {paymentMethod === method.id && <Check className="text-yellow-400" size={20} />}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <OrderSummary
-              items={buyNowMode ? [singleProduct] : food_list}
-              cartItems={cartItems}
-              selectedCartItems={selectedCartItems}
-              buyNowMode={buyNowMode}
-              singleProduct={singleProduct}
-              food_list={food_list}
-              url={url}
-              calculateOrderAmount={calculateOrderAmount}
-              currentAppliedVoucher={currentAppliedVoucher}
-              getFinalAmount={getFinalAmount}
-            >
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+                <Gift className="mr-2 text-yellow-400" size={20} />
+                Chi tiết đơn hàng
+              </h2>
+
               {/* Voucher Section */}
-              <div className="border-t border-slate-600 pt-3 mb-3">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-medium text-gray-300">Mã giảm giá</label>
+              <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-600 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <Tag className="mr-2 text-yellow-400" size={20} />
+                    Mã giảm giá
+                  </h3>
                   <button
                     onClick={() => setShowVoucherList(!showVoucherList)}
-                    className="text-yellow-400 hover:text-yellow-300 text-sm flex items-center"
+                    className="text-yellow-400 hover:text-yellow-300 text-sm font-medium flex items-center"
                   >
-                    <Gift size={16} className="mr-1" />
-                    {showVoucherList ? "Ẩn voucher" : "Chọn voucher"}
+                    Chọn voucher
                     {showVoucherList ? (
-                      <ChevronUp size={16} className="ml-1" />
+                      <ChevronUp className="ml-1" size={16} />
                     ) : (
-                      <ChevronDown size={16} className="ml-1" />
+                      <ChevronDown className="ml-1" size={16} />
                     )}
                   </button>
                 </div>
 
                 {/* Applied Voucher Display */}
                 {currentAppliedVoucher && (
-                  <div className="bg-green-500/20 border border-green-400/30 rounded-lg p-3 mb-3">
+                  <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-3 mb-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Check size={16} className="text-green-400 mr-2" />
-                        <div>
-                          <p className="text-green-300 font-medium text-sm">{currentAppliedVoucher.voucherInfo.code}</p>
-                          <p className="text-green-400 text-xs">
-                            {currentAppliedVoucher.voucherInfo.discountType === "percentage"
-                              ? `Giảm ${currentAppliedVoucher.voucherInfo.discountValue}%`
-                              : `Giảm ${currentAppliedVoucher.voucherInfo.discountValue.toLocaleString("vi-VN")}đ`}
-                          </p>
+                      <div>
+                        <div className="text-yellow-300 font-semibold">
+                          {currentAppliedVoucher.voucherInfo?.code || "Voucher"}
+                        </div>
+                        <div className="text-yellow-200 text-sm">
+                          Giảm {(currentAppliedVoucher.discountAmount || 0).toLocaleString("vi-VN")}đ
                         </div>
                       </div>
-                      <button
-                        onClick={handleRemoveVoucher}
-                        className="text-red-400 hover:text-red-300 transition-colors"
-                      >
+                      <button onClick={handleRemoveVoucher} className="text-red-400 hover:text-red-300 p-1">
                         <X size={16} />
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Available Vouchers List */}
-                <AnimatePresence>
-                  {showVoucherList && (
-                    <VoucherList
-                      vouchers={availableVouchers}
-                      currentVoucher={currentAppliedVoucher?.voucherInfo}
-                      orderAmount={calculateOrderAmount()}
-                      onSelectVoucher={handleSelectVoucher}
-                      isLoading={loadingVouchers}
-                    />
-                  )}
-                </AnimatePresence>
-
-                {/* Manual Voucher Input */}
-                <div className="flex">
-                  <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Tag size={18} className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Hoặc nhập mã giảm giá..."
-                      value={voucherCode}
-                      onChange={(e) => {
-                        setVoucherCode(e.target.value)
-                        setVoucherError("")
-                      }}
-                      className="pl-10 block w-full bg-slate-600/50 text-white border border-slate-500 rounded-l-xl py-2 px-4 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
-                    />
-                  </div>
+                {/* Voucher Input */}
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Nhập mã giảm giá"
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value)}
+                    className="flex-1 p-3 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                  />
                   <button
                     onClick={() => handleApplyVoucher()}
-                    disabled={isApplyingVoucher}
-                    className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 py-2 px-4 rounded-r-xl transition-all duration-300 disabled:opacity-70 flex items-center font-medium"
+                    disabled={isApplyingVoucher || !voucherCode.trim()}
+                    className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 px-4 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isApplyingVoucher ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-900 mr-2"></div>
-                    ) : null}
-                    Áp dụng
+                    {isApplyingVoucher ? "Đang áp dụng..." : "Áp dụng"}
                   </button>
                 </div>
-                {voucherError && <p className="mt-1 text-sm text-red-400">{voucherError}</p>}
+
+                {voucherError && (
+                  <div className="text-red-400 text-sm mb-4 flex items-center">
+                    <AlertCircle size={16} className="mr-1" />
+                    {voucherError}
+                  </div>
+                )}
+
+                {/* Voucher List */}
+                <AnimatePresence>
+                  {showVoucherList && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <VoucherList
+                        vouchers={availableVouchers}
+                        onSelectVoucher={handleSelectVoucher}
+                        orderAmount={calculateOrderAmount()}
+                        isLoading={loadingVouchers}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </OrderSummary>
+
+              {/* Order Summary - Using the new component */}
+              <OrderSummaryNew
+                items={orderItems}
+                subtotal={subtotalAmount}
+                shippingFee={shippingFeeAmount}
+                discount={discountAmount}
+                total={totalAmount}
+                appliedVoucher={currentAppliedVoucher}
+                shippingInfo={shippingInfo}
+              />
+
+              {/* Place Order Button */}
+              <ConfirmButton
+                onClick={placeOrder}
+                disabled={isSubmitting || !shippingInfo}
+                isLoading={isSubmitting}
+                loadingText="Đang xử lý đơn hàng..."
+                className="w-full mt-6"
+              >
+                <div className="flex items-center justify-center">
+                  <Sparkles className="mr-2" size={20} />
+                  Đặt hàng - {totalAmount.toLocaleString("vi-VN")}đ
+                </div>
+              </ConfirmButton>
+
+              {!shippingInfo && (
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mt-4">
+                  <div className="flex items-center">
+                    <Info className="text-blue-400 mr-2" size={16} />
+                    <span className="text-blue-300 text-sm">
+                      Vui lòng chọn địa chỉ và tính phí vận chuyển trước khi đặt hàng
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
 
       {/* Address Modal */}
-      <AnimatePresence>
-        {showAddressModal && (
-          <AddressModal
-            isOpen={showAddressModal}
-            onClose={() => setShowAddressModal(false)}
-            formMode={addressFormMode}
-            formData={data}
-            formErrors={errors}
-            onChangeHandler={onChangeHandler}
-            onSubmit={addressFormMode === "add" ? handleAddAddress : handleUpdateAddress}
-          />
-        )}
-      </AnimatePresence>
+      <AddressModal
+        isOpen={showAddressModal}
+        onClose={() => {
+          setShowAddressModal(false)
+          setShowAddressForm(false)
+        }}
+        formMode={addressFormMode}
+        formData={data}
+        formErrors={errors}
+        onChangeHandler={onChangeHandler}
+        onSubmit={addressFormMode === "add" ? handleAddAddress : handleUpdateAddress}
+      />
 
       <ToastContainer
         position="top-right"

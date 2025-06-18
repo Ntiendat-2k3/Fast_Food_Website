@@ -1,5 +1,5 @@
 import orderModel from "../models/orderModel.js"
-import userModel from "../models/userModel.js" // Thêm import userModel
+import userModel from "../models/userModel.js"
 
 // placing user order from frontend
 const placeOrder = async (req, res) => {
@@ -7,7 +7,20 @@ const placeOrder = async (req, res) => {
     console.log("Order data received:", req.body) // Debug log
 
     // Kiểm tra dữ liệu đầu vào
-    const { userId, items, amount, address, paymentMethod, voucherCode, discountAmount } = req.body
+    const {
+      userId,
+      items,
+      amount,
+      address,
+      paymentMethod,
+      voucherCode,
+      discountAmount,
+      shippingFee,
+      deliveryFee,
+      distance,
+      subtotal,
+      itemsTotal,
+    } = req.body
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.json({ success: false, message: "Không có sản phẩm nào trong đơn hàng" })
@@ -17,7 +30,7 @@ const placeOrder = async (req, res) => {
       return res.json({ success: false, message: "Thông tin địa chỉ không đầy đủ" })
     }
 
-    // Tạo đơn hàng mới
+    // Tạo đơn hàng mới với đầy đủ thông tin
     const newOrder = new orderModel({
       userId: userId,
       items: items,
@@ -28,6 +41,12 @@ const placeOrder = async (req, res) => {
       paymentStatus: paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
       voucherCode: voucherCode || null,
       discountAmount: discountAmount || 0,
+      // Lưu thông tin phí ship
+      shippingFee: shippingFee || deliveryFee || 14000,
+      deliveryFee: deliveryFee || shippingFee || 14000,
+      distance: distance || null,
+      subtotal: subtotal || itemsTotal || 0,
+      itemsTotal: itemsTotal || subtotal || 0,
     })
 
     console.log("New order to be saved:", {
@@ -36,6 +55,9 @@ const placeOrder = async (req, res) => {
       amount: newOrder.amount,
       voucherCode: newOrder.voucherCode,
       discountAmount: newOrder.discountAmount,
+      shippingFee: newOrder.shippingFee,
+      deliveryFee: newOrder.deliveryFee,
+      distance: newOrder.distance,
     }) // Debug log
 
     // Lưu đơn hàng
@@ -59,6 +81,29 @@ const placeOrder = async (req, res) => {
   }
 }
 
+// Listing orders for admin panel
+const listOrders = async (req, res) => {
+  try {
+    const orders = await orderModel.find({})
+    console.log(
+      "Orders from database with shipping info:",
+      orders.map((order) => ({
+        id: order._id,
+        voucherCode: order.voucherCode,
+        discountAmount: order.discountAmount,
+        shippingFee: order.shippingFee,
+        deliveryFee: order.deliveryFee,
+        distance: order.distance,
+      })),
+    ) // Debug log
+
+    res.json({ success: true, data: orders })
+  } catch (error) {
+    console.log("Error listing orders:", error)
+    res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+  }
+}
+
 // Các hàm khác giữ nguyên
 const verifyOrder = async (req, res) => {
   const { orderId, success, paymentMethod } = req.body
@@ -70,7 +115,6 @@ const verifyOrder = async (req, res) => {
       })
       res.json({ success: true, message: "Thanh toán thành công" })
     } else {
-      // Không xóa đơn hàng, chỉ cập nhật trạng thái thanh toán
       await orderModel.findByIdAndUpdate(orderId, {
         paymentStatus: "Thanh toán thất bại",
       })
@@ -82,7 +126,6 @@ const verifyOrder = async (req, res) => {
   }
 }
 
-// user orders for frontend
 const userOrders = async (req, res) => {
   try {
     const orders = await orderModel.find({ userId: req.body.userId })
@@ -93,27 +136,6 @@ const userOrders = async (req, res) => {
   }
 }
 
-// Listing orders for admin panel
-const listOrders = async (req, res) => {
-  try {
-    const orders = await orderModel.find({})
-    console.log(
-      "Orders from database:",
-      orders.map((order) => ({
-        id: order._id,
-        voucherCode: order.voucherCode,
-        discountAmount: order.discountAmount,
-      })),
-    ) // Debug log
-
-    res.json({ success: true, data: orders })
-  } catch (error) {
-    console.log("Error listing orders:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
-  }
-}
-
-// api for updating order status
 const updateStatus = async (req, res) => {
   try {
     await orderModel.findByIdAndUpdate(req.body.orderId, {
@@ -126,7 +148,6 @@ const updateStatus = async (req, res) => {
   }
 }
 
-// api for updating payment status
 const updatePaymentStatus = async (req, res) => {
   try {
     await orderModel.findByIdAndUpdate(req.body.orderId, {
@@ -139,7 +160,6 @@ const updatePaymentStatus = async (req, res) => {
   }
 }
 
-// Lấy lịch sử mua hàng của người dùng
 const getUserPurchaseHistory = async (req, res) => {
   try {
     const { userId } = req.body
@@ -155,13 +175,11 @@ const getUserPurchaseHistory = async (req, res) => {
       })
     }
 
-    // Build query - Lấy tất cả đơn hàng đã giao
     const query = {
       userId,
       $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }],
     }
 
-    // Add search filter
     if (search) {
       query.$and = [
         query.$or ? { $or: query.$or } : {},
@@ -178,7 +196,6 @@ const getUserPurchaseHistory = async (req, res) => {
       delete query.$or
     }
 
-    // Add time range filter
     if (timeRange !== "all") {
       const now = new Date()
       let startDate
@@ -206,7 +223,6 @@ const getUserPurchaseHistory = async (req, res) => {
       }
     }
 
-    // Sort options
     let sortOptions = {}
     switch (sortBy) {
       case "newest":
@@ -227,10 +243,8 @@ const getUserPurchaseHistory = async (req, res) => {
 
     console.log("Final query:", JSON.stringify(query, null, 2))
 
-    // Calculate pagination
     const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit)
 
-    // Execute query
     const orders = await orderModel.find(query).sort(sortOptions).skip(skip).limit(Number.parseInt(limit)).lean()
 
     console.log("Found orders:", orders.length)
@@ -238,7 +252,6 @@ const getUserPurchaseHistory = async (req, res) => {
     const totalOrders = await orderModel.countDocuments(query)
     const totalPages = Math.ceil(totalOrders / Number.parseInt(limit))
 
-    // Calculate statistics for all completed orders
     const allCompletedOrders = await orderModel.find({
       userId,
       $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }],

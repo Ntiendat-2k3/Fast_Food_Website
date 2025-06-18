@@ -2,7 +2,15 @@
 import { AlertCircle, Phone, User } from "lucide-react"
 import AddressAutocomplete from "./AddressAutocomplete"
 
-const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", onCancel, onAddressSelect }) => {
+const AddressForm = ({
+  data = { name: "", street: "", phone: "" },
+  errors = {},
+  onChangeHandler,
+  onSubmit,
+  mode = "add",
+  onCancel,
+  onAddressSelect,
+}) => {
   const handleAddressChange = (address) => {
     onChangeHandler({
       target: {
@@ -36,7 +44,7 @@ const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", on
           required
           name="name"
           onChange={onChangeHandler}
-          value={data.name}
+          value={data.name || ""}
           type="text"
           placeholder="Họ tên người nhận"
         />
@@ -50,7 +58,7 @@ const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", on
 
       <div className="relative">
         <AddressAutocomplete
-          value={data.street}
+          value={data.street || ""}
           onChange={handleAddressChange}
           onAddressSelect={handleAddressSelect}
           placeholder="Nhập địa chỉ giao hàng chi tiết..."
@@ -73,7 +81,7 @@ const AddressForm = ({ data, errors, onChangeHandler, onSubmit, mode = "add", on
           required
           name="phone"
           onChange={onChangeHandler}
-          value={data.phone}
+          value={data.phone || ""}
           type="text"
           placeholder="Số điện thoại liên hệ (VD: 0912345678)"
         />
