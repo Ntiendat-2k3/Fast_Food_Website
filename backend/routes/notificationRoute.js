@@ -1,28 +1,18 @@
 import express from "express"
 import {
   createNotification,
-  getAllNotifications,
-  getUserNotifications,
-  markNotificationRead,
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
   deleteNotification,
 } from "../controllers/notificationController.js"
-import auth from "../middleware/auth.js"
 
-const router = express.Router()
+const notificationRouter = express.Router()
 
-// Create a new notification (admin only)
-router.post("/create", auth, createNotification)
+notificationRouter.post("/create", createNotification)
+notificationRouter.get("/list", getNotifications)
+notificationRouter.put("/read/:notificationId", markAsRead)
+notificationRouter.put("/read-all", markAllAsRead)
+notificationRouter.delete("/:notificationId", deleteNotification)
 
-// Get all notifications (admin only)
-router.get("/all", auth, getAllNotifications)
-
-// Get notifications for the current user
-router.get("/user", auth, getUserNotifications)
-
-// Mark notification as read
-router.post("/read", auth, markNotificationRead)
-
-// Delete a notification (admin only)
-router.post("/delete", auth, deleteNotification)
-
-export default router
+export default notificationRouter

@@ -1,5 +1,5 @@
 import express from "express"
-import  requireSignIn  from "../middleware/auth.js"
+import requireSignIn from "../middleware/auth.js"
 import authMiddleware from "../middleware/auth.js"
 import {
   placeOrder,
@@ -8,6 +8,7 @@ import {
   listOrders,
   updateStatus,
   updatePaymentStatus,
+  getRevenueStats,
 } from "../controllers/orderController.js"
 import { getUserPurchaseHistory } from "../controllers/purchaseHistoryController.js"
 
@@ -20,5 +21,6 @@ orderRouter.get("/list", listOrders)
 orderRouter.post("/status", updateStatus)
 orderRouter.post("/payment-status", updatePaymentStatus)
 orderRouter.post("/purchase-history", requireSignIn, getUserPurchaseHistory)
+orderRouter.get("/revenue-stats", getRevenueStats)
 
 export default orderRouter

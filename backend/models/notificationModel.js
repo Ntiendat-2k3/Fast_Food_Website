@@ -3,11 +3,18 @@ import mongoose from "mongoose"
 const notificationSchema = new mongoose.Schema({
   title: { type: String, required: true },
   message: { type: String, required: true },
-  type: { type: String, enum: ["info", "warning", "success", "error"], default: "info" },
-  targetUser: { type: String, default: "all" }, // "all" or specific user ID
+  type: {
+    type: String,
+    enum: ["order", "payment", "system", "user"],
+    default: "system",
+  },
+  orderId: { type: String, default: null },
+  userId: { type: String, default: null },
+  isRead: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
-  read: { type: Boolean, default: false },
+  readAt: { type: Date, default: null },
 })
 
 const notificationModel = mongoose.models.notification || mongoose.model("notification", notificationSchema)
+
 export default notificationModel

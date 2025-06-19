@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
-  Home,
   Package,
   ShoppingCart,
   User,
@@ -19,11 +18,23 @@ import {
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
 
+// Lazy load NotificationBell with error boundary
+const NotificationBell = ({ url }) => {
+  try {
+    const NotificationBellComponent = require("./notifications/NotificationBell").default
+    return <NotificationBellComponent url={url} />
+  } catch (error) {
+    console.error("Error loading NotificationBell:", error)
+    return null
+  }
+}
+
 const Sidebar = ({ onLogout }) => {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
+  const url = "http://localhost:4000"
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen)
@@ -98,6 +109,7 @@ const Sidebar = ({ onLogout }) => {
           <Menu size={22} />
         </button>
         <div className="flex items-center space-x-3">
+          <NotificationBell url={url} />
           <button
             onClick={toggleTheme}
             className="p-1.5 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
@@ -131,12 +143,17 @@ const Sidebar = ({ onLogout }) => {
             <img src="/logo.png" alt="Logo" className="h-7 w-auto" />
             <span className="text-lg font-bold text-primary">Admin</span>
           </Link>
-          <button
-            onClick={closeSidebar}
-            className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden focus:outline-none"
-          >
-            <X size={18} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <div className="hidden md:block">
+              <NotificationBell url={url} />
+            </div>
+            <button
+              onClick={closeSidebar}
+              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden focus:outline-none"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <nav className="mt-4 px-3 max-h-[calc(100vh-120px)] overflow-y-auto">

@@ -1,128 +1,118 @@
 import notificationModel from "../models/notificationModel.js"
-import mongoose from "mongoose"
 
-// Create a new notification
+// Tạo notification mới
 const createNotification = async (req, res) => {
   try {
-    const { title, message, type, targetUser } = req.body
+    const { title, message, type, orderId, userId } = req.body
 
-    // Validate required fields
-    if (!title || !message) {
-      return res.json({ success: false, message: "Tiêu đề và nội dung thông báo không được để trống" })
-    }
-
-    // Create new notification
     const newNotification = new notificationModel({
       title,
       message,
-      type: type || "info",
-      targetUser: targetUser || "all",
+      type,
+      orderId,
+      userId,
+      createdAt: new Date(),
     })
 
-    const savedNotification = await newNotification.save()
+    await newNotification.save()
 
-    res.json({
-      success: true,
-      message: "Tạo thông báo thành công",
-      notification: savedNotification,
-    })
+    // Emit notification to admin via socket
+    if (req.io) {
+      req.io.emit("newNotification", {
+        id: newNotification._id,
+        title,
+        message,
+        type,
+        orderId,
+        userId,
+        createdAt: newNotification.createdAt,
+        isRead: false,
+      })
+    }
+
+    res.json({ success: true, data: newNotification })
   } catch (error) {
-    console.error("Error creating notification:", error)
+    console.log("Error creating notification:", error)
     res.json({ success: false, message: "Lỗi khi tạo thông báo" })
   }
 }
 
-// Get all notifications (for admin)
-const getAllNotifications = async (req, res) => {
+// Lấy danh sách notifications
+const getNotifications = async (req, res) => {
   try {
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    const { page = 1, limit = 20, isRead } = req.query
+
+    const query = {}
+    if (isRead !== undefined) {
+      query.isRead = isRead === "true"
     }
 
-    const notifications = await notificationModel.find({}).sort({ createdAt: -1 })
-
-    res.json({ success: true, data: notifications })
-  } catch (error) {
-    console.error("Error getting all notifications:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách thông báo" })
-  }
-}
-
-// Get notifications for a specific user
-const getUserNotifications = async (req, res) => {
-  try {
-    const userId = req.user._id
-
-    // Get notifications targeted to this user or to all users
     const notifications = await notificationModel
-      .find({
-        $or: [{ targetUser: userId.toString() }, { targetUser: "all" }],
-      })
+      .find(query)
       .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
 
-    res.json({ success: true, data: notifications })
+    const total = await notificationModel.countDocuments(query)
+    const unreadCount = await notificationModel.countDocuments({ isRead: false })
+
+    res.json({
+      success: true,
+      data: notifications,
+      pagination: {
+        total,
+        page: Number.parseInt(page),
+        pages: Math.ceil(total / limit),
+      },
+      unreadCount,
+    })
   } catch (error) {
-    console.error("Error getting user notifications:", error)
+    console.log("Error getting notifications:", error)
     res.json({ success: false, message: "Lỗi khi lấy thông báo" })
   }
 }
 
-// Mark notification as read
-const markNotificationRead = async (req, res) => {
+// Đánh dấu notification đã đọc
+const markAsRead = async (req, res) => {
   try {
-    const { id, read } = req.body
+    const { notificationId } = req.params
 
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID thông báo không hợp lệ" })
-    }
-
-    const updatedNotification = await notificationModel.findByIdAndUpdate(
-      id,
-      { read: read !== undefined ? read : true },
-      { new: true },
-    )
-
-    if (!updatedNotification) {
-      return res.json({ success: false, message: "Không tìm thấy thông báo" })
-    }
-
-    res.json({
-      success: true,
-      message: read !== false ? "Đã đánh dấu đã đọc" : "Đã đánh dấu chưa đọc",
-      notification: updatedNotification,
+    await notificationModel.findByIdAndUpdate(notificationId, {
+      isRead: true,
+      readAt: new Date(),
     })
+
+    res.json({ success: true, message: "Đã đánh dấu đã đọc" })
   } catch (error) {
-    console.error("Error marking notification as read:", error)
-    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái thông báo" })
+    console.log("Error marking notification as read:", error)
+    res.json({ success: false, message: "Lỗi khi đánh dấu đã đọc" })
   }
 }
 
-// Delete a notification
+// Đánh dấu tất cả đã đọc
+const markAllAsRead = async (req, res) => {
+  try {
+    await notificationModel.updateMany({ isRead: false }, { isRead: true, readAt: new Date() })
+
+    res.json({ success: true, message: "Đã đánh dấu tất cả đã đọc" })
+  } catch (error) {
+    console.log("Error marking all notifications as read:", error)
+    res.json({ success: false, message: "Lỗi khi đánh dấu tất cả đã đọc" })
+  }
+}
+
+// Xóa notification
 const deleteNotification = async (req, res) => {
   try {
-    const { id } = req.body
+    const { notificationId } = req.params
 
-    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID thông báo không hợp lệ" })
-    }
+    await notificationModel.findByIdAndDelete(notificationId)
 
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
-    }
-
-    const deletedNotification = await notificationModel.findByIdAndDelete(id)
-
-    if (!deletedNotification) {
-      return res.json({ success: false, message: "Không tìm thấy thông báo" })
-    }
-
-    res.json({ success: true, message: "Xóa thông báo thành công" })
+    res.json({ success: true, message: "Đã xóa thông báo" })
   } catch (error) {
-    console.error("Error deleting notification:", error)
+    console.log("Error deleting notification:", error)
     res.json({ success: false, message: "Lỗi khi xóa thông báo" })
   }
 }
 
-export { createNotification, getAllNotifications, getUserNotifications, markNotificationRead, deleteNotification }
+export { createNotification, getNotifications, markAsRead, markAllAsRead, deleteNotification }

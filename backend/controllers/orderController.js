@@ -1,5 +1,6 @@
 import orderModel from "../models/orderModel.js"
 import userModel from "../models/userModel.js"
+import notificationModel from "../models/notificationModel.js"
 
 // placing user order from frontend
 const placeOrder = async (req, res) => {
@@ -63,6 +64,41 @@ const placeOrder = async (req, res) => {
     // Lưu đơn hàng
     const savedOrder = await newOrder.save()
 
+    // Tạo notification cho admin
+    const notification = new notificationModel({
+      title: "Đơn hàng mới",
+      message: `Đơn hàng mới từ ${address.name} - ${amount.toLocaleString("vi-VN")} đ`,
+      type: "order",
+      orderId: savedOrder._id,
+      userId: userId,
+      createdAt: new Date(),
+    })
+
+    await notification.save()
+
+    // Emit real-time notification to admin
+    if (req.io) {
+      req.io.emit("newOrder", {
+        id: savedOrder._id,
+        customerName: address.name,
+        amount: amount,
+        items: items.length,
+        paymentMethod: paymentMethod,
+        createdAt: savedOrder.date,
+      })
+
+      req.io.emit("newNotification", {
+        id: notification._id,
+        title: notification.title,
+        message: notification.message,
+        type: notification.type,
+        orderId: savedOrder._id,
+        userId: userId,
+        createdAt: notification.createdAt,
+        isRead: false,
+      })
+    }
+
     // Xóa giỏ hàng của người dùng
     if (userId) {
       await userModel.findByIdAndUpdate(userId, { cartData: {} })
@@ -101,6 +137,103 @@ const listOrders = async (req, res) => {
   } catch (error) {
     console.log("Error listing orders:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+  }
+}
+
+// Thống kê revenue theo thời gian
+const getRevenueStats = async (req, res) => {
+  try {
+    const { period = "month", year, month } = req.query
+
+    let matchStage = {}
+    let groupStage = {}
+    let sortStage = {}
+
+    const currentYear = new Date().getFullYear()
+    const currentMonth = new Date().getMonth() + 1
+
+    switch (period) {
+      case "day":
+        // Thống kê theo ngày trong tháng
+        const targetYear = year ? Number.parseInt(year) : currentYear
+        const targetMonth = month ? Number.parseInt(month) : currentMonth
+
+        matchStage = {
+          date: {
+            $gte: new Date(targetYear, targetMonth - 1, 1),
+            $lt: new Date(targetYear, targetMonth, 1),
+          },
+        }
+
+        groupStage = {
+          _id: { $dayOfMonth: "$date" },
+          totalRevenue: { $sum: "$amount" },
+          totalOrders: { $sum: 1 },
+          date: { $first: "$date" },
+        }
+
+        sortStage = { _id: 1 }
+        break
+
+      case "month":
+        // Thống kê theo tháng trong năm
+        const statsYear = year ? Number.parseInt(year) : currentYear
+
+        matchStage = {
+          date: {
+            $gte: new Date(statsYear, 0, 1),
+            $lt: new Date(statsYear + 1, 0, 1),
+          },
+        }
+
+        groupStage = {
+          _id: { $month: "$date" },
+          totalRevenue: { $sum: "$amount" },
+          totalOrders: { $sum: 1 },
+          date: { $first: "$date" },
+        }
+
+        sortStage = { _id: 1 }
+        break
+
+      case "year":
+        // Thống kê theo năm
+        groupStage = {
+          _id: { $year: "$date" },
+          totalRevenue: { $sum: "$amount" },
+          totalOrders: { $sum: 1 },
+          date: { $first: "$date" },
+        }
+
+        sortStage = { _id: 1 }
+        break
+
+      default:
+        return res.json({ success: false, message: "Invalid period" })
+    }
+
+    const pipeline = [{ $match: matchStage }, { $group: groupStage }, { $sort: sortStage }]
+
+    const stats = await orderModel.aggregate(pipeline)
+
+    // Format dữ liệu cho frontend
+    const formattedStats = stats.map((stat) => ({
+      period: stat._id,
+      revenue: stat.totalRevenue,
+      orders: stat.totalOrders,
+      date: stat.date,
+    }))
+
+    res.json({
+      success: true,
+      data: formattedStats,
+      period,
+      year: year || currentYear,
+      month: month || currentMonth,
+    })
+  } catch (error) {
+    console.log("Error getting revenue stats:", error)
+    res.json({ success: false, message: "Lỗi khi lấy thống kê doanh thu" })
   }
 }
 
@@ -292,4 +425,13 @@ const getUserPurchaseHistory = async (req, res) => {
   }
 }
 
-export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus, updatePaymentStatus, getUserPurchaseHistory }
+export {
+  placeOrder,
+  verifyOrder,
+  userOrders,
+  listOrders,
+  updateStatus,
+  updatePaymentStatus,
+  getUserPurchaseHistory,
+  getRevenueStats,
+}
