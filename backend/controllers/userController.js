@@ -3,241 +3,67 @@ import blacklistModel from "../models/blacklistModel.js"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import validator from "validator"
-import mongoose from "mongoose"
-import { OAuth2Client } from "google-auth-library"
 
-// Initialize Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-
-// Google Login
-const googleLogin = async (req, res) => {
-  try {
-    const { credential } = req.body
-
-    if (!credential) {
-      return res.json({ success: false, message: "Google credential is required" })
-    }
-
-    // Verify Google token
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    })
-
-    const payload = ticket.getPayload()
-    const { sub: googleId, email, name, picture } = payload
-
-    console.log("Google login payload:", { googleId, email, name })
-
-    // Check if user exists with this Google ID
-    let user = await userModel.findOne({ googleId })
-
-    if (!user) {
-      // Check if user exists with this email (from regular registration)
-      user = await userModel.findOne({ email })
-
-      if (user) {
-        // Link Google account to existing user
-        user.googleId = googleId
-        user.avatar = picture
-        user.authProvider = "google"
-        await user.save()
-      } else {
-        // Create new user
-        user = new userModel({
-          name,
-          email,
-          googleId,
-          avatar: picture,
-          authProvider: "google",
-          role: "user",
-        })
-        await user.save()
-      }
-    }
-
-    // Check if user is blacklisted
-    const isBlacklisted = await blacklistModel.findOne({ userId: user._id })
-    if (isBlacklisted) {
-      return res.json({
-        success: false,
-        message: "Tài khoản của bạn đã bị chặn. Lý do: " + isBlacklisted.reason,
-      })
-    }
-
-    const token = createToken(user._id)
-
-    // Return user data (excluding password) along with the token
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      authProvider: user.authProvider,
-    }
-
-    res.json({ success: true, token, user: userData })
-  } catch (error) {
-    console.error("Google login error:", error)
-    res.json({ success: false, message: "Google login failed" })
-  }
-}
-
-// Get user profile
-const getUserProfile = async (req, res) => {
-  try {
-    // The user ID is available from the auth middleware
-    const userId = req.user._id
-
-    // Find the user by ID but exclude the password
-    const user = await userModel.findById(userId).select("-password")
-
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    res.json({ success: true, user })
-  } catch (error) {
-    console.error("Error in getUserProfile:", error)
-    res.json({ success: false, message: "Error retrieving user profile" })
-  }
-}
-
-// Get all users (for admin and staff)
-const getAllUsers = async (req, res) => {
-  try {
-    // Check if the requesting user is an admin or staff
-    if (req.user.role !== "admin" && req.user.role !== "staff") {
-      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
-    }
-
-    // Find all users but exclude passwords
-    const users = await userModel.find({}).select("-password")
-
-    res.json({ success: true, data: users })
-  } catch (error) {
-    console.error("Error in getAllUsers:", error)
-    res.json({ success: false, message: "Error retrieving users" })
-  }
-}
-
-// login user
-const loginUser = async (req, res) => {
-  const { email, password } = req.body
-  try {
-    const user = await userModel.findOne({ email })
-
-    if (!user) {
-      return res.json({ success: false, message: "User doesn't exist." })
-    }
-
-    // Check if user registered with Google
-    if (user.authProvider === "google" && !user.password) {
-      return res.json({
-        success: false,
-        message: "Tài khoản này được đăng ký bằng Google. Vui lòng sử dụng đăng nhập Google.",
-      })
-    }
-
-    // Check if user is blacklisted
-    const isBlacklisted = await blacklistModel.findOne({ userId: user._id })
-    if (isBlacklisted) {
-      return res.json({
-        success: false,
-        message: "Tài khoản của bạn đã bị chặn. Lý do: " + isBlacklisted.reason,
-      })
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password)
-
-    if (!isMatch) {
-      return res.json({ success: false, message: "Invalid credentials" })
-    }
-
-    const token = createToken(user._id)
-
-    // Return user data (excluding password) along with the token
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      authProvider: user.authProvider,
-    }
-
-    res.json({ success: true, token, user: userData })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
-  }
-}
-
-// Admin login (now includes staff)
-const adminLogin = async (req, res) => {
-  const { email, password } = req.body
-  try {
-    const user = await userModel.findOne({ email })
-
-    if (!user) {
-      return res.json({ success: false, message: "User doesn't exist." })
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password)
-
-    if (!isMatch) {
-      return res.json({ success: false, message: "Invalid credentials" })
-    }
-
-    // Check if user has admin or staff role
-    if (user.role !== "admin" && user.role !== "staff") {
-      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
-    }
-
-    const token = createToken(user._id)
-
-    // Return user data (excluding password) along with the token
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      authProvider: user.authProvider,
-    }
-
-    res.json({ success: true, token, user: userData })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
-  }
-}
-
+// Create token
 const createToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET)
 }
 
-// register user
-const registerUser = async (req, res) => {
-  const { name, password, email, role } = req.body
+// Login user
+const loginUser = async (req, res) => {
+  const { email, password } = req.body
   try {
-    //checking if user already exists
-    const exists = await userModel.findOne({ email })
-    if (exists) {
-      return res.json({ success: false, message: "User already exists." })
+    console.log("User login attempt:", email)
+
+    const user = await userModel.findOne({ email })
+
+    if (!user) {
+      return res.json({ success: false, message: "User doesn't exist" })
     }
 
-    // validating email format & strong password
+    // Check if user is blocked
+    const isBlocked = await blacklistModel.findOne({ userId: user._id })
+    if (isBlocked) {
+      return res.json({ success: false, message: "Your account has been blocked" })
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+
+    if (!isMatch) {
+      return res.json({ success: false, message: "Invalid credentials" })
+    }
+
+    const token = createToken(user._id)
+    console.log("User login successful:", user.name)
+    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
+  } catch (error) {
+    console.error("Login error:", error)
+    res.json({ success: false, message: "Error" })
+  }
+}
+
+// Register user
+const registerUser = async (req, res) => {
+  const { name, password, email } = req.body
+  try {
+    console.log("User registration attempt:", email)
+
+    // Check if user already exists
+    const exists = await userModel.findOne({ email })
+    if (exists) {
+      return res.json({ success: false, message: "User already exists" })
+    }
+
+    // Validate email format & strong password
     if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email." })
+      return res.json({ success: false, message: "Please enter a valid email" })
     }
 
     if (password.length < 8) {
-      return res.json({ success: false, message: "Please enter a strong password." })
+      return res.json({ success: false, message: "Please enter a strong password" })
     }
 
-    // hashing user password
+    // Hash user password
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
@@ -245,151 +71,358 @@ const registerUser = async (req, res) => {
       name: name,
       email: email,
       password: hashedPassword,
-      role: role || "user", // Default to 'user' if not specified, can be 'user', 'admin', or 'staff'
-      authProvider: "local",
+      role: "user",
     })
 
     const user = await newUser.save()
     const token = createToken(user._id)
 
-    // Return user data (excluding password) along with the token
-    const userData = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      authProvider: user.authProvider,
-    }
-
-    res.json({ success: true, token, user: userData })
+    console.log("User registered successfully:", user.name)
+    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
   } catch (error) {
-    console.log(error)
+    console.error("Registration error:", error)
     res.json({ success: false, message: "Error" })
   }
 }
 
-// Block a user (add to blacklist) - Admin and Staff can block users
+// Admin login
+const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body
+    console.log("Admin login attempt:", email)
+
+    const user = await userModel.findOne({ email })
+    if (!user) {
+      return res.json({ success: false, message: "Invalid credentials" })
+    }
+
+    // Check if user has admin or staff role
+    if (user.role !== "admin" && user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied: Admin or Staff role required" })
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    if (!isMatch) {
+      return res.json({ success: false, message: "Invalid credentials" })
+    }
+
+    const token = createToken(user._id)
+    console.log("Admin/Staff login successful:", user.name, "Role:", user.role)
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    })
+  } catch (error) {
+    console.error("Admin login error:", error)
+    res.json({ success: false, message: "Error during login" })
+  }
+}
+
+// Get all users (admin/staff only)
+const getAllUsers = async (req, res) => {
+  try {
+    console.log("Getting all users - requested by:", req.user.name, "Role:", req.user.role)
+
+    const users = await userModel.find({}).select("-password")
+
+    console.log(`Found ${users.length} users`)
+    res.json({
+      success: true,
+      users,
+    })
+  } catch (error) {
+    console.error("Error getting all users:", error)
+    res.json({
+      success: false,
+      message: "Error getting users",
+    })
+  }
+}
+
+// Block user (admin/staff only)
 const blockUser = async (req, res) => {
   try {
     const { userId, reason } = req.body
+    const blockedBy = req.user._id
 
-    console.log("Block user request received:", { userId, reason })
-
-    // Check if the requesting user is an admin or staff
-    if (req.user.role !== "admin" && req.user.role !== "staff") {
-      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
-    }
-
-    // Validate userId
-    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
-      console.error("Invalid userId:", userId)
-      return res.json({ success: false, message: "ID người dùng không hợp lệ" })
-    }
+    console.log("Blocking user:", userId, "by:", req.user.name, "Reason:", reason)
 
     // Check if user exists
     const user = await userModel.findById(userId)
     if (!user) {
-      console.error("User not found with ID:", userId)
-      return res.json({ success: false, message: "Không tìm thấy người dùng" })
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
     }
 
-    // Staff cannot block admin or other staff
+    // Prevent staff from blocking admin or other staff
     if (req.user.role === "staff" && (user.role === "admin" || user.role === "staff")) {
-      return res.json({ success: false, message: "Nhân viên không thể chặn admin hoặc nhân viên khác" })
+      return res.json({
+        success: false,
+        message: "Staff cannot block admin or staff users",
+      })
     }
 
-    // Check if user is already blacklisted
-    const existingBlacklist = await blacklistModel.findOne({ userId })
-    if (existingBlacklist) {
-      console.error("User already blacklisted:", userId)
-      return res.json({ success: false, message: "Người dùng này đã bị chặn trước đó" })
+    // Check if user is already blocked
+    const existingBlock = await blacklistModel.findOne({ userId })
+    if (existingBlock) {
+      return res.json({
+        success: false,
+        message: "User is already blocked",
+      })
     }
 
-    console.log("Creating blacklist entry for user:", user.name, userId)
-
-    // Create new blacklist entry
-    const newBlacklist = new blacklistModel({
+    // Create blacklist entry
+    const blacklistEntry = new blacklistModel({
       userId,
-      reason,
-      blockedBy: req.user.name || (req.user.role === "admin" ? "Admin" : "Staff"),
+      reason: reason || "No reason provided",
+      blockedBy,
+      blockedAt: new Date(),
     })
 
-    await newBlacklist.save()
-    console.log("User successfully blacklisted:", user.name, userId)
+    await blacklistEntry.save()
 
-    res.json({ success: true, message: "Đã chặn người dùng thành công" })
+    console.log("User blocked successfully:", user.name)
+    res.json({
+      success: true,
+      message: "User blocked successfully",
+    })
   } catch (error) {
-    console.error("Error in blockUser:", error)
-    res.json({ success: false, message: "Lỗi khi chặn người dùng" })
+    console.error("Error blocking user:", error)
+    res.json({
+      success: false,
+      message: "Error blocking user",
+    })
   }
 }
 
-// Unblock a user (remove from blacklist) - Admin and Staff can unblock
+// Unblock user (admin/staff only)
 const unblockUser = async (req, res) => {
   try {
-    const { blacklistId } = req.body
+    const { userId } = req.body
 
-    // Check if the requesting user is an admin or staff
-    if (req.user.role !== "admin" && req.user.role !== "staff") {
-      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
-    }
+    console.log("Unblocking user:", userId, "by:", req.user.name)
 
-    // Validate blacklistId
-    if (!blacklistId || !mongoose.Types.ObjectId.isValid(blacklistId)) {
-      return res.json({ success: false, message: "ID không hợp lệ" })
+    // Check if user exists
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
     }
 
     // Remove from blacklist
-    const result = await blacklistModel.findByIdAndDelete(blacklistId)
-
+    const result = await blacklistModel.findOneAndDelete({ userId })
     if (!result) {
-      return res.json({ success: false, message: "Không tìm thấy bản ghi trong danh sách đen" })
+      return res.json({
+        success: false,
+        message: "User is not blocked",
+      })
     }
 
-    res.json({ success: true, message: "Đã bỏ chặn người dùng thành công" })
+    console.log("User unblocked successfully:", user.name)
+    res.json({
+      success: true,
+      message: "User unblocked successfully",
+    })
   } catch (error) {
-    console.error("Error in unblockUser:", error)
-    res.json({ success: false, message: "Lỗi khi bỏ chặn người dùng" })
+    console.error("Error unblocking user:", error)
+    res.json({
+      success: false,
+      message: "Error unblocking user",
+    })
   }
 }
 
-// Get blacklist - Admin and Staff can view
+// Get blacklist (admin/staff only)
 const getBlacklist = async (req, res) => {
   try {
-    // Check if the requesting user is an admin or staff
-    if (req.user.role !== "admin" && req.user.role !== "staff") {
-      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
+    console.log("Getting blacklist - requested by:", req.user.name, "Role:", req.user.role)
+
+    const blacklist = await blacklistModel
+      .find({})
+      .populate("userId", "name email")
+      .populate("blockedBy", "name")
+      .sort({ blockedAt: -1 })
+
+    console.log(`Found ${blacklist.length} blocked users`)
+    res.json({
+      success: true,
+      blacklist,
+    })
+  } catch (error) {
+    console.error("Error getting blacklist:", error)
+    res.json({
+      success: false,
+      message: "Error getting blacklist",
+    })
+  }
+}
+
+// Update user role (admin only)
+const updateUserRole = async (req, res) => {
+  try {
+    const { userId, role } = req.body
+
+    console.log("Updating user role:", userId, "to:", role, "by:", req.user.name)
+
+    // Validate role
+    if (!["user", "staff", "admin"].includes(role)) {
+      return res.json({
+        success: false,
+        message: "Invalid role",
+      })
     }
 
-    // Get blacklist with user details
-    const blacklist = await blacklistModel.find({}).populate("userId", "name email")
+    const user = await userModel.findByIdAndUpdate(userId, { role }, { new: true }).select("-password")
 
-    // Format the response
-    const formattedBlacklist = blacklist.map((item) => ({
-      _id: item._id,
-      userId: item.userId._id,
-      userName: item.userId.name,
-      email: item.userId.email,
-      reason: item.reason,
-      blockedAt: item.blockedAt,
-      blockedBy: item.blockedBy,
-    }))
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
+    }
 
-    res.json({ success: true, data: formattedBlacklist })
+    console.log("User role updated successfully:", user.name, "to:", role)
+    res.json({
+      success: true,
+      message: "User role updated successfully",
+      user,
+    })
   } catch (error) {
-    console.error("Error in getBlacklist:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách đen" })
+    console.error("Error updating user role:", error)
+    res.json({
+      success: false,
+      message: "Error updating user role",
+    })
+  }
+}
+
+// Get user profile
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id
+
+    const user = await userModel.findById(userId).select("-password")
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
+    }
+
+    res.json({
+      success: true,
+      user,
+    })
+  } catch (error) {
+    console.error("Error getting user profile:", error)
+    res.json({
+      success: false,
+      message: "Error getting profile",
+    })
+  }
+}
+
+// Update user profile
+const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const { name, email } = req.body
+
+    // Validate email if provided
+    if (email && !validator.isEmail(email)) {
+      return res.json({
+        success: false,
+        message: "Please enter a valid email",
+      })
+    }
+
+    const user = await userModel.findByIdAndUpdate(userId, { name, email }, { new: true }).select("-password")
+
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
+    }
+
+    console.log("User profile updated:", user.name)
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user,
+    })
+  } catch (error) {
+    console.error("Error updating user profile:", error)
+    res.json({
+      success: false,
+      message: "Error updating profile",
+    })
+  }
+}
+
+// Delete user (admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    console.log("Deleting user:", id, "by:", req.user.name)
+
+    const user = await userModel.findById(id)
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "User not found",
+      })
+    }
+
+    // Prevent deleting admin users
+    if (user.role === "admin") {
+      return res.json({
+        success: false,
+        message: "Cannot delete admin users",
+      })
+    }
+
+    // Remove from blacklist if exists
+    await blacklistModel.findOneAndDelete({ userId: id })
+
+    // Delete user
+    await userModel.findByIdAndDelete(id)
+
+    console.log("User deleted successfully:", user.name)
+    res.json({
+      success: true,
+      message: "User deleted successfully",
+    })
+  } catch (error) {
+    console.error("Error deleting user:", error)
+    res.json({
+      success: false,
+      message: "Error deleting user",
+    })
   }
 }
 
 export {
   loginUser,
   registerUser,
-  getUserProfile,
   adminLogin,
   getAllUsers,
   blockUser,
   unblockUser,
   getBlacklist,
-  googleLogin,
+  updateUserRole,
+  getUserProfile,
+  updateUserProfile,
+  deleteUser,
 }

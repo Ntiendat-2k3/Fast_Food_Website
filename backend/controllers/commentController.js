@@ -204,401 +204,322 @@ const debugUserOrders = async (req, res) => {
   }
 }
 
-// Thêm bình luận mới
+// Add a new comment
 const addComment = async (req, res) => {
   try {
-    const { userId, foodId, rating, comment } = req.body
+    console.log("Adding comment:", req.body)
 
-    console.log("Adding comment:", { userId, foodId, rating, comment })
+    const { productId, rating, comment } = req.body
+    const userId = req.user._id
 
     // Validate required fields
-    if (!userId || !foodId || !rating || !comment) {
+    if (!productId || !rating || !comment) {
       return res.json({
         success: false,
-        message: "Thiếu thông tin bắt buộc",
+        message: "Product ID, rating, and comment are required",
       })
     }
 
-    // Validate foodId
-    if (!mongoose.Types.ObjectId.isValid(foodId)) {
-      console.log("Invalid foodId:", foodId)
-      return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
-    }
-
-    // Validate userId
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      console.log("Invalid userId:", userId)
-      return res.json({ success: false, message: "ID người dùng không hợp lệ" })
-    }
-
-    // Lấy thông tin người dùng
-    const user = await userModel.findById(userId)
-    if (!user) {
-      console.log("User not found with ID:", userId)
-      return res.json({ success: false, message: "Không tìm thấy người dùng" })
-    }
-
-    // Kiểm tra xem user đã đánh giá sản phẩm này chưa
-    const existingComment = await commentModel.findOne({ userId, foodId })
-    if (existingComment) {
+    // Check if product exists
+    const product = await foodModel.findById(productId)
+    if (!product) {
       return res.json({
         success: false,
-        message: "Bạn đã đánh giá sản phẩm này rồi. Bạn có thể chỉnh sửa đánh giá hiện có.",
+        message: "Product not found",
       })
     }
 
-    // KIỂM TRA XEM USER ĐÃ MUA SẢN PHẨM NÀY CHƯA - BẮT BUỘC
-    const hasPurchased = await checkUserPurchase(userId, foodId)
-    if (!hasPurchased) {
-      return res.json({
-        success: false,
-        message: "Bạn cần mua và nhận được sản phẩm này trước khi có thể đánh giá",
-      })
-    }
-
-    // Tạo comment mới
+    // Create new comment
     const newComment = new commentModel({
       userId,
-      foodId,
+      productId,
       rating: Number(rating),
-      comment: comment.trim(),
-      userName: user.name,
-      isApproved: true,
+      comment,
+      status: "pending",
     })
 
-    const savedComment = await newComment.save()
-    console.log("Comment saved successfully:", savedComment._id)
+    await newComment.save()
 
-    // Tự động phản hồi
-    const autoResponse = {
-      adminReply: {
-        message: `Cảm ơn bạn ${user.name} đã đánh giá! Chúng tôi rất vui khi bạn hài lòng với dịch vụ và mong bạn sẽ quay lại ủng hộ chúng tôi.`,
-        createdAt: new Date(),
-      },
-    }
-
-    await commentModel.findByIdAndUpdate(savedComment._id, autoResponse)
-
+    console.log("Comment added successfully:", newComment._id)
     res.json({
       success: true,
-      message: "Thêm đánh giá thành công",
-      data: {
-        _id: savedComment._id,
-        userId: savedComment.userId,
-        userName: user.name,
-        foodId: savedComment.foodId,
-        rating: savedComment.rating,
-        comment: savedComment.comment,
-        createdAt: savedComment.createdAt,
-        adminReply: autoResponse.adminReply,
-      },
+      message: "Comment added successfully",
+      comment: newComment,
     })
   } catch (error) {
     console.error("Error adding comment:", error)
     res.json({
       success: false,
-      message: "Lỗi khi thêm đánh giá: " + error.message,
+      message: "Error adding comment",
     })
   }
 }
 
-// Cập nhật bình luận
+// Get comments for a specific product
+const getCommentsByProduct = async (req, res) => {
+  try {
+    const { productId } = req.params
+    console.log("Getting comments for product:", productId)
+
+    const comments = await commentModel
+      .find({ productId, status: "approved" })
+      .populate("userId", "name")
+      .sort({ createdAt: -1 })
+
+    console.log(`Found ${comments.length} approved comments for product ${productId}`)
+    res.json({
+      success: true,
+      comments,
+    })
+  } catch (error) {
+    console.error("Error getting comments by product:", error)
+    res.json({
+      success: false,
+      message: "Error getting comments",
+    })
+  }
+}
+
+// Get all comments (admin/staff only)
+const getAllComments = async (req, res) => {
+  try {
+    console.log("Getting all comments for admin/staff")
+
+    const comments = await commentModel
+      .find({})
+      .populate("userId", "name email")
+      .populate("productId", "name")
+      .sort({ createdAt: -1 })
+
+    console.log(`Found ${comments.length} total comments`)
+    res.json({
+      success: true,
+      comments,
+    })
+  } catch (error) {
+    console.error("Error getting all comments:", error)
+    res.json({
+      success: false,
+      message: "Error getting comments",
+    })
+  }
+}
+
+// Get comments with pagination (admin/staff only)
+const getComments = async (req, res) => {
+  try {
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 10
+    const status = req.query.status || "all"
+
+    console.log("Getting comments with pagination:", { page, limit, status })
+
+    const filter = {}
+    if (status !== "all") {
+      filter.status = status
+    }
+
+    const comments = await commentModel
+      .find(filter)
+      .populate("userId", "name email")
+      .populate("productId", "name")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+
+    const total = await commentModel.countDocuments(filter)
+
+    console.log(`Found ${comments.length} comments (page ${page}/${Math.ceil(total / limit)})`)
+    res.json({
+      success: true,
+      comments,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    })
+  } catch (error) {
+    console.error("Error getting comments:", error)
+    res.json({
+      success: false,
+      message: "Error getting comments",
+    })
+  }
+}
+
+// Update comment
 const updateComment = async (req, res) => {
   try {
-    const { commentId, rating, comment, userId } = req.body
+    const { id } = req.params
+    const { rating, comment } = req.body
+    const userId = req.user._id
 
-    console.log("Updating comment:", { commentId, rating, comment, userId })
+    console.log("Updating comment:", id, "by user:", userId)
 
-    // Validate required fields
-    if (!commentId || !rating || !comment || !userId) {
+    // Find the comment
+    const existingComment = await commentModel.findById(id)
+    if (!existingComment) {
       return res.json({
         success: false,
-        message: "Thiếu thông tin bắt buộc",
+        message: "Comment not found",
       })
     }
 
-    // Validate commentId
-    if (!mongoose.Types.ObjectId.isValid(commentId)) {
-      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    // Check if user owns the comment or is admin/staff
+    if (
+      existingComment.userId.toString() !== userId.toString() &&
+      req.user.role !== "admin" &&
+      req.user.role !== "staff"
+    ) {
+      return res.json({
+        success: false,
+        message: "Not authorized to update this comment",
+      })
     }
 
-    // Validate userId
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.json({ success: false, message: "ID người dùng không hợp lệ" })
-    }
+    // Update comment
+    const updatedComment = await commentModel
+      .findByIdAndUpdate(
+        id,
+        {
+          rating: rating ? Number(rating) : existingComment.rating,
+          comment: comment || existingComment.comment,
+          status: "pending", // Reset to pending after edit
+        },
+        { new: true },
+      )
+      .populate("userId", "name")
 
-    // Tìm comment
-    const existingComment = await commentModel.findById(commentId)
-    if (!existingComment) {
-      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
-    }
-
-    // Kiểm tra quyền sở hữu
-    if (existingComment.userId.toString() !== userId) {
-      return res.json({ success: false, message: "Bạn chỉ có thể sửa đánh giá của chính mình" })
-    }
-
-    // Cập nhật comment
-    const updatedComment = await commentModel.findByIdAndUpdate(
-      commentId,
-      {
-        rating: Number(rating),
-        comment: comment.trim(),
-        updatedAt: new Date(),
-      },
-      { new: true },
-    )
-
-    console.log("Comment updated successfully:", updatedComment._id)
-
+    console.log("Comment updated successfully:", id)
     res.json({
       success: true,
-      message: "Cập nhật đánh giá thành công",
-      data: {
-        _id: updatedComment._id,
-        userId: updatedComment.userId,
-        userName: updatedComment.userName,
-        foodId: updatedComment.foodId,
-        rating: updatedComment.rating,
-        comment: updatedComment.comment,
-        createdAt: updatedComment.createdAt,
-        updatedAt: updatedComment.updatedAt,
-        adminReply: updatedComment.adminReply,
-      },
+      message: "Comment updated successfully",
+      comment: updatedComment,
     })
   } catch (error) {
     console.error("Error updating comment:", error)
     res.json({
       success: false,
-      message: "Lỗi khi cập nhật đánh giá: " + error.message,
+      message: "Error updating comment",
     })
   }
 }
 
-// Lấy danh sách bình luận theo sản phẩm
-const getCommentsByFood = async (req, res) => {
-  try {
-    const { foodId } = req.params
-    console.log("Getting comments for food:", foodId)
-
-    if (!mongoose.Types.ObjectId.isValid(foodId)) {
-      return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
-    }
-
-    const comments = await commentModel.find({ foodId, isApproved: true }).sort({ createdAt: -1 })
-
-    console.log(`Found ${comments.length} comments for food ${foodId}`)
-    res.json({ success: true, data: comments })
-  } catch (error) {
-    console.error("Error getting comments:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
-  }
-}
-
-// Lấy tất cả bình luận (cho admin)
-const getAllComments = async (req, res) => {
-  try {
-    const comments = await commentModel.find({}).sort({ createdAt: -1 })
-    res.json({ success: true, data: comments })
-  } catch (error) {
-    console.error("Error getting all comments:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
-  }
-}
-
-// Phản hồi bình luận
-const replyToComment = async (req, res) => {
-  try {
-    const { id, message } = req.body
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
-    }
-
-    const updatedComment = await commentModel.findByIdAndUpdate(
-      id,
-      {
-        adminReply: {
-          message,
-          createdAt: new Date(),
-        },
-      },
-      { new: true },
-    )
-
-    if (!updatedComment) {
-      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
-    }
-
-    res.json({ success: true, message: "Thêm phản hồi thành công" })
-  } catch (error) {
-    console.error("Error replying to comment:", error)
-    res.json({ success: false, message: "Lỗi khi thêm phản hồi" })
-  }
-}
-
-// Xóa bình luận
+// Delete comment
 const deleteComment = async (req, res) => {
   try {
-    const { id } = req.body
+    const { id } = req.params
+    const userId = req.user._id
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
-    }
+    console.log("Deleting comment:", id, "by user:", userId)
 
-    const deletedComment = await commentModel.findByIdAndDelete(id)
-
-    if (!deletedComment) {
-      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
-    }
-
-    res.json({ success: true, message: "Xóa đánh giá thành công" })
-  } catch (error) {
-    console.error("Error deleting comment:", error)
-    res.json({ success: false, message: "Lỗi khi xóa đánh giá" })
-  }
-}
-
-// Lấy thống kê rating của sản phẩm
-const getFoodRatingStats = async (req, res) => {
-  try {
-    const { foodId } = req.params
-
-    if (!mongoose.Types.ObjectId.isValid(foodId)) {
-      return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
-    }
-
-    const comments = await commentModel.find({ foodId, isApproved: true })
-
-    if (comments.length === 0) {
+    // Find the comment
+    const comment = await commentModel.findById(id)
+    if (!comment) {
       return res.json({
-        success: true,
-        data: {
-          averageRating: 0,
-          totalReviews: 0,
-          ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-        },
+        success: false,
+        message: "Comment not found",
       })
     }
 
-    const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0)
-    const averageRating = totalRating / comments.length
+    // Check if user owns the comment or is admin/staff
+    if (comment.userId.toString() !== userId.toString() && req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({
+        success: false,
+        message: "Not authorized to delete this comment",
+      })
+    }
 
-    const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-    comments.forEach((comment) => {
-      ratingDistribution[comment.rating]++
-    })
+    await commentModel.findByIdAndDelete(id)
 
+    console.log("Comment deleted successfully:", id)
     res.json({
       success: true,
-      data: {
-        averageRating: Math.round(averageRating * 10) / 10,
-        totalReviews: comments.length,
-        ratingDistribution,
-      },
+      message: "Comment deleted successfully",
     })
   } catch (error) {
-    console.error("Error getting rating stats:", error)
-    res.json({ success: false, message: "Lỗi khi lấy thống kê đánh giá" })
+    console.error("Error deleting comment:", error)
+    res.json({
+      success: false,
+      message: "Error deleting comment",
+    })
   }
 }
 
-// Cập nhật trạng thái bình luận
-const updateCommentStatus = async (req, res) => {
+// Approve comment (admin/staff only)
+const approveComment = async (req, res) => {
   try {
-    const { id, isApproved } = req.body
+    const { id } = req.params
+    console.log("Approving comment:", id, "by:", req.user.name)
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    const comment = await commentModel
+      .findByIdAndUpdate(id, { status: "approved" }, { new: true })
+      .populate("userId", "name")
+
+    if (!comment) {
+      return res.json({
+        success: false,
+        message: "Comment not found",
+      })
     }
 
-    const updatedComment = await commentModel.findByIdAndUpdate(id, { isApproved }, { new: true })
-
-    if (!updatedComment) {
-      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
-    }
-
-    res.json({ success: true, message: "Cập nhật trạng thái đánh giá thành công" })
+    console.log("Comment approved successfully:", id)
+    res.json({
+      success: true,
+      message: "Comment approved successfully",
+      comment,
+    })
   } catch (error) {
-    console.error("Error updating comment status:", error)
-    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái đánh giá" })
+    console.error("Error approving comment:", error)
+    res.json({
+      success: false,
+      message: "Error approving comment",
+    })
   }
 }
 
-// Kiểm tra xem user có thể đánh giá sản phẩm không
-const checkCanReview = async (req, res) => {
+// Reject comment (admin/staff only)
+const rejectComment = async (req, res) => {
   try {
-    const { userId, foodId } = req.params
-    console.log(`\n=== CHECK CAN REVIEW API ===`)
-    console.log(`User ID: ${userId}`)
-    console.log(`Food ID: ${foodId}`)
+    const { id } = req.params
+    console.log("Rejecting comment:", id, "by:", req.user.name)
 
-    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(foodId)) {
-      return res.json({ success: false, message: "ID không hợp lệ" })
+    const comment = await commentModel
+      .findByIdAndUpdate(id, { status: "rejected" }, { new: true })
+      .populate("userId", "name")
+
+    if (!comment) {
+      return res.json({
+        success: false,
+        message: "Comment not found",
+      })
     }
 
-    // Kiểm tra user tồn tại
-    const user = await userModel.findById(userId)
-    if (!user) {
-      return res.json({ success: false, message: "Không tìm thấy người dùng" })
-    }
-
-    // Kiểm tra sản phẩm tồn tại
-    const food = await foodModel.findById(foodId)
-    if (!food) {
-      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
-    }
-
-    // Kiểm tra xem đã đánh giá chưa
-    const existingComment = await commentModel.findOne({ userId, foodId })
-    console.log(`Has existing review: ${!!existingComment}`)
-
-    // Kiểm tra xem đã mua sản phẩm chưa
-    const hasPurchased = await checkUserPurchase(userId, foodId)
-    console.log(`Has purchased: ${hasPurchased}`)
-
-    const canReview = hasPurchased && !existingComment
-    console.log(`Can review: ${canReview}`)
-
-    // Thêm thông tin debug về đơn hàng
-    const userOrders = await orderModel.find({ userId }).select("status payment paymentStatus items date")
-    console.log(`User has ${userOrders.length} total orders`)
-
+    console.log("Comment rejected successfully:", id)
     res.json({
       success: true,
-      data: {
-        canReview,
-        hasPurchased,
-        hasReviewed: !!existingComment,
-        existingReview: existingComment,
-        debug: {
-          userName: user.name,
-          foodName: food.name,
-          totalOrders: userOrders.length,
-          paidOrders: userOrders.filter((o) => o.payment === true || o.paymentStatus === "Đã thanh toán").length,
-          orderStatuses: userOrders.map((o) => ({
-            status: o.status,
-            payment: o.payment,
-            paymentStatus: o.paymentStatus,
-          })),
-        },
-      },
+      message: "Comment rejected successfully",
+      comment,
     })
   } catch (error) {
-    console.error("Error checking review eligibility:", error)
-    res.json({ success: false, message: "Lỗi khi kiểm tra quyền đánh giá" })
+    console.error("Error rejecting comment:", error)
+    res.json({
+      success: false,
+      message: "Error rejecting comment",
+    })
   }
 }
 
 export {
   addComment,
+  getComments,
   updateComment,
-  getCommentsByFood,
-  getAllComments,
-  updateCommentStatus,
   deleteComment,
-  replyToComment,
-  getFoodRatingStats,
-  checkCanReview,
+  getCommentsByProduct,
+  approveComment,
+  rejectComment,
+  getAllComments,
   debugUserOrders,
 }

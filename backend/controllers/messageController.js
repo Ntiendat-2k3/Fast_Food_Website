@@ -1,174 +1,222 @@
 import messageModel from "../models/messageModel.js"
 import userModel from "../models/userModel.js"
-import mongoose from "mongoose"
-import path from "path"
-import { fileURLToPath } from "url"
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
-// Auto-response message
-const AUTO_RESPONSE = "Bạn đợi một chút, sẽ có nhân viên phản hồi ạ. Cảm ơn bạn đã liên hệ với chúng tôi!"
-
-const hasAutoResponseBeenSent = async (userId) => {
-  try {
-    const autoResponse = await messageModel.findOne({
-      recipientId: userId,
-      isAdmin: true,
-      isAutoResponse: true,
-    })
-    return !!autoResponse
-  } catch (error) {
-    console.error("Error checking for auto-response:", error)
-    return false
-  }
-}
-
+// Send a message
 const sendMessage = async (req, res) => {
   try {
-    const { content, userId } = req.body
+    console.log("Sending message:", req.body)
+
+    const { receiverId, message, images } = req.body
     const senderId = req.user._id
 
-    const user = await userModel.findById(senderId)
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
+    // Validate required fields
+    if (!receiverId || !message) {
+      return res.json({
+        success: false,
+        message: "Receiver ID and message are required",
+      })
     }
 
-    let imagePath = null
-    if (req.file) {
-      imagePath = `chat/${path.basename(req.file.path)}`
+    // Check if receiver exists
+    const receiver = await userModel.findById(receiverId)
+    if (!receiver) {
+      return res.json({
+        success: false,
+        message: "Receiver not found",
+      })
     }
 
     // Create new message
     const newMessage = new messageModel({
-      userId: user.role === "admin" ? userId : senderId, // If admin, use the target userId
-      userName: user.name,
-      content: content || "",
-      image: imagePath,
-      isAdmin: user.role === "admin",
-      recipientId: user.role === "admin" ? userId : null, // Store the recipient ID for admin messages
+      senderId,
+      receiverId,
+      message,
+      images: images || [],
+      isRead: false,
     })
 
     await newMessage.save()
 
-    let autoResponse = null
-    if (user.role !== "admin") {
-      const alreadySentAutoResponse = await hasAutoResponseBeenSent(senderId)
-
-      if (!alreadySentAutoResponse) {
-        autoResponse = new messageModel({
-          userId: senderId, // The user who will receive this message
-          userName: "Hệ thống", // System name
-          content: AUTO_RESPONSE,
-          isAdmin: true, // Auto-responses appear as admin messages
-          recipientId: senderId, // Explicitly set the recipient
-          read: false,
-          isAutoResponse: true, // Flag to identify auto-responses
-        })
-
-        await autoResponse.save()
-      }
-    }
-
+    console.log("Message sent successfully:", newMessage._id)
     res.json({
       success: true,
       message: "Message sent successfully",
-      data: newMessage,
-      autoResponse: autoResponse,
+      messageData: newMessage,
     })
   } catch (error) {
     console.error("Error sending message:", error)
-    res.json({ success: false, message: "Error sending message" })
+    res.json({
+      success: false,
+      message: "Error sending message",
+    })
   }
 }
 
+// Get user messages
 const getUserMessages = async (req, res) => {
   try {
     const userId = req.user._id
+    console.log("Getting messages for user:", userId)
 
     const messages = await messageModel
       .find({
-        $or: [
-          { userId }, // Messages from this user
-          { recipientId: userId, isAdmin: true }, // Admin messages to this user
-        ],
+        $or: [{ senderId: userId }, { receiverId: userId }],
       })
-      .sort({ createdAt: 1 })
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email")
+      .sort({ createdAt: -1 })
 
-    res.json({ success: true, data: messages })
+    console.log(`Found ${messages.length} messages for user`)
+    res.json({
+      success: true,
+      messages,
+    })
   } catch (error) {
-    console.error("Error getting messages:", error)
-    res.json({ success: false, message: "Error getting messages" })
+    console.error("Error getting user messages:", error)
+    res.json({
+      success: false,
+      message: "Error getting messages",
+    })
   }
 }
 
-// Get all messages (admin only)
+// Get all messages (admin/staff only)
 const getAllMessages = async (req, res) => {
   try {
-    // Check if user is admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Unauthorized" })
-    }
+    console.log("Getting all messages for admin/staff")
 
-    // Get all unique users who have sent messages
-    const users = await messageModel.aggregate([
-      { $match: { isAdmin: false } },
-      { $group: { _id: "$userId", userName: { $first: "$userName" }, lastMessage: { $max: "$createdAt" } } },
-      { $sort: { lastMessage: -1 } },
-    ])
+    const messages = await messageModel
+      .find({})
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email")
+      .sort({ createdAt: -1 })
 
-    res.json({ success: true, data: users })
+    console.log(`Found ${messages.length} total messages`)
+    res.json({
+      success: true,
+      messages,
+    })
   } catch (error) {
     console.error("Error getting all messages:", error)
-    res.json({ success: false, message: "Error getting all messages" })
+    res.json({
+      success: false,
+      message: "Error getting messages",
+    })
   }
 }
 
+// Get conversation between two users
 const getUserConversation = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Unauthorized" })
-    }
-
     const { userId } = req.params
+    const currentUserId = req.user._id
 
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.json({ success: false, message: "Invalid user ID" })
-    }
+    console.log("Getting conversation between:", currentUserId, "and", userId)
 
     const messages = await messageModel
       .find({
         $or: [
-          { userId, isAdmin: false },
-          { recipientId: userId, isAdmin: true },
+          { senderId: currentUserId, receiverId: userId },
+          { senderId: userId, receiverId: currentUserId },
         ],
       })
+      .populate("senderId", "name email")
+      .populate("receiverId", "name email")
       .sort({ createdAt: 1 })
 
-    await messageModel.updateMany({ userId, isAdmin: false, read: false }, { $set: { read: true } })
-
-    res.json({ success: true, data: messages })
+    console.log(`Found ${messages.length} messages in conversation`)
+    res.json({
+      success: true,
+      messages,
+    })
   } catch (error) {
     console.error("Error getting conversation:", error)
-    res.json({ success: false, message: "Error getting conversation" })
+    res.json({
+      success: false,
+      message: "Error getting conversation",
+    })
   }
 }
 
+// Mark message as read
 const markAsRead = async (req, res) => {
   try {
-    const { messageId } = req.body
+    const { id } = req.params
+    const userId = req.user._id
 
-    if (!mongoose.Types.ObjectId.isValid(messageId)) {
-      return res.json({ success: false, message: "Invalid message ID" })
+    console.log("Marking message as read:", id, "by user:", userId)
+
+    const message = await messageModel.findById(id)
+    if (!message) {
+      return res.json({
+        success: false,
+        message: "Message not found",
+      })
     }
 
-    await messageModel.findByIdAndUpdate(messageId, { read: true })
+    // Only receiver can mark message as read
+    if (message.receiverId.toString() !== userId.toString()) {
+      return res.json({
+        success: false,
+        message: "Not authorized to mark this message as read",
+      })
+    }
 
-    res.json({ success: true, message: "Message marked as read" })
+    const updatedMessage = await messageModel.findByIdAndUpdate(id, { isRead: true }, { new: true })
+
+    console.log("Message marked as read successfully:", id)
+    res.json({
+      success: true,
+      message: "Message marked as read",
+      messageData: updatedMessage,
+    })
   } catch (error) {
     console.error("Error marking message as read:", error)
-    res.json({ success: false, message: "Error marking message as read" })
+    res.json({
+      success: false,
+      message: "Error marking message as read",
+    })
   }
 }
 
-export { sendMessage, getUserMessages, getAllMessages, getUserConversation, markAsRead }
+// Delete message
+const deleteMessage = async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user._id
+
+    console.log("Deleting message:", id, "by user:", userId)
+
+    const message = await messageModel.findById(id)
+    if (!message) {
+      return res.json({
+        success: false,
+        message: "Message not found",
+      })
+    }
+
+    // Only sender or admin/staff can delete message
+    if (message.senderId.toString() !== userId.toString() && req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({
+        success: false,
+        message: "Not authorized to delete this message",
+      })
+    }
+
+    await messageModel.findByIdAndDelete(id)
+
+    console.log("Message deleted successfully:", id)
+    res.json({
+      success: true,
+      message: "Message deleted successfully",
+    })
+  } catch (error) {
+    console.error("Error deleting message:", error)
+    res.json({
+      success: false,
+      message: "Error deleting message",
+    })
+  }
+}
+
+export { sendMessage, getUserMessages, getAllMessages, getUserConversation, markAsRead, deleteMessage }

@@ -2,26 +2,35 @@ import express from "express"
 import {
   loginUser,
   registerUser,
-  getUserProfile,
   adminLogin,
   getAllUsers,
   blockUser,
   unblockUser,
   getBlacklist,
-  googleLogin,
+  updateUserRole,
+  getUserProfile,
+  updateUserProfile,
+  deleteUser,
 } from "../controllers/userController.js"
-import auth, { verifyAdmin } from "../middleware/auth.js"
+import { requireSignIn, verifyAdmin, verifyAdminOrStaff } from "../middleware/auth.js"
 
-const router = express.Router()
+const userRouter = express.Router()
 
-router.post("/login", loginUser)
-router.post("/google-login", googleLogin)
-router.post("/admin/login", adminLogin)
-router.post("/register", registerUser)
-router.get("/profile", auth, getUserProfile)
-router.get("/list", verifyAdmin, getAllUsers)
-router.post("/block", verifyAdmin, blockUser)
-router.post("/unblock", verifyAdmin, unblockUser)
-router.get("/blacklist", verifyAdmin, getBlacklist)
+// Public routes
+userRouter.post("/register", registerUser)
+userRouter.post("/login", loginUser)
+userRouter.post("/admin", adminLogin)
 
-export default router
+// User routes (require authentication)
+userRouter.get("/profile", requireSignIn, getUserProfile)
+userRouter.put("/profile", requireSignIn, updateUserProfile)
+
+// Admin/Staff routes
+userRouter.get("/all", verifyAdminOrStaff, getAllUsers)
+userRouter.get("/blacklist", verifyAdminOrStaff, getBlacklist)
+userRouter.post("/block", verifyAdminOrStaff, blockUser)
+userRouter.post("/unblock", verifyAdminOrStaff, unblockUser)
+userRouter.put("/role", verifyAdmin, updateUserRole)
+userRouter.delete("/delete/:id", verifyAdmin, deleteUser)
+
+export default userRouter
