@@ -2,23 +2,25 @@ import express from "express"
 import {
   createNotification,
   getNotifications,
-  markAsRead,
-  deleteNotification,
   getAllNotifications,
-  sendBulkNotification,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getNotificationStats,
 } from "../controllers/notificationController.js"
 import { requireSignIn, verifyAdminOrStaff } from "../middleware/auth.js"
 
 const notificationRouter = express.Router()
 
 // User routes (require authentication)
-notificationRouter.get("/user", requireSignIn, getNotifications)
+notificationRouter.get("/", requireSignIn, getNotifications)
 notificationRouter.put("/read/:id", requireSignIn, markAsRead)
-notificationRouter.delete("/delete/:id", requireSignIn, deleteNotification)
+notificationRouter.put("/read-all", requireSignIn, markAllAsRead)
 
-// Admin/Staff routes
+// Admin/Staff routes - Staff can now manage notifications
 notificationRouter.post("/create", verifyAdminOrStaff, createNotification)
 notificationRouter.get("/all", verifyAdminOrStaff, getAllNotifications)
-notificationRouter.post("/bulk", verifyAdminOrStaff, sendBulkNotification)
+notificationRouter.get("/stats", verifyAdminOrStaff, getNotificationStats)
+notificationRouter.delete("/delete/:id", verifyAdminOrStaff, deleteNotification)
 
 export default notificationRouter

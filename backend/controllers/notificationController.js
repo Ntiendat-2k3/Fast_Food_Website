@@ -1,102 +1,121 @@
 import notificationModel from "../models/notificationModel.js"
 import userModel from "../models/userModel.js"
 
-// Create notification
+// Create notification (Admin/Staff only)
 const createNotification = async (req, res) => {
   try {
-    console.log("Creating notification:", req.body)
+    const { title, message, type, targetUsers } = req.body
+    const createdById = req.body.userId
 
-    const { userId, title, message, type } = req.body
-    const createdBy = req.user._id
-
-    // Validate required fields
-    if (!userId || !title || !message) {
-      return res.json({
-        success: false,
-        message: "User ID, title, and message are required",
-      })
+    if (!title || !message) {
+      return res.json({ success: false, message: "Title and message are required" })
     }
 
-    // Check if user exists
-    const user = await userModel.findById(userId)
-    if (!user) {
-      return res.json({
-        success: false,
-        message: "User not found",
-      })
+    const validTypes = ["info", "warning", "success", "error"]
+    if (type && !validTypes.includes(type)) {
+      return res.json({ success: false, message: "Invalid notification type" })
     }
 
-    // Create notification
-    const notification = new notificationModel({
+    let recipients = []
+
+    if (targetUsers === "all") {
+      // Send to all users
+      const allUsers = await userModel.find({ role: "user" }).select("_id")
+      recipients = allUsers.map((user) => user._id)
+    } else if (Array.isArray(targetUsers)) {
+      // Send to specific users
+      recipients = targetUsers
+    } else {
+      return res.json({ success: false, message: "Invalid target users" })
+    }
+
+    // Create notifications for each recipient
+    const notifications = recipients.map((userId) => ({
       userId,
       title,
       message,
       type: type || "info",
-      createdBy,
-      isRead: false,
-    })
+      createdById,
+    }))
 
-    await notification.save()
+    await notificationModel.insertMany(notifications)
 
-    console.log("Notification created successfully:", notification._id)
+    const creator = await userModel.findById(createdById)
+    console.log(`Notification "${title}" created by ${creator.name} (${creator.role}) for ${recipients.length} users`)
+
     res.json({
       success: true,
-      message: "Notification created successfully",
-      notification,
+      message: `Notification sent to ${recipients.length} users`,
+      recipientCount: recipients.length,
     })
   } catch (error) {
-    console.error("Error creating notification:", error)
-    res.json({
-      success: false,
-      message: "Error creating notification",
-    })
+    console.log(error)
+    res.json({ success: false, message: "Error creating notification" })
   }
 }
 
-// Get user notifications
+// Get notifications for user
 const getNotifications = async (req, res) => {
   try {
-    const userId = req.user._id
+    const userId = req.body.userId
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
+
     console.log("Getting notifications for user:", userId)
 
-    const notifications = await notificationModel.find({ userId }).populate("createdBy", "name").sort({ createdAt: -1 })
+    const notifications = await notificationModel.find({ userId }).skip(skip).limit(limit).sort({ createdAt: -1 })
 
-    console.log(`Found ${notifications.length} notifications for user`)
+    const total = await notificationModel.countDocuments({ userId })
+    const unreadCount = await notificationModel.countDocuments({ userId, isRead: false })
+
     res.json({
       success: true,
       notifications,
+      unreadCount,
+      pagination: {
+        current: page,
+        total: Math.ceil(total / limit),
+        count: notifications.length,
+        totalNotifications: total,
+      },
     })
   } catch (error) {
     console.error("Error getting notifications:", error)
-    res.json({
-      success: false,
-      message: "Error getting notifications",
-    })
+    res.json({ success: false, message: "Error fetching notifications" })
   }
 }
 
-// Get all notifications (admin/staff only)
+// Get all notifications (Admin/Staff only)
 const getAllNotifications = async (req, res) => {
   try {
-    console.log("Getting all notifications for admin/staff")
+    const page = Number.parseInt(req.query.page) || 1
+    const limit = Number.parseInt(req.query.limit) || 10
+    const skip = (page - 1) * limit
 
     const notifications = await notificationModel
       .find({})
       .populate("userId", "name email")
-      .populate("createdBy", "name")
+      .populate("createdById", "name role")
+      .skip(skip)
+      .limit(limit)
       .sort({ createdAt: -1 })
 
-    console.log(`Found ${notifications.length} total notifications`)
+    const total = await notificationModel.countDocuments({})
+
     res.json({
       success: true,
       notifications,
+      pagination: {
+        current: page,
+        total: Math.ceil(total / limit),
+        count: notifications.length,
+        totalNotifications: total,
+      },
     })
   } catch (error) {
-    console.error("Error getting all notifications:", error)
-    res.json({
-      success: false,
-      message: "Error getting notifications",
-    })
+    console.log(error)
+    res.json({ success: false, message: "Error fetching all notifications" })
   }
 }
 
@@ -104,146 +123,100 @@ const getAllNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params
-    const userId = req.user._id
+    const userId = req.body.userId
 
-    console.log("Marking notification as read:", id, "by user:", userId)
+    if (!id) {
+      return res.json({ success: false, message: "Notification ID is required" })
+    }
 
-    const notification = await notificationModel.findById(id)
+    const notification = await notificationModel.findOneAndUpdate(
+      { _id: id, userId },
+      { isRead: true, readAt: new Date() },
+      { new: true },
+    )
+
     if (!notification) {
-      return res.json({
-        success: false,
-        message: "Notification not found",
-      })
+      return res.json({ success: false, message: "Notification not found" })
     }
 
-    // Check if user owns the notification or is admin/staff
-    if (
-      notification.userId.toString() !== userId.toString() &&
-      req.user.role !== "admin" &&
-      req.user.role !== "staff"
-    ) {
-      return res.json({
-        success: false,
-        message: "Not authorized to mark this notification as read",
-      })
-    }
-
-    const updatedNotification = await notificationModel.findByIdAndUpdate(id, { isRead: true }, { new: true })
-
-    console.log("Notification marked as read successfully:", id)
-    res.json({
-      success: true,
-      message: "Notification marked as read",
-      notification: updatedNotification,
-    })
+    res.json({ success: true, message: "Notification marked as read" })
   } catch (error) {
-    console.error("Error marking notification as read:", error)
-    res.json({
-      success: false,
-      message: "Error marking notification as read",
-    })
+    console.log(error)
+    res.json({ success: false, message: "Error marking notification as read" })
   }
 }
 
-// Delete notification
+// Mark all notifications as read
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.body.userId
+
+    await notificationModel.updateMany({ userId, isRead: false }, { isRead: true, readAt: new Date() })
+
+    res.json({ success: true, message: "All notifications marked as read" })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Error marking all notifications as read" })
+  }
+}
+
+// Delete notification (Admin/Staff only)
 const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params
-    const userId = req.user._id
+    const deletedBy = req.body.userId
 
-    console.log("Deleting notification:", id, "by user:", userId)
+    if (!id) {
+      return res.json({ success: false, message: "Notification ID is required" })
+    }
 
     const notification = await notificationModel.findById(id)
     if (!notification) {
-      return res.json({
-        success: false,
-        message: "Notification not found",
-      })
-    }
-
-    // Check if user owns the notification or is admin/staff
-    if (
-      notification.userId.toString() !== userId.toString() &&
-      req.user.role !== "admin" &&
-      req.user.role !== "staff"
-    ) {
-      return res.json({
-        success: false,
-        message: "Not authorized to delete this notification",
-      })
+      return res.json({ success: false, message: "Notification not found" })
     }
 
     await notificationModel.findByIdAndDelete(id)
 
-    console.log("Notification deleted successfully:", id)
-    res.json({
-      success: true,
-      message: "Notification deleted successfully",
-    })
+    const user = await userModel.findById(deletedBy)
+    console.log(`Notification ${id} deleted by ${user.name} (${user.role})`)
+
+    res.json({ success: true, message: "Notification deleted successfully" })
   } catch (error) {
-    console.error("Error deleting notification:", error)
-    res.json({
-      success: false,
-      message: "Error deleting notification",
-    })
+    console.log(error)
+    res.json({ success: false, message: "Error deleting notification" })
   }
 }
 
-// Send bulk notification (admin/staff only)
-const sendBulkNotification = async (req, res) => {
+// Get notification statistics (Admin/Staff only)
+const getNotificationStats = async (req, res) => {
   try {
-    console.log("Sending bulk notification:", req.body)
+    const totalNotifications = await notificationModel.countDocuments({})
+    const readNotifications = await notificationModel.countDocuments({ isRead: true })
+    const unreadNotifications = await notificationModel.countDocuments({ isRead: false })
 
-    const { userIds, title, message, type } = req.body
-    const createdBy = req.user._id
+    const typeStats = await notificationModel.aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }])
 
-    // Validate required fields
-    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-      return res.json({
-        success: false,
-        message: "User IDs array is required",
-      })
-    }
-
-    if (!title || !message) {
-      return res.json({
-        success: false,
-        message: "Title and message are required",
-      })
-    }
-
-    // Create notifications for all users
-    const notifications = userIds.map((userId) => ({
-      userId,
-      title,
-      message,
-      type: type || "info",
-      createdBy,
-      isRead: false,
-    }))
-
-    const result = await notificationModel.insertMany(notifications)
-
-    console.log(`Bulk notification sent to ${result.length} users`)
     res.json({
       success: true,
-      message: `Notification sent to ${result.length} users`,
-      count: result.length,
+      stats: {
+        total: totalNotifications,
+        read: readNotifications,
+        unread: unreadNotifications,
+        byType: typeStats,
+      },
     })
   } catch (error) {
-    console.error("Error sending bulk notification:", error)
-    res.json({
-      success: false,
-      message: "Error sending bulk notification",
-    })
+    console.log(error)
+    res.json({ success: false, message: "Error fetching notification statistics" })
   }
 }
 
 export {
   createNotification,
   getNotifications,
-  markAsRead,
-  deleteNotification,
   getAllNotifications,
-  sendBulkNotification,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getNotificationStats,
 }
