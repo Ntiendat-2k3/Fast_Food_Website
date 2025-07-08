@@ -1,106 +1,109 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
-import axios from "axios"
+import { useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
-
-// Import components
-import LoginHeader from "../../components/login/LoginHeader"
-import EmailInput from "../../components/login/EmailInput"
+import axios from "axios"
 import PasswordInput from "../../components/login/PasswordInput"
 import RememberMeCheckbox from "../../components/login/RememberMeCheckbox"
 import ForgotPasswordLink from "../../components/login/ForgotPasswordLink"
 import LoginButton from "../../components/login/LoginButton"
 import ErrorMessage from "../../components/login/ErrorMessage"
+import LoginHeader from "../../components/login/LoginHeader"
+import EmailInput from "../../components/login/EmailInput"
 
 const Login = ({ url, onLogin, isAuthenticated }) => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-
   const navigate = useNavigate()
-  const location = useLocation()
-  const from = location.state?.from?.pathname || "/revenue"
 
-  // If already authenticated, redirect to the intended page
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true })
+      const userData = JSON.parse(localStorage.getItem("userData") || "{}")
+      navigate(userData.role === "admin" ? "/revenue" : "/orders")
     }
-  }, [isAuthenticated, navigate, from])
+  }, [isAuthenticated, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setError("")
 
+    if (!email || !password) {
+      setError("Vui lòng nhập đầy đủ email và mật khẩu")
+      setIsLoading(false)
+      return
+    }
+
     try {
+      console.log("Attempting login with:", { email, url })
+
       const response = await axios.post(`${url}/api/user/login`, {
         email,
         password,
       })
 
+      console.log("Login response:", response.data)
+
       if (response.data.success) {
-        // Check if user has admin role
-        if (response.data.user && response.data.user.role === "admin") {
-          toast.success("Đăng nhập thành công!")
-          // Call the onLogin function with the token
-          onLogin(response.data.token)
-          // Redirect to the page they tried to visit or revenue page
-          navigate(from, { replace: true })
-        } else {
-          setError("Bạn không có quyền truy cập vào trang quản trị.")
-          toast.error("Bạn không có quyền truy cập vào trang quản trị.")
+        const userData = response.data.user
+
+        // Check if user has admin or staff role
+        if (userData.role !== "admin" && userData.role !== "staff") {
+          setError("Bạn không có quyền truy cập vào trang quản trị")
+          setIsLoading(false)
+          return
         }
+
+        // Save to localStorage if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem("rememberLogin", "true")
+        }
+
+        onLogin(response.data.token, userData)
+        toast.success("Đăng nhập thành công!")
+
+        // Redirect based on role
+        navigate(userData.role === "admin" ? "/revenue" : "/orders")
       } else {
-        setError(response.data.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.")
-        toast.error(response.data.message || "Đăng nhập thất bại")
+        setError(response.data.message || "Đăng nhập thất bại")
       }
     } catch (error) {
       console.error("Login error:", error)
-      setError(error.response?.data?.message || "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.")
-      toast.error("Đã xảy ra lỗi khi đăng nhập")
+      if (error.response) {
+        setError(error.response.data.message || "Lỗi từ server")
+      } else if (error.request) {
+        setError("Không thể kết nối đến server")
+      } else {
+        setError("Đã xảy ra lỗi khi đăng nhập")
+      }
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  // Don't render login form if already authenticated
-  if (isAuthenticated) {
-    return null
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full bg-gray-800 rounded-xl shadow-xl overflow-hidden border border-gray-700">
-        <div className="px-6 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 p-8">
           <LoginHeader />
 
-          <ErrorMessage message={error} />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <EmailInput email={email} setEmail={setEmail} disabled={isLoading} />
 
-          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <EmailInput value={email} onChange={(e) => setEmail(e.target.value)} />
-
-              <PasswordInput
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                showPassword={showPassword}
-                toggleVisibility={() => setShowPassword(!showPassword)}
-              />
-            </div>
+            <PasswordInput password={password} setPassword={setPassword} disabled={isLoading} />
 
             <div className="flex items-center justify-between">
-              <RememberMeCheckbox />
+              <RememberMeCheckbox rememberMe={rememberMe} setRememberMe={setRememberMe} disabled={isLoading} />
               <ForgotPasswordLink />
             </div>
 
-            <div>
-              <LoginButton loading={loading} />
-            </div>
+            {error && <ErrorMessage message={error} />}
+
+            <LoginButton isLoading={isLoading} />
           </form>
         </div>
       </div>

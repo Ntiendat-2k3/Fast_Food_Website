@@ -104,12 +104,12 @@ const getUserProfile = async (req, res) => {
   }
 }
 
-// Get all users (for admin)
+// Get all users (for admin and staff)
 const getAllUsers = async (req, res) => {
   try {
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    // Check if the requesting user is an admin or staff
+    if (req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
     }
 
     // Find all users but exclude passwords
@@ -174,7 +174,7 @@ const loginUser = async (req, res) => {
   }
 }
 
-// Admin login
+// Admin login (now includes staff)
 const adminLogin = async (req, res) => {
   const { email, password } = req.body
   try {
@@ -190,9 +190,9 @@ const adminLogin = async (req, res) => {
       return res.json({ success: false, message: "Invalid credentials" })
     }
 
-    // Check if user has admin role
-    if (user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    // Check if user has admin or staff role
+    if (user.role !== "admin" && user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
     }
 
     const token = createToken(user._id)
@@ -245,7 +245,7 @@ const registerUser = async (req, res) => {
       name: name,
       email: email,
       password: hashedPassword,
-      role: role || "user", // Default to 'user' if not specified
+      role: role || "user", // Default to 'user' if not specified, can be 'user', 'admin', or 'staff'
       authProvider: "local",
     })
 
@@ -268,16 +268,16 @@ const registerUser = async (req, res) => {
   }
 }
 
-// Block a user (add to blacklist)
+// Block a user (add to blacklist) - Admin and Staff can block users
 const blockUser = async (req, res) => {
   try {
     const { userId, reason } = req.body
 
     console.log("Block user request received:", { userId, reason })
 
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    // Check if the requesting user is an admin or staff
+    if (req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
     }
 
     // Validate userId
@@ -293,6 +293,11 @@ const blockUser = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy người dùng" })
     }
 
+    // Staff cannot block admin or other staff
+    if (req.user.role === "staff" && (user.role === "admin" || user.role === "staff")) {
+      return res.json({ success: false, message: "Nhân viên không thể chặn admin hoặc nhân viên khác" })
+    }
+
     // Check if user is already blacklisted
     const existingBlacklist = await blacklistModel.findOne({ userId })
     if (existingBlacklist) {
@@ -306,7 +311,7 @@ const blockUser = async (req, res) => {
     const newBlacklist = new blacklistModel({
       userId,
       reason,
-      blockedBy: req.user.name || "Admin",
+      blockedBy: req.user.name || (req.user.role === "admin" ? "Admin" : "Staff"),
     })
 
     await newBlacklist.save()
@@ -319,14 +324,14 @@ const blockUser = async (req, res) => {
   }
 }
 
-// Unblock a user (remove from blacklist)
+// Unblock a user (remove from blacklist) - Admin and Staff can unblock
 const unblockUser = async (req, res) => {
   try {
     const { blacklistId } = req.body
 
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    // Check if the requesting user is an admin or staff
+    if (req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
     }
 
     // Validate blacklistId
@@ -348,12 +353,12 @@ const unblockUser = async (req, res) => {
   }
 }
 
-// Get blacklist
+// Get blacklist - Admin and Staff can view
 const getBlacklist = async (req, res) => {
   try {
-    // Check if the requesting user is an admin
-    if (req.user.role !== "admin") {
-      return res.json({ success: false, message: "Access denied. Admin privileges required." })
+    // Check if the requesting user is an admin or staff
+    if (req.user.role !== "admin" && req.user.role !== "staff") {
+      return res.json({ success: false, message: "Access denied. Admin or Staff privileges required." })
     }
 
     // Get blacklist with user details

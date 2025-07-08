@@ -1,16 +1,36 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap");
-
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Set dark mode as default */
+:root {
+  color-scheme: dark;
+  --primary-50: #fff7ed;
+  --primary-100: #ffedd5;
+  --primary-200: #fed7aa;
+  --primary-300: #fdba74;
+  --primary-400: #fb923c;
+  --primary-500: #f97316;
+  --primary-600: #ea580c;
+  --primary-700: #c2410c;
+  --primary-800: #9a3412;
+  --primary-900: #7c2d12;
+}
 
 textarea {
   resize: none;
 }
 
 body {
-  font-family: "Poppins", sans-serif;
-  @apply bg-gray-50 dark:bg-dark;
+  font-family: "Inter", sans-serif;
+  background-color: #111827;
+  color: #ffffff;
+}
+
+/* Force dark mode styles */
+html {
+  @apply dark;
 }
 
 @layer components {
@@ -19,42 +39,370 @@ body {
   }
 }
 
-/* Smooth transitions for dark mode */
+/* Dark theme styles */
 .dark {
   color-scheme: dark;
 }
 
 * {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Responsive font sizes */
-@media (max-width: 640px) {
-  h1 {
-    font-size: 1.75rem !important;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
-  h2 {
-    font-size: 1.5rem !important;
-  }
-
-  h3 {
-    font-size: 1.25rem !important;
-  }
-
-  p {
-    font-size: 0.95rem !important;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Toast customization for dark mode */
-.dark .Toastify__toast {
-  background-color: #2d2d2d;
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Toast customization */
+.Toastify__toast-container {
+  @apply text-sm;
+}
+
+.Toastify__toast {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+.Toastify__toast--dark {
+  @apply bg-gray-800 text-white;
+}
+
+.Toastify__toast--success {
+  background-color: #065f46 !important;
+}
+
+.Toastify__toast--error {
+  background-color: #7f1d1d !important;
+}
+
+.Toastify__toast--warning {
+  background-color: #78350f !important;
+}
+
+/* Scrollbar styling for dark mode */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Input and form styling for dark mode */
+input,
+textarea,
+select {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #ffffff !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5);
+}
+
+.form-input {
+  @apply w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-300 mb-2;
+}
+
+/* Button styling for dark mode */
+.btn-primary {
+  @apply bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+}
+
+.btn-danger {
+  @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-all duration-200;
+}
+
+/* Card styling for dark mode */
+.card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-lg;
+}
+
+.card-header {
+  @apply px-6 py-4 border-b border-gray-700;
+}
+
+.card-body {
+  @apply px-6 py-4;
+}
+
+.card-dark {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+/* Table styling for dark mode */
+.table {
+  @apply w-full bg-gray-800 border border-gray-700 rounded-lg overflow-hidden;
+}
+
+.table th {
+  @apply bg-gray-700 px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider;
+}
+
+.table td {
+  @apply px-4 py-3 text-sm text-gray-300 border-t border-gray-700;
+}
+
+.table-dark {
+  background-color: #1f2937;
   color: #ffffff;
 }
 
-.dark .Toastify__close-button {
+th {
+  @apply bg-gray-700 text-gray-200;
+}
+
+.table-dark th {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+td {
+  @apply border-gray-600 text-gray-300;
+}
+
+.table-dark td {
+  border-color: #4b5563;
+}
+
+tr:hover {
+  @apply bg-gray-700;
+}
+
+.table-dark tbody tr:hover {
+  background-color: #374151;
+}
+
+/* Modal styling for dark mode */
+.modal-overlay {
+  background-color: rgba(0, 0, 0, 0.75);
+}
+
+.modal-content {
+  @apply bg-gray-800 border-gray-600;
+}
+
+.modal-dark {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
+/* Sidebar active link */
+.sidebar-link-active {
+  background-color: #f97316;
   color: #ffffff;
+}
+
+/* Animation classes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Status badges */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-pending {
+  background-color: #fbbf24;
+  color: #92400e;
+}
+
+.status-processing {
+  background-color: #60a5fa;
+  color: #1e40af;
+}
+
+.status-delivered {
+  background-color: #34d399;
+  color: #065f46;
+}
+
+.status-cancelled {
+  background-color: #f87171;
+  color: #7f1d1d;
+}
+
+.badge-success {
+  @apply bg-green-900 text-green-300;
+}
+
+.badge-warning {
+  @apply bg-yellow-900 text-yellow-300;
+}
+
+.badge-error {
+  @apply bg-red-900 text-red-300;
+}
+
+.badge-info {
+  @apply bg-blue-900 text-blue-300;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 2px solid #374151;
+  border-top: 2px solid #f97316;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+.spinner {
+  @apply animate-spin rounded-full border-t-2 border-b-2 border-orange-500;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .mobile-hidden {
+    display: none;
+  }
+
+  .mobile-full {
+    @apply w-full;
+  }
+}
+
+/* Focus styles for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+}
+
+/* Transition utilities */
+.transition-smooth {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Dark mode specific styles */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #ffffff;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9ca3af;
 }
