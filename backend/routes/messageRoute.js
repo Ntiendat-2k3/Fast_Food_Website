@@ -4,34 +4,32 @@ import {
   adminSendMessage,
   getMessageUsers,
   getUserMessages,
-  getAllMessages,
-  getUserConversation,
   getMyMessages,
   markAsRead,
   deleteMessage,
   uploadImage,
   getUnreadCount,
+  getAllMessages,
+  getUserConversation,
   upload,
 } from "../controllers/messageController.js"
-import requireSignIn from "../middleware/auth.js"
+import authMiddleware from "../middleware/auth.js"
 
-const router = express.Router()
+const messageRouter = express.Router()
 
 // User routes
-router.post("/send", requireSignIn, upload.single("image"), sendMessage)
-router.get("/my-messages", requireSignIn, getMyMessages)
-router.get("/unread-count", requireSignIn, getUnreadCount)
+messageRouter.post("/send", authMiddleware, upload.single("image"), sendMessage)
+messageRouter.get("/my-messages", authMiddleware, getMyMessages)
+messageRouter.get("/unread-count", authMiddleware, getUnreadCount)
 
 // Admin routes
-router.get("/users", requireSignIn, getMessageUsers)
-router.get("/all", requireSignIn, getAllMessages)
-router.get("/user/:userId", requireSignIn, getUserMessages)
-router.get("/conversation/:userId", requireSignIn, getUserConversation)
-router.post("/admin-send", requireSignIn, upload.single("image"), adminSendMessage)
-router.post("/mark-read", requireSignIn, markAsRead)
-router.post("/delete", requireSignIn, deleteMessage)
+messageRouter.post("/admin-send", authMiddleware, upload.single("image"), adminSendMessage)
+messageRouter.get("/users", authMiddleware, getMessageUsers)
+messageRouter.get("/user/:userId", authMiddleware, getUserMessages)
+messageRouter.get("/all", authMiddleware, getAllMessages)
+messageRouter.get("/conversation/:userId", authMiddleware, getUserConversation)
+messageRouter.post("/mark-read", authMiddleware, markAsRead)
+messageRouter.post("/delete", authMiddleware, deleteMessage)
+messageRouter.post("/upload-image", authMiddleware, upload.single("image"), uploadImage)
 
-// Image upload route
-router.post("/upload-image", requireSignIn, upload.single("image"), uploadImage)
-
-export default router
+export default messageRouter

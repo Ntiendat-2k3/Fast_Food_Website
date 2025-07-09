@@ -38,7 +38,7 @@ const sendMessage = async (req, res) => {
     const userId = req.userId
     let { content } = req.body
 
-    console.log("Sending message:", { userId, content, hasFile: !!req.file })
+    console.log("User sending message:", { userId, content, hasFile: !!req.file })
 
     const user = await userModel.findById(userId)
     if (!user) {
@@ -74,7 +74,7 @@ const sendMessage = async (req, res) => {
 
     await newMessage.save()
 
-    console.log("Message sent successfully:", newMessage._id)
+    console.log("User message saved successfully:", newMessage._id)
 
     res.json({
       success: true,
@@ -82,7 +82,7 @@ const sendMessage = async (req, res) => {
       data: newMessage,
     })
   } catch (error) {
-    console.error("Error sending message:", error)
+    console.error("Error sending user message:", error)
     res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
@@ -136,7 +136,7 @@ const adminSendMessage = async (req, res) => {
 
     await newMessage.save()
 
-    console.log("Admin message sent successfully:", newMessage._id)
+    console.log("Admin message saved successfully:", newMessage._id)
 
     res.json({
       success: true,
@@ -149,10 +149,36 @@ const adminSendMessage = async (req, res) => {
   }
 }
 
+// Get messages for current user (FIXED - this is the key function for frontend)
+const getMyMessages = async (req, res) => {
+  try {
+    const userId = req.userId
+
+    console.log("Getting messages for current user:", userId)
+
+    // Get ALL messages for this user (both sent by user and received from admin)
+    const messages = await messageModel.find({ userId }).sort({ createdAt: 1 })
+
+    console.log(`Found ${messages.length} messages for current user ${userId}`)
+
+    // Mark admin messages as read when user views them
+    await messageModel.updateMany({ userId, sender: "admin", isRead: false }, { isRead: true })
+
+    res.json({
+      success: true,
+      data: messages,
+      message: `Tìm thấy ${messages.length} tin nhắn`,
+    })
+  } catch (error) {
+    console.error("Error getting my messages:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
 // Get all users who have sent messages (for admin)
 const getMessageUsers = async (req, res) => {
   try {
-    console.log("Getting message users, requester role:", req.userRole)
+    console.log("Getting message users")
 
     // Aggregate to get unique users with their latest message info
     const users = await messageModel.aggregate([
@@ -210,31 +236,6 @@ const getUserMessages = async (req, res) => {
     })
   } catch (error) {
     console.error("Error getting user messages:", error)
-    res.json({ success: false, message: "Lỗi server: " + error.message })
-  }
-}
-
-// Get messages for current user
-const getMyMessages = async (req, res) => {
-  try {
-    const userId = req.userId
-
-    console.log("Getting messages for current user:", userId)
-
-    const messages = await messageModel.find({ userId }).sort({ createdAt: 1 })
-
-    // Mark admin messages as read when user views them
-    await messageModel.updateMany({ userId, sender: "admin", isRead: false }, { isRead: true })
-
-    console.log(`Found ${messages.length} messages for current user`)
-
-    res.json({
-      success: true,
-      data: messages,
-      message: `Tìm thấy ${messages.length} tin nhắn`,
-    })
-  } catch (error) {
-    console.error("Error getting my messages:", error)
     res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
@@ -336,7 +337,7 @@ const getUnreadCount = async (req, res) => {
 // Get all messages (for admin)
 const getAllMessages = async (req, res) => {
   try {
-    console.log("Getting all messages, requester role:", req.userRole)
+    console.log("Getting all messages")
 
     const messages = await messageModel.find({}).sort({ createdAt: -1 }).limit(100)
 
