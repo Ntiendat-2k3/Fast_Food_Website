@@ -20,7 +20,7 @@ const ChatSection = ({ user, onLoginClick }) => {
 
     const fetchMessages = async () => {
       try {
-        const response = await axios.get(`${baseUrl}/api/message/user`, {
+        const response = await axios.get(`${baseUrl}/api/message/my-messages`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -36,14 +36,22 @@ const ChatSection = ({ user, onLoginClick }) => {
 
     fetchMessages()
 
-    // Poll for new messages every 5 seconds
-    const intervalId = setInterval(fetchMessages, 5000)
+    // Poll for new messages every 3 seconds
+    const intervalId = setInterval(fetchMessages, 3000)
     return () => clearInterval(intervalId)
   }, [user])
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Kích thước file không được vượt quá 5MB")
+        return
+      }
+      if (!file.type.startsWith("image/")) {
+        alert("Vui lòng chọn file hình ảnh")
+        return
+      }
       setSelectedImage(file)
     }
   }
@@ -75,9 +83,12 @@ const ChatSection = ({ user, onLoginClick }) => {
         setMessages([...messages, response.data.data])
         setNewMessage("")
         setSelectedImage(null)
+      } else {
+        alert(response.data.message || "Không thể gửi tin nhắn")
       }
     } catch (error) {
       console.error("Error sending message:", error)
+      alert("Không thể gửi tin nhắn")
     } finally {
       setLoading(false)
     }
@@ -88,8 +99,12 @@ const ChatSection = ({ user, onLoginClick }) => {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 0.3 }}
-      className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px] border border-slate-700"
+      className="bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px] border border-yellow-500/20 relative"
     >
+      {/* Decorative Elements */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
+      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-yellow-500 rounded-full blur-sm opacity-60"></div>
+
       <ChatHeader />
 
       {user ? (
@@ -108,6 +123,9 @@ const ChatSection = ({ user, onLoginClick }) => {
       ) : (
         <LoginPrompt onLoginClick={onLoginClick} />
       )}
+
+      {/* Bottom decorative line */}
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
     </motion.div>
   )
 }

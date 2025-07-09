@@ -81,6 +81,8 @@ const NotificationForm = ({ newNotification, setNewNotification, handleSendNotif
               <option value="warning">Cảnh báo</option>
               <option value="success">Thành công</option>
               <option value="error">Lỗi</option>
+              <option value="system">Hệ thống</option>
+              <option value="user">Người dùng</option>
             </select>
           </div>
         </div>
@@ -88,7 +90,8 @@ const NotificationForm = ({ newNotification, setNewNotification, handleSendNotif
         <div className="flex justify-end">
           <button
             onClick={handleSendNotification}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center"
+            disabled={!newNotification.title || !newNotification.message}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={16} className="mr-2" />
             Gửi thông báo

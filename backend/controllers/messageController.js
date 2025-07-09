@@ -138,6 +138,9 @@ const adminSendMessage = async (req, res) => {
 
     console.log("Admin message saved successfully:", newMessage._id)
 
+    // IMPORTANT: Mark all user messages as read when admin replies
+    await messageModel.updateMany({ userId: userId, sender: "user", isRead: false }, { isRead: true })
+
     res.json({
       success: true,
       message: "Đã gửi tin nhắn thành công",
@@ -175,12 +178,12 @@ const getMyMessages = async (req, res) => {
   }
 }
 
-// Get all users who have sent messages (for admin)
+// Get all users who have sent messages (for admin) - FIXED unread count calculation
 const getMessageUsers = async (req, res) => {
   try {
     console.log("Getting message users")
 
-    // Aggregate to get unique users with their latest message info
+    // Aggregate to get unique users with their latest message info and correct unread count
     const users = await messageModel.aggregate([
       {
         $group: {
@@ -191,7 +194,13 @@ const getMessageUsers = async (req, res) => {
           latestMessageTime: { $last: "$createdAt" },
           unreadCount: {
             $sum: {
-              $cond: [{ $and: [{ $eq: ["$sender", "user"] }, { $eq: ["$isRead", false] }] }, 1, 0],
+              $cond: [
+                {
+                  $and: [{ $eq: ["$sender", "user"] }, { $eq: ["$isRead", false] }],
+                },
+                1,
+                0,
+              ],
             },
           },
         },
@@ -240,7 +249,7 @@ const getUserMessages = async (req, res) => {
   }
 }
 
-// Mark messages as read
+// Mark messages as read - FIXED to properly handle marking user messages as read
 const markAsRead = async (req, res) => {
   try {
     const { userId } = req.body
@@ -249,11 +258,17 @@ const markAsRead = async (req, res) => {
       return res.json({ success: false, message: "Thiếu userId" })
     }
 
-    await messageModel.updateMany({ userId, sender: "user", isRead: false }, { isRead: true })
+    console.log("Marking messages as read for user:", userId)
+
+    // Mark all unread user messages as read
+    const result = await messageModel.updateMany({ userId, sender: "user", isRead: false }, { isRead: true })
+
+    console.log(`Marked ${result.modifiedCount} messages as read for user ${userId}`)
 
     res.json({
       success: true,
       message: "Đã đánh dấu tin nhắn đã đọc",
+      modifiedCount: result.modifiedCount,
     })
   } catch (error) {
     console.error("Error marking messages as read:", error)
@@ -264,7 +279,7 @@ const markAsRead = async (req, res) => {
 // Delete message
 const deleteMessage = async (req, res) => {
   try {
-    const { messageId } = req.body
+    const { messageId } = req.params
 
     if (!messageId) {
       return res.json({ success: false, message: "Thiếu messageId" })

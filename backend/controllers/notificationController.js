@@ -11,6 +11,12 @@ const createNotification = async (req, res) => {
       return res.json({ success: false, message: "Thiếu tiêu đề hoặc nội dung" })
     }
 
+    // Validate type
+    const validTypes = ["info", "warning", "success", "error", "order", "payment", "system", "user"]
+    if (!validTypes.includes(type)) {
+      return res.json({ success: false, message: "Loại thông báo không hợp lệ" })
+    }
+
     // Get creator info
     const creator = await userModel.findById(req.userId)
     if (!creator) {
@@ -35,6 +41,7 @@ const createNotification = async (req, res) => {
       userId,
       type,
       createdBy: creator.name,
+      targetUser: targetUser === "all" ? "all" : targetUser,
       createdAt: new Date(),
     }))
 
@@ -114,7 +121,11 @@ const markAsRead = async (req, res) => {
 
     const notification = await notificationModel.findByIdAndUpdate(
       id,
-      { read, readAt: read ? new Date() : null },
+      {
+        read,
+        isRead: read,
+        readAt: read ? new Date() : null,
+      },
       { new: true },
     )
 
@@ -161,7 +172,7 @@ const getUnreadCount = async (req, res) => {
     const userId = req.userId
     const count = await notificationModel.countDocuments({
       userId,
-      read: { $ne: true },
+      $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
 
     res.json({ success: true, data: { count } })

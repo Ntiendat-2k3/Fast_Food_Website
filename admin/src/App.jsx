@@ -15,12 +15,14 @@ import { ThemeProvider } from "./context/ThemeContext"
 import Login from "./pages/Login/Login"
 import { useState, useEffect } from "react"
 import Chat from "./pages/Chat/Chat"
+import axios from "axios"
 
 const App = () => {
   const url = "http://localhost:4000"
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [userRole, setUserRole] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [token, setToken] = useState(null)
   const location = useLocation()
 
   // Function to get user data from storage
@@ -28,12 +30,12 @@ const App = () => {
     try {
       // Check localStorage first, then sessionStorage
       const userData = localStorage.getItem("user") || sessionStorage.getItem("user")
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token")
+      const tokenData = localStorage.getItem("token") || sessionStorage.getItem("token")
 
-      if (token && userData) {
+      if (tokenData && userData) {
         const user = JSON.parse(userData)
         console.log("User data from storage:", user)
-        return { user, token }
+        return { user, token: tokenData }
       }
     } catch (error) {
       console.error("Error parsing user data:", error)
@@ -46,17 +48,52 @@ const App = () => {
     return null
   }
 
+  // Set up axios interceptor to include token in all requests
+  useEffect(() => {
+    const setupAxiosInterceptor = () => {
+      // Request interceptor to add token to headers
+      axios.interceptors.request.use(
+        (config) => {
+          const currentToken = token || localStorage.getItem("token") || sessionStorage.getItem("token")
+          if (currentToken) {
+            config.headers.authorization = `Bearer ${currentToken}`
+            config.headers.token = currentToken
+          }
+          return config
+        },
+        (error) => {
+          return Promise.reject(error)
+        },
+      )
+
+      // Response interceptor to handle auth errors
+      axios.interceptors.response.use(
+        (response) => response,
+        (error) => {
+          if (error.response?.status === 401) {
+            console.log("Token expired or invalid, logging out")
+            handleLogout()
+          }
+          return Promise.reject(error)
+        },
+      )
+    }
+
+    setupAxiosInterceptor()
+  }, [token])
+
   useEffect(() => {
     console.log("App useEffect - checking authentication")
     const storageData = getUserFromStorage()
 
     if (storageData) {
-      const { user, token } = storageData
+      const { user, token: storedToken } = storageData
       // Check if user has admin or staff role
       if (user.role === "admin" || user.role === "staff") {
         console.log("Setting authenticated user:", user.name, "Role:", user.role)
         setIsAuthenticated(true)
         setUserRole(user.role)
+        setToken(storedToken)
       } else {
         console.log("User does not have admin/staff role:", user.role)
         // Clear invalid user data
@@ -72,8 +109,8 @@ const App = () => {
   }, [])
 
   // Function to handle login
-  const handleLogin = (token, user) => {
-    console.log("handleLogin called with:", { token: token?.substring(0, 10) + "...", user })
+  const handleLogin = (tokenData, user) => {
+    console.log("handleLogin called with:", { token: tokenData?.substring(0, 10) + "...", user })
 
     if (!user || (user.role !== "admin" && user.role !== "staff")) {
       console.error("Invalid user role:", user?.role)
@@ -81,11 +118,12 @@ const App = () => {
     }
 
     // Store in localStorage by default (can be changed based on remember me)
-    localStorage.setItem("token", token)
+    localStorage.setItem("token", tokenData)
     localStorage.setItem("user", JSON.stringify(user))
 
     setIsAuthenticated(true)
     setUserRole(user.role)
+    setToken(tokenData)
 
     console.log("Login successful, user role set to:", user.role)
   }
@@ -99,6 +137,7 @@ const App = () => {
     sessionStorage.removeItem("user")
     setIsAuthenticated(false)
     setUserRole(null)
+    setToken(null)
   }
 
   // Protected route component

@@ -6,32 +6,43 @@ export const ThemeContext = createContext()
 
 // Provider component
 export const ThemeProvider = ({ children }) => {
-  // Check theme from localStorage or user preference
-  const [darkMode, setDarkMode] = useState(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem("theme")
-    if (savedTheme) {
-      return savedTheme === "dark"
-    }
-    // If not, check system preference
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-  })
+  // Always use dark mode with golden theme
+  const [theme, setTheme] = useState("dark")
+  const [darkMode, setDarkMode] = useState(true)
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-      localStorage.setItem("theme", "dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-      localStorage.setItem("theme", "light")
-    }
-  }, [darkMode])
+    // Always apply dark mode
+    document.documentElement.classList.add("dark")
+    document.body.classList.add("dark")
+    localStorage.setItem("theme", "dark")
 
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev)
+    // Add golden theme class to body
+    document.body.classList.add("golden-theme")
+  }, [])
+
+  const toggleTheme = () => {
+    // For now, we'll keep it always dark with golden theme
+    // This can be extended later if needed
+    console.log("Golden dark theme is active")
   }
 
-  return <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>{children}</ThemeContext.Provider>
+  const toggleDarkMode = () => {
+    // Keep dark mode always on for golden theme
+    setDarkMode(true)
+  }
+
+  return (
+    <ThemeContext.Provider
+      value={{
+        theme: "dark",
+        darkMode: true,
+        toggleTheme,
+        toggleDarkMode,
+      }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  )
 }
 
 export const useTheme = () => {

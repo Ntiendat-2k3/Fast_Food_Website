@@ -1,23 +1,18 @@
 "use client"
-import { Eye, EyeOff } from "lucide-react"
 
-/**
- * PasswordInput component with visibility toggle
- *
- * @param {Object} props - Component props
- * @param {string} props.value - Current password value
- * @param {Function} props.onChange - Function to call when password changes
- * @param {boolean} props.showPassword - Whether to show the password in plain text
- * @param {Function} props.toggleVisibility - Function to toggle password visibility
- * @returns {JSX.Element} The rendered component
- */
-const PasswordInput = ({ value, onChange, showPassword, toggleVisibility }) => {
+import { Lock, Eye, EyeOff } from "lucide-react"
+
+const PasswordInput = ({ value, onChange, showPassword, toggleVisibility, disabled = false }) => {
   return (
-    <div>
-      <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+    <div className="space-y-2">
+      <label htmlFor="password" className="block text-sm font-semibold text-yellow-400 flex items-center">
+        <Lock className="w-4 h-4 mr-2" />
         Mật khẩu
       </label>
-      <div className="mt-1 relative">
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Lock className="h-5 w-5 text-gray-400 group-hover:text-yellow-400 transition-colors duration-200" />
+        </div>
         <input
           id="password"
           name="password"
@@ -26,16 +21,22 @@ const PasswordInput = ({ value, onChange, showPassword, toggleVisibility }) => {
           required
           value={value}
           onChange={onChange}
-          className="block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          placeholder="Nhập mật khẩu của bạn"
+          disabled={disabled}
+          className="w-full pl-12 pr-12 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300 group-hover:border-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          placeholder="••••••••••"
         />
         <button
           type="button"
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+          className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-yellow-400 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={toggleVisibility}
+          disabled={disabled}
         >
-          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
         </button>
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-yellow-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+
+        {/* Focus Ring */}
+        <div className="absolute inset-0 rounded-xl ring-2 ring-yellow-500/0 group-focus-within:ring-yellow-500/20 transition-all duration-300"></div>
       </div>
     </div>
   )

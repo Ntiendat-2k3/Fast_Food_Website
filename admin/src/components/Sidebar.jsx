@@ -12,9 +12,9 @@ import {
   PieChart,
   Tag,
   MessageSquare,
-  Moon,
-  Sun,
   Plus,
+  Crown,
+  Sparkles,
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
 
@@ -150,10 +150,10 @@ const Sidebar = ({ onLogout, userRole }) => {
   return (
     <>
       {/* Mobile menu button */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-3 bg-white dark:bg-dark shadow-md md:hidden">
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-dark-card border-b border-dark-border shadow-dark-lg md:hidden">
         <button
           onClick={toggleSidebar}
-          className="p-1.5 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+          className="p-2 rounded-xl text-golden-400 hover:bg-dark-lighter hover:shadow-golden/20 focus:outline-none transition-all duration-300"
         >
           <Menu size={22} />
         </button>
@@ -161,42 +161,51 @@ const Sidebar = ({ onLogout, userRole }) => {
           <NotificationBell url={url} />
           <button
             onClick={toggleTheme}
-            className="p-1.5 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+            className="p-2 rounded-xl text-golden-400 hover:bg-dark-lighter hover:shadow-golden/20 focus:outline-none transition-all duration-300"
           >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            <Sparkles size={18} />
           </button>
           <button
             onClick={handleLogout}
-            className="p-1.5 rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none"
+            className="p-2 rounded-xl text-red-400 hover:bg-red-900/20 hover:shadow-red-500/20 focus:outline-none transition-all duration-300"
           >
             <LogOut size={18} />
           </button>
         </div>
       </div>
 
-      {/* Sidebar for mobile */}
+      {/* Sidebar overlay for mobile */}
       <div
         className={`fixed inset-0 z-50 md:hidden ${
           isOpen ? "block" : "hidden"
-        } bg-gray-900 bg-opacity-50 transition-opacity duration-300`}
+        } bg-black/80 backdrop-blur-sm transition-opacity duration-300`}
         onClick={closeSidebar}
       ></div>
 
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-dark-light shadow-xl transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-dark to-dark-light shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 border-r border-dark-border ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-dark-border bg-dark-card">
           <Link
             to={currentUserRole === "admin" ? "/revenue" : "/orders"}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-3 hover:scale-105 transition-transform duration-300"
             onClick={closeSidebar}
           >
-            <img src="/logo.png" alt="Logo" className="h-7 w-auto" />
+            <div className="relative">
+              <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-golden rounded-full animate-pulse"></div>
+            </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-primary">{currentUserRole === "admin" ? "Admin" : "Staff"}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{currentUserRole}</span>
+              <span className="text-xl font-bold bg-gradient-golden bg-clip-text text-transparent">
+                {currentUserRole === "admin" ? "Admin Panel" : "Staff Panel"}
+              </span>
+              <div className="flex items-center space-x-2">
+                {currentUserRole === "admin" && <Crown size={12} className="text-golden-400" />}
+                <span className="text-sm text-golden-400 capitalize font-medium">{currentUserRole}</span>
+              </div>
             </div>
           </Link>
           <div className="flex items-center space-x-2">
@@ -205,46 +214,58 @@ const Sidebar = ({ onLogout, userRole }) => {
             </div>
             <button
               onClick={closeSidebar}
-              className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden focus:outline-none"
+              className="p-2 rounded-xl text-gray-400 hover:bg-dark-lighter hover:text-golden-400 md:hidden focus:outline-none transition-all duration-300"
             >
               <X size={18} />
             </button>
           </div>
         </div>
 
-        <nav className="mt-4 px-3 max-h-[calc(100vh-120px)] overflow-y-auto">
-          <ul className="space-y-1.5">
+        {/* Navigation */}
+        <nav className="mt-6 px-4 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-golden">
+          <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   to={item.path}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive(item.path)
-                      ? "bg-primary text-white"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  }`}
+                  className={`sidebar-item ${isActive(item.path) ? "active" : "text-gray-300 hover:text-golden-400"}`}
                   onClick={closeSidebar}
                 >
-                  {item.icon}
-                  <span className="ml-3 text-sm">{item.name}</span>
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        isActive(item.path) ? "bg-white/20" : "bg-dark-lighter group-hover:bg-golden-500/20"
+                      } transition-all duration-300`}
+                    >
+                      {item.icon}
+                    </div>
+                    <span className="font-medium">{item.name}</span>
+                  </div>
+                  {isActive(item.path) && (
+                    <div className="ml-auto">
+                      <Sparkles size={16} className="text-white animate-pulse" />
+                    </div>
+                  )}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div className="absolute bottom-0 w-full p-3 border-t border-gray-200 dark:border-gray-700">
+        {/* Footer */}
+        <div className="absolute bottom-0 w-full p-4 border-t border-dark-border bg-dark-card">
           <div className="flex items-center justify-between">
             <button
               onClick={toggleTheme}
-              className="flex items-center px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm"
+              className="flex items-center space-x-3 px-4 py-3 text-golden-400 hover:bg-dark-lighter rounded-xl transition-all duration-300 hover:shadow-golden/20"
             >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              <span className="ml-3">{theme === "dark" ? "Sáng" : "Tối"}</span>
+              <Sparkles size={18} />
+              <span className="font-medium">Golden Theme</span>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              className="flex items-center justify-center p-3 text-red-400 hover:bg-red-900/20 rounded-xl transition-all duration-300 hover:shadow-red-500/20"
+              title="Đăng xuất"
             >
               <LogOut size={18} />
             </button>

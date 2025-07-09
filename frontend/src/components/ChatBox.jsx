@@ -21,26 +21,49 @@ const ChatBox = () => {
   const messagesContainerRef = useRef(null)
   const fileInputRef = useRef(null)
 
+  // Scroll management refs
+  const userScrolling = useRef(false)
+  const scrollTimeout = useRef(null)
+  const lastMessageCount = useRef(0)
+  const shouldAutoScroll = useRef(true)
+  const programmaticScroll = useRef(false)
+
   // Fetch messages when component mounts or token changes
   useEffect(() => {
     if (token) {
       console.log("Token available, fetching messages...")
-      fetchMessages()
-      // Set up polling for new messages every 2 seconds
+      fetchMessages(false) // Initial load
+      // Set up polling for new messages every 3 seconds
       const intervalId = setInterval(() => {
-        console.log("Polling for new messages...")
-        fetchMessages()
-      }, 2000)
+        if (!userScrolling.current) {
+          console.log("Polling for new messages...")
+          fetchMessages(true) // Polling
+        }
+      }, 3000)
       return () => clearInterval(intervalId)
     }
   }, [token])
 
-  const handleScroll = () => {
-    if (!messagesContainerRef.current) return
-
+  // Check if user is at bottom of scroll
+  const isAtBottom = () => {
+    if (!messagesContainerRef.current) return true
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current
-    const bottom = scrollHeight - scrollTop - clientHeight < 100
+    return scrollHeight - scrollTop - clientHeight < 50
+  }
 
+  const handleScroll = () => {
+    if (!messagesContainerRef.current || programmaticScroll.current) return
+
+    // Clear existing timeout
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current)
+    }
+
+    // Mark as user scrolling immediately
+    userScrolling.current = true
+
+    const bottom = isAtBottom()
+    shouldAutoScroll.current = bottom
     setIsNearBottom(bottom)
 
     if (bottom) {
@@ -49,23 +72,37 @@ const ChatBox = () => {
     } else {
       setShowScrollButton(unreadCount > 0)
     }
+
+    // Reset user scrolling flag after they stop scrolling
+    scrollTimeout.current = setTimeout(() => {
+      userScrolling.current = false
+    }, 2000) // Longer timeout to prevent interference
   }
 
   useEffect(() => {
     const container = messagesContainerRef.current
     if (container) {
       container.addEventListener("scroll", handleScroll)
-      return () => container.removeEventListener("scroll", handleScroll)
+      return () => {
+        container.removeEventListener("scroll", handleScroll)
+        if (scrollTimeout.current) {
+          clearTimeout(scrollTimeout.current)
+        }
+      }
     }
   }, [unreadCount])
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (isPolling = false) => {
     if (!token) {
       console.log("No token available")
       return
     }
 
     try {
+      if (!isPolling) {
+        setLoading(true)
+      }
+
       console.log("Fetching messages with token:", token.substring(0, 10) + "...")
       const response = await axios.get(`${url}/api/message/my-messages`, {
         headers: { token },
@@ -74,23 +111,33 @@ const ChatBox = () => {
       console.log("Fetch messages response:", response.data)
 
       if (response.data.success) {
-        const prevMessageCount = messages.length
         const newMessages = response.data.data
+        const prevMessageCount = lastMessageCount.current
 
         console.log(`Received ${newMessages.length} messages, previous count: ${prevMessageCount}`)
 
-        setMessages(newMessages)
+        // Only update if there are actually new messages or it's not polling
+        if (!isPolling || newMessages.length !== prevMessageCount) {
+          const wasAtBottom = isAtBottom()
 
-        // Auto scroll if user is near bottom or if it's their own message
-        if (
-          isNearBottom ||
-          (prevMessageCount < newMessages.length && newMessages[newMessages.length - 1]?.sender === "user")
-        ) {
-          setTimeout(scrollToBottom, 100)
-        } else if (prevMessageCount < newMessages.length) {
-          const newCount = newMessages.length - prevMessageCount
-          setUnreadCount((prev) => prev + newCount)
-          setShowScrollButton(true)
+          setMessages(newMessages)
+          lastMessageCount.current = newMessages.length
+
+          // Only auto-scroll if:
+          // 1. User was at bottom AND not manually scrolling
+          // 2. OR it's their own message
+          // 3. OR it's the first load
+          if (
+            (!isPolling && wasAtBottom) ||
+            (wasAtBottom && !userScrolling.current && shouldAutoScroll.current) ||
+            (prevMessageCount < newMessages.length && newMessages[newMessages.length - 1]?.sender === "user")
+          ) {
+            setTimeout(() => scrollToBottom(), 100)
+          } else if (isPolling && prevMessageCount < newMessages.length) {
+            const newCount = newMessages.length - prevMessageCount
+            setUnreadCount((prev) => prev + newCount)
+            setShowScrollButton(true)
+          }
         }
       } else {
         console.error("Failed to fetch messages:", response.data.message)
@@ -99,23 +146,31 @@ const ChatBox = () => {
       console.error("Error fetching messages:", error)
       if (error.response?.status === 401) {
         console.log("Token expired or invalid")
-        // Handle token expiration
+      }
+    } finally {
+      if (!isPolling) {
+        setLoading(false)
       }
     }
   }
 
   const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
+    if (messagesContainerRef.current && !userScrolling.current) {
+      programmaticScroll.current = true
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
       setShowScrollButton(false)
       setUnreadCount(0)
+      shouldAutoScroll.current = true
+      setTimeout(() => {
+        programmaticScroll.current = false
+      }, 200)
     }
   }
 
   // Auto scroll to bottom when messages first load
   useEffect(() => {
-    if (messages.length > 0 && !loading) {
-      setTimeout(scrollToBottom, 100)
+    if (messages.length > 0 && !loading && shouldAutoScroll.current) {
+      setTimeout(() => scrollToBottom(), 100)
     }
   }, [messages.length, loading])
 
@@ -157,6 +212,7 @@ const ChatBox = () => {
       if (response.data.success) {
         // Add the new message to the local state immediately
         setMessages((prev) => [...prev, response.data.data])
+        lastMessageCount.current = lastMessageCount.current + 1
         setNewMessage("")
         setSelectedImage(null)
         setImagePreview(null)
@@ -166,8 +222,9 @@ const ChatBox = () => {
           fileInputRef.current.value = ""
         }
 
-        // Scroll to bottom after sending
-        setTimeout(scrollToBottom, 100)
+        // Always scroll to bottom after sending
+        shouldAutoScroll.current = true
+        setTimeout(() => scrollToBottom(), 100)
         setIsNearBottom(true)
 
         console.log("Message sent successfully")
@@ -278,7 +335,11 @@ const ChatBox = () => {
       </div>
 
       {/* Messages container */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 relative" ref={messagesContainerRef}>
+      <div
+        className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 relative"
+        ref={messagesContainerRef}
+        style={{ scrollBehavior: "auto" }} // Disable smooth scrolling to prevent conflicts
+      >
         {loading && messages.length === 0 ? (
           <div className="flex justify-center items-center h-full">
             <Loader className="animate-spin h-8 w-8 text-green-500" />
@@ -353,7 +414,7 @@ const ChatBox = () => {
         {/* Scroll to bottom button with unread count */}
         {showScrollButton && (
           <button
-            onClick={scrollToBottom}
+            onClick={() => scrollToBottom()}
             className="absolute bottom-4 right-4 bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-all flex items-center justify-center"
             title="Cuộn xuống tin nhắn mới nhất"
           >
