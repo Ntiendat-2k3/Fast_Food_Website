@@ -35,29 +35,46 @@ const upload = multer({
 // Send message from user to admin
 const sendMessage = async (req, res) => {
   try {
-    const { message, type = "text" } = req.body
     const userId = req.userId
+    let { content } = req.body
 
-    if (!message) {
-      return res.json({ success: false, message: "Nội dung tin nhắn không được để trống" })
-    }
+    console.log("Sending message:", { userId, content, hasFile: !!req.file })
 
     const user = await userModel.findById(userId)
     if (!user) {
       return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
 
+    let messageType = "text"
+    let imagePath = null
+
+    // Handle image upload
+    if (req.file) {
+      imagePath = req.file.filename
+      messageType = "image"
+      if (!content) {
+        content = "Đã gửi một hình ảnh"
+      }
+    }
+
+    if (!content && !imagePath) {
+      return res.json({ success: false, message: "Nội dung tin nhắn không được để trống" })
+    }
+
     const newMessage = new messageModel({
       userId: userId,
       userName: user.name,
       userEmail: user.email,
-      content: message,
-      type: type,
+      content: content || "",
+      type: messageType,
       sender: "user",
       isRead: false,
+      image: imagePath,
     })
 
     await newMessage.save()
+
+    console.log("Message sent successfully:", newMessage._id)
 
     res.json({
       success: true,
@@ -73,10 +90,12 @@ const sendMessage = async (req, res) => {
 // Send message from admin to user
 const adminSendMessage = async (req, res) => {
   try {
-    const { userId, message, type = "text" } = req.body
+    let { userId, content } = req.body
 
-    if (!userId || !message) {
-      return res.json({ success: false, message: "Thiếu thông tin userId hoặc message" })
+    console.log("Admin sending message:", { userId, content, hasFile: !!req.file })
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin userId" })
     }
 
     const user = await userModel.findById(userId)
@@ -87,18 +106,37 @@ const adminSendMessage = async (req, res) => {
     const adminUser = await userModel.findById(req.userId)
     const adminName = adminUser ? adminUser.name : "Admin"
 
+    let messageType = "text"
+    let imagePath = null
+
+    // Handle image upload
+    if (req.file) {
+      imagePath = req.file.filename
+      messageType = "image"
+      if (!content) {
+        content = "Đã gửi một hình ảnh"
+      }
+    }
+
+    if (!content && !imagePath) {
+      return res.json({ success: false, message: "Nội dung tin nhắn không được để trống" })
+    }
+
     const newMessage = new messageModel({
       userId: userId,
       userName: user.name,
       userEmail: user.email,
-      content: message,
-      type: type,
+      content: content || "",
+      type: messageType,
       sender: "admin",
       adminName: adminName,
-      isRead: true, // Admin messages are marked as read by default
+      isRead: false,
+      image: imagePath,
     })
 
     await newMessage.save()
+
+    console.log("Admin message sent successfully:", newMessage._id)
 
     res.json({
       success: true,
@@ -185,7 +223,7 @@ const getMyMessages = async (req, res) => {
 
     const messages = await messageModel.find({ userId }).sort({ createdAt: 1 })
 
-    // Mark user messages as read
+    // Mark admin messages as read when user views them
     await messageModel.updateMany({ userId, sender: "admin", isRead: false }, { isRead: true })
 
     console.log(`Found ${messages.length} messages for current user`)
@@ -237,8 +275,8 @@ const deleteMessage = async (req, res) => {
     }
 
     // If it's an image message, try to delete the file
-    if (message.type === "image" && message.content.includes("/uploads/")) {
-      const imagePath = message.content.replace("http://localhost:4000/", "")
+    if (message.image) {
+      const imagePath = `uploads/messages/${message.image}`
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath)
       }
@@ -295,6 +333,67 @@ const getUnreadCount = async (req, res) => {
   }
 }
 
+// Get all messages (for admin)
+const getAllMessages = async (req, res) => {
+  try {
+    console.log("Getting all messages, requester role:", req.userRole)
+
+    const messages = await messageModel.find({}).sort({ createdAt: -1 }).limit(100)
+
+    console.log(`Found ${messages.length} messages`)
+
+    res.json({
+      success: true,
+      data: messages,
+      message: `Tìm thấy ${messages.length} tin nhắn`,
+    })
+  } catch (error) {
+    console.error("Error getting all messages:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
+// Get conversation between admin and specific user
+const getUserConversation = async (req, res) => {
+  try {
+    const { userId } = req.params
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu userId" })
+    }
+
+    console.log("Getting conversation for user:", userId)
+
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({ success: false, message: "Người dùng không tồn tại" })
+    }
+
+    const messages = await messageModel.find({ userId }).sort({ createdAt: 1 })
+
+    // Mark user messages as read when admin views conversation
+    await messageModel.updateMany({ userId, sender: "user", isRead: false }, { isRead: true })
+
+    console.log(`Found ${messages.length} messages in conversation with user ${userId}`)
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+        messages: messages,
+      },
+      message: `Tìm thấy ${messages.length} tin nhắn`,
+    })
+  } catch (error) {
+    console.error("Error getting user conversation:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
 export {
   sendMessage,
   adminSendMessage,
@@ -305,5 +404,7 @@ export {
   deleteMessage,
   uploadImage,
   getUnreadCount,
+  getAllMessages,
+  getUserConversation,
   upload,
 }

@@ -4,9 +4,14 @@ const messageSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
       required: true,
     },
     userName: {
+      type: String,
+      required: true,
+    },
+    userEmail: {
       type: String,
       required: true,
     },
@@ -14,28 +19,30 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    image: {
+    type: {
+      type: String,
+      enum: ["text", "image"],
+      default: "text",
+    },
+    sender: {
+      type: String,
+      enum: ["user", "admin"],
+      required: true,
+    },
+    adminName: {
       type: String,
       default: null,
     },
-    isAdmin: {
+    isRead: {
       type: Boolean,
       default: false,
     },
-    read: {
-      type: Boolean,
-      default: false,
-    },
-    recipientId: {
-      type: mongoose.Schema.Types.ObjectId,
+    image: {
+      type: String,
       default: null,
-    },
-    isAutoResponse: {
-      type: Boolean,
-      default: false,
     },
   },
   { timestamps: true },
 )
 
-export default mongoose.model("Message", messageSchema)
+export default mongoose.model("message", messageSchema)

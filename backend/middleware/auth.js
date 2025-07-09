@@ -115,32 +115,11 @@ const verifyAdmin = async (req, res, next) => {
 }
 
 // Verify staff or admin
-const verifyStaffOrAdmin = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization || req.headers.token
-    console.log("Staff/Admin verification - token received:", token ? "Yes" : "No")
-
-    if (!token) {
-      return res.json({ success: false, message: "Authorization token required" })
-    }
-
-    const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token
-    const decoded = jwt.verify(actualToken, process.env.JWT_SECRET)
-
-    const user = await userModel.findById(decoded.id).select("-password")
-    if (!user || (user.role !== "admin" && user.role !== "staff")) {
-      console.log("Staff/Admin verification failed - user role:", user?.role)
-      return res.json({ success: false, message: "Staff or Admin access required" })
-    }
-
-    console.log("Staff/Admin verification successful - role:", user.role)
-    req.user = user
-    req.userId = user._id
-    req.userRole = user.role
+const verifyStaffOrAdmin = (req, res, next) => {
+  if (req.userRole && (req.userRole === "admin" || req.userRole === "staff")) {
     next()
-  } catch (error) {
-    console.error("Staff/Admin verification error:", error)
-    return res.json({ success: false, message: "Invalid token or insufficient permissions" })
+  } else {
+    return res.json({ success: false, message: "Access denied. Admin or staff role required." })
   }
 }
 

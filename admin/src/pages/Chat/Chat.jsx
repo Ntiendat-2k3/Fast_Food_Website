@@ -1,414 +1,460 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Send, ImageIcon, Users, MessageCircle, Search, X, MoreVertical, Phone, Video } from "lucide-react"
 import axios from "axios"
-import { toast } from "react-toastify"
-import { MessageCircle, ImageIcon } from "lucide-react"
-
-// Import components
-import ChatHeader from "../../components/chat/ChatHeader"
-import UserList from "../../components/chat/UserList"
-import MessageList from "../../components/chat/MessageList"
-import MessageInput from "../../components/chat/MessageInput"
-import ImageGallery from "../../components/chat/ImageGallery"
 
 const Chat = () => {
-  const url = "http://localhost:4000"
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [messagesLoading, setMessagesLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
-  const [showImageGallery, setShowImageGallery] = useState(false)
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
 
-  // Auto scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const url = "http://localhost:4000"
+  const token = localStorage.getItem("token")
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  useEffect(() => {
+    if (selectedUser) {
+      fetchMessages(selectedUser._id)
+      const interval = setInterval(() => fetchMessages(selectedUser._id), 3000)
+      return () => clearInterval(interval)
+    }
+  }, [selectedUser])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  // Fetch users who have sent messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại")
-        return
-      }
-
-      console.log("Fetching message users...")
-
+      setLoading(true)
       const response = await axios.get(`${url}/api/message/users`, {
-        headers: {
-          token: token,
-        },
+        headers: { token },
       })
-
-      console.log("Users response:", response.data)
 
       if (response.data.success) {
         setUsers(response.data.data)
-        console.log(`Loaded ${response.data.data.length} users`)
       } else {
-        console.error("Failed to fetch users:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi tải danh sách người dùng")
+        console.error("Error fetching users:", response.data.message)
       }
     } catch (error) {
       console.error("Error fetching users:", error)
-      toast.error("Lỗi kết nối khi tải danh sách người dùng")
     } finally {
       setLoading(false)
     }
   }
 
-  // Fetch messages for selected user
   const fetchMessages = async (userId) => {
-    if (!userId) return
-
-    setMessagesLoading(true)
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại")
-        return
-      }
-
-      console.log("Fetching messages for user:", userId)
-
       const response = await axios.get(`${url}/api/message/user/${userId}`, {
-        headers: {
-          token: token,
-        },
+        headers: { token },
       })
-
-      console.log("Messages response:", response.data)
 
       if (response.data.success) {
         setMessages(response.data.data)
-        console.log(`Loaded ${response.data.data.length} messages`)
-
         // Mark messages as read
-        await markAsRead(userId)
-      } else {
-        console.error("Failed to fetch messages:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi tải tin nhắn")
+        await axios.post(
+          `${url}/api/message/mark-read`,
+          { userId },
+          {
+            headers: { token },
+          },
+        )
       }
     } catch (error) {
       console.error("Error fetching messages:", error)
-      toast.error("Lỗi kết nối khi tải tin nhắn")
-    } finally {
-      setMessagesLoading(false)
     }
   }
 
-  // Mark messages as read
-  const markAsRead = async (userId) => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) return
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
 
-      await axios.post(
-        `${url}/api/message/mark-read`,
-        { userId },
-        {
-          headers: {
-            token: token,
-          },
-        },
-      )
-
-      // Update user's unread count
-      setUsers((prevUsers) => prevUsers.map((user) => (user._id === userId ? { ...user, unreadCount: 0 } : user)))
-    } catch (error) {
-      console.error("Error marking messages as read:", error)
+    if ((!newMessage.trim() && !selectedImage) || sending || !selectedUser) {
+      return
     }
-  }
 
-  // Send message
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedUser || sending) return
-
-    setSending(true)
     try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại")
-        return
-      }
+      setSending(true)
 
-      console.log("Sending message:", { userId: selectedUser._id, message: newMessage })
-
-      const response = await axios.post(
-        `${url}/api/message/admin-send`,
-        {
-          userId: selectedUser._id,
-          message: newMessage,
-          type: "text",
-        },
-        {
-          headers: {
-            token: token,
-          },
-        },
-      )
-
-      console.log("Send message response:", response.data)
-
-      if (response.data.success) {
-        setNewMessage("")
-        setImagePreview(null)
-
-        // Add message to current messages
-        setMessages((prev) => [...prev, response.data.data])
-
-        // Update user's latest message
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user._id === selectedUser._id
-              ? {
-                  ...user,
-                  latestMessage: newMessage,
-                  latestMessageTime: new Date(),
-                }
-              : user,
-          ),
-        )
-
-        toast.success("Đã gửi tin nhắn")
-      } else {
-        console.error("Failed to send message:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi gửi tin nhắn")
-      }
-    } catch (error) {
-      console.error("Error sending message:", error)
-      toast.error("Lỗi kết nối khi gửi tin nhắn")
-    } finally {
-      setSending(false)
-    }
-  }
-
-  // Handle image upload
-  const handleImageUpload = async (file) => {
-    if (!file || !selectedUser) return
-
-    setSending(true)
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại")
-        return
-      }
-
-      // Upload image first
       const formData = new FormData()
-      formData.append("image", file)
+      formData.append("userId", selectedUser._id)
+      formData.append("content", newMessage)
 
-      const uploadResponse = await axios.post(`${url}/api/message/upload-image`, formData, {
+      if (selectedImage) {
+        formData.append("image", selectedImage)
+      }
+
+      const response = await axios.post(`${url}/api/message/admin-send`, formData, {
         headers: {
-          token: token,
+          token,
           "Content-Type": "multipart/form-data",
         },
       })
 
-      if (uploadResponse.data.success) {
-        // Send image message
-        const response = await axios.post(
-          `${url}/api/message/admin-send`,
-          {
-            userId: selectedUser._id,
-            message: uploadResponse.data.imageUrl,
-            type: "image",
-          },
-          {
-            headers: {
-              token: token,
-            },
-          },
-        )
-
-        if (response.data.success) {
-          setMessages((prev) => [...prev, response.data.data])
-          setImagePreview(null)
-          toast.success("Đã gửi hình ảnh")
-        } else {
-          toast.error("Lỗi khi gửi hình ảnh")
+      if (response.data.success) {
+        setMessages((prev) => [...prev, response.data.data])
+        setNewMessage("")
+        setSelectedImage(null)
+        setImagePreview(null)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ""
         }
       } else {
-        toast.error("Lỗi khi upload hình ảnh")
+        alert("Lỗi gửi tin nhắn: " + response.data.message)
       }
     } catch (error) {
-      console.error("Error uploading image:", error)
-      toast.error("Lỗi khi upload hình ảnh")
+      console.error("Error sending message:", error)
+      alert("Lỗi gửi tin nhắn")
     } finally {
       setSending(false)
     }
   }
 
-  // Delete message
-  const deleteMessage = async (messageId) => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại")
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size should not exceed 5MB")
         return
       }
 
-      const response = await axios.post(
-        `${url}/api/message/delete`,
-        { messageId },
-        {
-          headers: {
-            token: token,
-          },
-        },
-      )
-
-      if (response.data.success) {
-        setMessages((prev) => prev.filter((msg) => msg._id !== messageId))
-        toast.success("Đã xóa tin nhắn")
-      } else {
-        toast.error("Lỗi khi xóa tin nhắn")
+      if (!file.type.match(/image\/(jpeg|jpg|png|gif|webp)/)) {
+        alert("Only image files are allowed")
+        return
       }
-    } catch (error) {
-      console.error("Error deleting message:", error)
-      toast.error("Lỗi khi xóa tin nhắn")
-    }
-  }
 
-  // Handle user selection
-  const handleUserSelect = (user) => {
-    console.log("Selected user:", user)
-    setSelectedUser(user)
-    fetchMessages(user._id)
-  }
+      setSelectedImage(file)
 
-  // Handle key press
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
-  }
-
-  // Handle file input change
-  const handleFileChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          setImagePreview(e.target.result)
-        }
-        reader.readAsDataURL(file)
-        handleImageUpload(file)
-      } else {
-        toast.error("Chỉ chấp nhận file hình ảnh")
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
       }
+      reader.readAsDataURL(file)
     }
   }
 
-  // Auto-refresh users every 30 seconds
-  useEffect(() => {
-    fetchUsers()
-    const interval = setInterval(fetchUsers, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Auto-refresh messages every 10 seconds
-  useEffect(() => {
-    if (selectedUser) {
-      const interval = setInterval(() => {
-        fetchMessages(selectedUser._id)
-      }, 10000)
-      return () => clearInterval(interval)
+  const removeSelectedImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
     }
-  }, [selectedUser])
+  }
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Hôm nay"
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return "Hôm qua"
+    } else {
+      return date.toLocaleDateString("vi-VN")
+    }
+  }
+
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const groupMessagesByDate = () => {
+    const groups = {}
+    messages.forEach((message) => {
+      const date = new Date(message.createdAt).toLocaleDateString()
+      if (!groups[date]) {
+        groups[date] = []
+      }
+      groups[date].push(message)
+    })
+    return groups
+  }
+
+  const messageGroups = groupMessagesByDate()
 
   return (
-    <div className="w-full h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full flex">
-        {/* Users Sidebar */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-          <ChatHeader title="Tin nhắn khách hàng" icon={MessageCircle} />
+    <div className="flex h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Users Sidebar */}
+      <div className="w-1/3 bg-gray-800/50 backdrop-blur-sm border-r border-gray-700/50 flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-700/50 bg-gray-800/30">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+              <MessageCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Messages</h1>
+              <p className="text-sm text-gray-400">Chat với khách hàng</p>
+            </div>
+          </div>
 
-          <UserList users={users} selectedUser={selectedUser} onUserSelect={handleUserSelect} loading={loading} />
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm người dùng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200"
+            />
+          </div>
         </div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {selectedUser ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        {/* Users List */}
+        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+              <Users className="h-12 w-12 mb-3 opacity-50" />
+              <p className="text-sm">Chưa có tin nhắn nào</p>
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div
+                key={user._id}
+                onClick={() => setSelectedUser(user)}
+                className={`p-4 mx-2 my-1 rounded-xl cursor-pointer transition-all duration-200 hover:bg-gray-700/50 ${
+                  selectedUser?._id === user._id
+                    ? "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30"
+                    : "hover:scale-[1.02]"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {selectedUser.name.charAt(0).toUpperCase()}
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white">{selectedUser.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{selectedUser.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white truncate">{user.name}</h3>
+                      <p className="text-sm text-gray-400 truncate">{user.email}</p>
+                      {user.latestMessage && (
+                        <p className="text-sm text-gray-500 truncate mt-1">
+                          {user.latestMessage.length > 30
+                            ? user.latestMessage.substring(0, 30) + "..."
+                            : user.latestMessage}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <button
-                    onClick={() => setShowImageGallery(true)}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <ImageIcon size={20} />
-                  </button>
+                  <div className="flex flex-col items-end space-y-1">
+                    {user.unreadCount > 0 && (
+                      <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-1 font-medium shadow-lg">
+                        {user.unreadCount > 99 ? "99+" : user.unreadCount}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500">{formatTime(user.latestMessageTime)}</span>
+                  </div>
                 </div>
               </div>
-
-              {/* Messages */}
-              <MessageList
-                messages={messages}
-                messagesLoading={messagesLoading}
-                onDeleteMessage={deleteMessage}
-                messagesEndRef={messagesEndRef}
-              />
-
-              {/* Message Input */}
-              <MessageInput
-                newMessage={newMessage}
-                setNewMessage={setNewMessage}
-                onSendMessage={sendMessage}
-                onKeyPress={handleKeyPress}
-                sending={sending}
-                imagePreview={imagePreview}
-                onImageUpload={() => fileInputRef.current?.click()}
-                fileInputRef={fileInputRef}
-                onFileChange={handleFileChange}
-              />
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageCircle size={64} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Chọn một cuộc trò chuyện</h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Chọn một người dùng từ danh sách để bắt đầu trò chuyện
-                </p>
-              </div>
-            </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* Image Gallery Modal */}
-      {showImageGallery && (
-        <ImageGallery
-          messages={messages.filter((msg) => msg.type === "image")}
-          onClose={() => setShowImageGallery(false)}
-        />
-      )}
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {selectedUser ? (
+          <>
+            {/* Chat Header */}
+            <div className="bg-gray-800/50 backdrop-blur-sm p-4 border-b border-gray-700/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg shadow-lg">
+                      {selectedUser.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-gray-800 rounded-full"></div>
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-white text-lg">{selectedUser.name}</h2>
+                    <p className="text-sm text-gray-400">{selectedUser.email}</p>
+                    <p className="text-xs text-green-400">Đang hoạt động</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200">
+                    <Phone size={20} />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200">
+                    <Video size={20} />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all duration-200">
+                    <MoreVertical size={20} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-900/50 to-gray-800/50 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              {Object.keys(messageGroups).map((date) => (
+                <div key={date}>
+                  <div className="flex justify-center my-6">
+                    <span className="bg-gray-700/50 backdrop-blur-sm text-gray-300 text-xs px-4 py-2 rounded-full border border-gray-600/30">
+                      {formatDate(date)}
+                    </span>
+                  </div>
+
+                  {messageGroups[date].map((message) => (
+                    <div
+                      key={message._id}
+                      className={`flex mb-6 ${message.sender === "admin" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`flex items-end space-x-2 max-w-xs lg:max-w-md ${message.sender === "admin" ? "flex-row-reverse space-x-reverse" : ""}`}
+                      >
+                        {message.sender !== "admin" && (
+                          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {selectedUser.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div
+                          className={`px-4 py-3 rounded-2xl shadow-lg backdrop-blur-sm ${
+                            message.sender === "admin"
+                              ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-br-md"
+                              : "bg-gray-700/70 text-white border border-gray-600/30 rounded-bl-md"
+                          }`}
+                        >
+                          {message.content && <p className="mb-1 leading-relaxed">{message.content}</p>}
+
+                          {message.image && (
+                            <div className="mt-2">
+                              <img
+                                src={`${url}/uploads/messages/${message.image}`}
+                                alt="Attached"
+                                className="max-w-full rounded-xl cursor-pointer hover:opacity-90 transition-opacity duration-200 shadow-md"
+                                onClick={() => window.open(`${url}/uploads/messages/${message.image}`, "_blank")}
+                              />
+                            </div>
+                          )}
+
+                          <div
+                            className={`text-xs mt-2 ${message.sender === "admin" ? "text-blue-100" : "text-gray-400"}`}
+                          >
+                            {formatTime(message.createdAt)}
+                            {message.sender === "admin" && <span className="ml-2">• Admin</span>}
+                          </div>
+                        </div>
+
+                        {message.sender === "admin" && (
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            A
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Message Input */}
+            <div className="bg-gray-800/50 backdrop-blur-sm p-4 border-t border-gray-700/50">
+              {imagePreview && (
+                <div className="relative mb-4 inline-block">
+                  <img
+                    src={imagePreview || "/placeholder.svg"}
+                    alt="Preview"
+                    className="h-20 w-auto rounded-xl border border-gray-600/50 shadow-lg"
+                  />
+                  <button
+                    onClick={removeSelectedImage}
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors duration-200"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handleSendMessage} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-xl transition-all duration-200"
+                >
+                  <ImageIcon size={20} />
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Nhập tin nhắn..."
+                    className="w-full bg-gray-700/50 border border-gray-600/50 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={(!newMessage.trim() && !selectedImage) || sending}
+                  className={`p-3 rounded-xl transition-all duration-200 ${
+                    (!newMessage.trim() && !selectedImage) || sending
+                      ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  }`}
+                >
+                  {sending ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <Send size={20} />
+                  )}
+                </button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-gray-900/50 to-gray-800/50">
+            <div className="text-center text-gray-400">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <MessageCircle className="h-12 w-12 text-gray-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-white">Chọn một cuộc trò chuyện</h3>
+              <p className="text-gray-500">Chọn một người dùng từ danh sách để bắt đầu chat</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

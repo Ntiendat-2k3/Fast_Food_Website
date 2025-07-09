@@ -9,6 +9,73 @@ const createToken = (id, role = "user") => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" })
 }
 
+// Google Login
+const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body
+    console.log("Google login attempt with credential:", credential ? "Present" : "Missing")
+
+    if (!credential) {
+      return res.json({ success: false, message: "Thiếu Google credential" })
+    }
+
+    // Decode Google JWT token
+    const { OAuth2Client } = await import("google-auth-library")
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+
+    const payload = ticket.getPayload()
+    console.log("Google payload:", payload)
+
+    const { email, name, picture, sub: googleId } = payload
+
+    // Check if user exists
+    let user = await userModel.findOne({ email })
+
+    if (user) {
+      // User exists, update Google info if needed
+      if (!user.googleId) {
+        user.googleId = googleId
+        user.avatar = picture
+        await user.save()
+      }
+    } else {
+      // Create new user
+      user = new userModel({
+        name,
+        email,
+        googleId,
+        avatar: picture,
+        password: await bcrypt.hash(Math.random().toString(36), 10), // Random password
+        role: "user",
+      })
+      await user.save()
+    }
+
+    const token = createToken(user._id, user.role)
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+      },
+      message: "Đăng nhập Google thành công",
+    })
+  } catch (error) {
+    console.error("Google login error:", error)
+    res.json({ success: false, message: "Lỗi xác thực Google: " + error.message })
+  }
+}
+
 // Login user
 const loginUser = async (req, res) => {
   const { email, password } = req.body
@@ -328,6 +395,7 @@ export {
   loginUser,
   registerUser,
   adminLogin,
+  googleLogin,
   getUserProfile,
   updateUserProfile,
   getAllUsers,

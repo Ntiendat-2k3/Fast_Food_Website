@@ -1,47 +1,37 @@
 import express from "express"
 import {
   sendMessage,
+  adminSendMessage,
+  getMessageUsers,
   getUserMessages,
-  // getAllMessages,
-  // getUserConversation,
+  getAllMessages,
+  getUserConversation,
+  getMyMessages,
   markAsRead,
+  deleteMessage,
+  uploadImage,
+  getUnreadCount,
+  upload,
 } from "../controllers/messageController.js"
-import multer from "multer"
-import path from "path"
-import { fileURLToPath } from "url"
-import fs from "fs"
 import requireSignIn from "../middleware/auth.js"
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 const router = express.Router()
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, "..", "uploads", "chat")
-
-    // Create the directory if it doesn't exist
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true })
-    }
-
-    cb(null, uploadPath)
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
-  },
-})
-
-const upload = multer({ storage: storage })
-
-// Routes
+// User routes
 router.post("/send", requireSignIn, upload.single("image"), sendMessage)
-router.get("/user", requireSignIn, getUserMessages)
-// router.get("/all", requireSignIn, getAllMessages)
-// router.get("/conversation/:userId", requireSignIn, getUserConversation)
-router.post("/read", requireSignIn, markAsRead)
+router.get("/my-messages", requireSignIn, getMyMessages)
+router.get("/unread-count", requireSignIn, getUnreadCount)
+
+// Admin routes
+router.get("/users", requireSignIn, getMessageUsers)
+router.get("/all", requireSignIn, getAllMessages)
+router.get("/user/:userId", requireSignIn, getUserMessages)
+router.get("/conversation/:userId", requireSignIn, getUserConversation)
+router.post("/admin-send", requireSignIn, upload.single("image"), adminSendMessage)
+router.post("/mark-read", requireSignIn, markAsRead)
+router.post("/delete", requireSignIn, deleteMessage)
+
+// Image upload route
+router.post("/upload-image", requireSignIn, upload.single("image"), uploadImage)
 
 export default router

@@ -19,19 +19,41 @@ const LoginPopup = ({ setShowLogin }) => {
 
   // Initialize Google Sign-In
   useEffect(() => {
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: "312113444363-2urqmtu2ev7npltlgljj4vcnf8g623np.apps.googleusercontent.com",
-        callback: handleGoogleResponse,
-      })
+    const initializeGoogleSignIn = () => {
+      if (window.google && window.google.accounts) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: "312113444363-2urqmtu2ev7npltlgljj4vcnf8g623np.apps.googleusercontent.com",
+            callback: handleGoogleResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          })
+
+          // Render the button after initialization
+          setTimeout(() => {
+            renderGoogleButton()
+          }, 100)
+        } catch (error) {
+          console.error("Error initializing Google Sign-In:", error)
+        }
+      } else {
+        // If Google script not loaded yet, try again after a delay
+        setTimeout(initializeGoogleSignIn, 500)
+      }
     }
-  }, [])
+
+    initializeGoogleSignIn()
+  }, [currState])
 
   const handleGoogleResponse = async (response) => {
     try {
       setLoading(true)
       setError("")
       console.log("Google response received:", response)
+
+      if (!response.credential) {
+        throw new Error("No credential received from Google")
+      }
 
       const result = await axios.post(`${url}/api/user/google-login`, {
         credential: response.credential,
@@ -58,33 +80,36 @@ const LoginPopup = ({ setShowLogin }) => {
       }
     } catch (error) {
       console.error("Google login error:", error)
-      setError("Đăng nhập Google thất bại: " + (error.response?.data?.message || error.message))
-      alert("Đăng nhập Google thất bại: " + (error.response?.data?.message || error.message))
+      const errorMessage = error.response?.data?.message || error.message || "Đăng nhập Google thất bại"
+      setError("Đăng nhập Google thất bại: " + errorMessage)
+      alert("Đăng nhập Google thất bại: " + errorMessage)
     } finally {
       setLoading(false)
     }
   }
 
   const renderGoogleButton = () => {
-    if (window.google) {
-      window.google.accounts.id.renderButton(document.getElementById("google-signin-button"), {
-        theme: "outline",
-        size: "large",
-        width: "100%",
-        text: currState === "Login" ? "signin_with" : "signup_with",
-        shape: "rectangular",
-      })
+    try {
+      if (window.google && window.google.accounts) {
+        const buttonContainer = document.getElementById("google-signin-button")
+        if (buttonContainer) {
+          // Clear previous button
+          buttonContainer.innerHTML = ""
+
+          window.google.accounts.id.renderButton(buttonContainer, {
+            theme: "outline",
+            size: "large",
+            width: "100%",
+            text: currState === "Login" ? "signin_with" : "signup_with",
+            shape: "rectangular",
+            logo_alignment: "left",
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Error rendering Google button:", error)
     }
   }
-
-  useEffect(() => {
-    // Render Google button when component mounts or state changes
-    const timer = setTimeout(() => {
-      renderGoogleButton()
-    }, 100)
-
-    return () => clearTimeout(timer)
-  }, [currState])
 
   const onChangeHandler = (event) => {
     const name = event.target.name
@@ -128,9 +153,9 @@ const LoginPopup = ({ setShowLogin }) => {
 
             console.log("Profile response:", userResponse.data)
 
-            if (userResponse.data.success && userResponse.data.user) {
-              localStorage.setItem("user", JSON.stringify(userResponse.data.user))
-              setUser(userResponse.data.user)
+            if (userResponse.data.success && userResponse.data.data) {
+              localStorage.setItem("user", JSON.stringify(userResponse.data.data))
+              setUser(userResponse.data.data)
               setShowLogin(false)
               alert("Đăng nhập thành công")
             } else {
@@ -193,9 +218,9 @@ const LoginPopup = ({ setShowLogin }) => {
 
             console.log("Profile response:", userResponse.data)
 
-            if (userResponse.data.success && userResponse.data.user) {
-              localStorage.setItem("user", JSON.stringify(userResponse.data.user))
-              setUser(userResponse.data.user)
+            if (userResponse.data.success && userResponse.data.data) {
+              localStorage.setItem("user", JSON.stringify(userResponse.data.data))
+              setUser(userResponse.data.data)
               setShowLogin(false)
               alert("Đăng ký thành công")
             } else {
@@ -246,11 +271,11 @@ const LoginPopup = ({ setShowLogin }) => {
             </button>
           </div>
 
-          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">{error}</div>}
+          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
 
           {/* Google Sign-In Button */}
           <div className="mb-6">
-            <div id="google-signin-button" className="w-full flex justify-center"></div>
+            <div id="google-signin-button" className="w-full flex justify-center min-h-[40px]"></div>
           </div>
 
           {/* Divider */}
