@@ -5,8 +5,8 @@ import bcrypt from "bcrypt"
 import validator from "validator"
 
 // Create token
-const createToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET)
+const createToken = (id, role = "user") => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" })
 }
 
 // Login user
@@ -16,49 +16,100 @@ const loginUser = async (req, res) => {
     const user = await userModel.findOne({ email })
 
     if (!user) {
-      return res.json({ success: false, message: "User Doesn't exist" })
-    }
-
-    // Check if user is blocked
-    const isBlocked = await blacklistModel.findOne({ userId: user._id })
-    if (isBlocked) {
-      return res.json({ success: false, message: "Your account has been blocked" })
+      return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
 
     const isMatch = await bcrypt.compare(password, user.password)
 
     if (!isMatch) {
-      return res.json({ success: false, message: "Invalid credentials" })
+      return res.json({ success: false, message: "Mật khẩu không đúng" })
     }
 
-    const token = createToken(user._id)
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
+    const token = createToken(user._id, user.role)
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error" })
+    res.json({ success: false, message: "Lỗi server" })
+  }
+}
+
+// Admin login (separate endpoint for admin panel)
+const adminLogin = async (req, res) => {
+  const { email, password } = req.body
+
+  console.log("Admin login attempt:", { email })
+
+  try {
+    const user = await userModel.findOne({ email })
+    console.log("User found:", user ? { id: user._id, email: user.email, role: user.role } : "No user")
+
+    if (!user) {
+      console.log("User not found")
+      return res.json({ success: false, message: "Tài khoản không tồn tại" })
+    }
+
+    // Check if user is admin or staff
+    if (!["admin", "staff"].includes(user.role)) {
+      console.log("User role not allowed:", user.role)
+      return res.json({ success: false, message: "Bạn không có quyền truy cập admin panel" })
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password)
+    console.log("Password match:", isMatch)
+
+    if (!isMatch) {
+      return res.json({ success: false, message: "Mật khẩu không đúng" })
+    }
+
+    const token = createToken(user._id, user.role)
+    console.log("Login successful, role:", user.role)
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      message: "Đăng nhập thành công",
+    })
+  } catch (error) {
+    console.error("Admin login error:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
 // Register user
 const registerUser = async (req, res) => {
-  const { name, password, email } = req.body
+  const { name, password, email, role = "user" } = req.body
   try {
-    // Checking if user already exists
+    // Check if user already exists
     const exists = await userModel.findOne({ email })
     if (exists) {
-      return res.json({ success: false, message: "User already exists" })
+      return res.json({ success: false, message: "Người dùng đã tồn tại" })
     }
 
-    // Validating email format & strong password
+    // Validate email format & strong password
     if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email" })
+      return res.json({ success: false, message: "Vui lòng nhập email hợp lệ" })
     }
 
     if (password.length < 8) {
-      return res.json({ success: false, message: "Please enter a strong password" })
+      return res.json({ success: false, message: "Vui lòng nhập mật khẩu mạnh (ít nhất 8 ký tự)" })
     }
 
-    // Hashing user password
+    // Hash user password
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
@@ -66,59 +117,39 @@ const registerUser = async (req, res) => {
       name: name,
       email: email,
       password: hashedPassword,
-      role: "user",
+      role: role,
     })
 
     const user = await newUser.save()
-    const token = createToken(user._id)
+    const token = createToken(user._id, user.role)
 
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error" })
-  }
-}
-
-// Admin login
-const adminLogin = async (req, res) => {
-  const { email, password } = req.body
-  try {
-    const user = await userModel.findOne({ email })
-
-    if (!user) {
-      return res.json({ success: false, message: "User doesn't exist" })
-    }
-
-    // Check if user is admin or staff
-    if (user.role !== "admin" && user.role !== "staff") {
-      return res.json({ success: false, message: "Not authorized" })
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password)
-
-    if (!isMatch) {
-      return res.json({ success: false, message: "Invalid credentials" })
-    }
-
-    const token = createToken(user._id)
-    res.json({ success: true, token, user: { id: user._id, name: user.name, email: user.email, role: user.role } })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
+    res.json({ success: false, message: "Lỗi server" })
   }
 }
 
 // Get user profile
 const getUserProfile = async (req, res) => {
   try {
-    const user = await userModel.findById(req.body.userId).select("-password")
+    const user = await userModel.findById(req.userId).select("-password")
     if (!user) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
-    res.json({ success: true, user })
+    res.json({ success: true, data: user })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error" })
+    res.json({ success: false, message: "Lỗi server" })
   }
 }
 
@@ -126,298 +157,170 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const { name, email } = req.body
-    const userId = req.body.userId
+    const user = await userModel.findByIdAndUpdate(req.userId, { name, email }, { new: true }).select("-password")
 
-    // Validate email format
-    if (email && !validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email" })
-    }
-
-    // Check if email already exists (excluding current user)
-    if (email) {
-      const existingUser = await userModel.findOne({ email, _id: { $ne: userId } })
-      if (existingUser) {
-        return res.json({ success: false, message: "Email already exists" })
-      }
-    }
-
-    const updateData = {}
-    if (name) updateData.name = name
-    if (email) updateData.email = email
-
-    const user = await userModel.findByIdAndUpdate(userId, updateData, { new: true }).select("-password")
-
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    res.json({ success: true, message: "Profile updated successfully", user })
+    res.json({ success: true, data: user })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error updating profile" })
+    res.json({ success: false, message: "Lỗi server" })
   }
 }
 
-// Change password
-const changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body
-    const userId = req.body.userId
-
-    if (!currentPassword || !newPassword) {
-      return res.json({ success: false, message: "Please provide current and new password" })
-    }
-
-    if (newPassword.length < 8) {
-      return res.json({ success: false, message: "New password must be at least 8 characters long" })
-    }
-
-    const user = await userModel.findById(userId)
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password)
-    if (!isMatch) {
-      return res.json({ success: false, message: "Current password is incorrect" })
-    }
-
-    // Hash new password
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(newPassword, salt)
-
-    await userModel.findByIdAndUpdate(userId, { password: hashedPassword })
-
-    res.json({ success: true, message: "Password changed successfully" })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error changing password" })
-  }
-}
-
-// Get all users (Admin/Staff only)
+// Get all users (admin/staff only)
 const getAllUsers = async (req, res) => {
   try {
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
+    console.log("=== GET ALL USERS ===")
+    console.log("Request user ID:", req.userId)
+    console.log("Request user role:", req.userRole)
+    console.log(
+      "Request user object:",
+      req.user ? { id: req.user._id, name: req.user.name, role: req.user.role } : "No user object",
+    )
 
-    const users = await userModel.find({}).select("-password").skip(skip).limit(limit).sort({ createdAt: -1 })
+    if (!req.user || !req.userRole) {
+      console.log("Missing user information in request")
+      return res.json({ success: false, message: "Thông tin người dùng không hợp lệ" })
+    }
 
-    const total = await userModel.countDocuments({})
+    if (!["admin", "staff"].includes(req.userRole)) {
+      console.log("Insufficient permissions - role:", req.userRole)
+      return res.json({ success: false, message: "Không có quyền truy cập" })
+    }
 
-    res.json({
-      success: true,
-      users,
-      pagination: {
-        current: page,
-        total: Math.ceil(total / limit),
-        count: users.length,
-        totalUsers: total,
-      },
-    })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error fetching users" })
-  }
-}
-
-// Get user statistics (Admin/Staff only)
-const getUserStats = async (req, res) => {
-  try {
-    const totalUsers = await userModel.countDocuments({})
-    const adminCount = await userModel.countDocuments({ role: "admin" })
-    const staffCount = await userModel.countDocuments({ role: "staff" })
-    const userCount = await userModel.countDocuments({ role: "user" })
-    const blockedCount = await blacklistModel.countDocuments({})
+    console.log("Fetching users from database...")
+    const users = await userModel.find({}).select("-password").sort({ createdAt: -1 })
+    console.log(`Successfully found ${users.length} users`)
 
     res.json({
       success: true,
-      stats: {
-        total: totalUsers,
-        admin: adminCount,
-        staff: staffCount,
-        users: userCount,
-        blocked: blockedCount,
-      },
+      data: users,
+      message: `Tìm thấy ${users.length} người dùng`,
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error fetching user statistics" })
+    console.error("Error in getAllUsers:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Block user (Admin/Staff only)
+// Block user
 const blockUser = async (req, res) => {
   try {
     const { userId, reason } = req.body
-    const adminId = req.body.userId
+    console.log("Blocking user:", { userId, reason, blockedBy: req.userId })
 
-    if (!userId) {
-      return res.json({ success: false, message: "User ID is required" })
+    if (!userId || !reason) {
+      return res.json({ success: false, message: "Thiếu thông tin userId hoặc reason" })
     }
 
-    // Get user to block
-    const userToBlock = await userModel.findById(userId)
-    if (!userToBlock) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    // Get admin/staff info
-    const admin = await userModel.findById(adminId)
-
-    // Prevent staff from blocking admin or other staff
-    if (admin.role === "staff" && (userToBlock.role === "admin" || userToBlock.role === "staff")) {
-      return res.json({ success: false, message: "Staff cannot block admin or other staff members" })
+    // Check if user exists
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
 
     // Check if user is already blocked
     const existingBlock = await blacklistModel.findOne({ userId })
     if (existingBlock) {
-      return res.json({ success: false, message: "User is already blocked" })
+      return res.json({ success: false, message: "Người dùng đã bị chặn" })
     }
+
+    // Get blocker info
+    const blocker = await userModel.findById(req.userId)
 
     // Create blacklist entry
     const blacklistEntry = new blacklistModel({
       userId,
-      reason: reason || "Blocked by admin/staff",
-      blockedBy: adminId,
-      blockedAt: new Date(),
+      reason,
+      blockedBy: blocker ? blocker.name : "Admin",
     })
 
     await blacklistEntry.save()
+    console.log("User blocked successfully")
 
-    console.log(`User ${userToBlock.name} blocked by ${admin.name} (${admin.role})`)
-    res.json({ success: true, message: "User blocked successfully" })
+    res.json({ success: true, message: "Đã chặn người dùng thành công" })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error blocking user" })
+    console.error("Error blocking user:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Unblock user (Admin/Staff only)
+// Unblock user
 const unblockUser = async (req, res) => {
   try {
-    const { userId } = req.body
-    const adminId = req.body.userId
+    const { blacklistId } = req.body
+    console.log("Unblocking user with blacklist ID:", blacklistId)
 
-    if (!userId) {
-      return res.json({ success: false, message: "User ID is required" })
+    if (!blacklistId) {
+      return res.json({ success: false, message: "Thiếu blacklistId" })
     }
 
-    const blacklistEntry = await blacklistModel.findOneAndDelete({ userId })
-    if (!blacklistEntry) {
-      return res.json({ success: false, message: "User is not blocked" })
+    const result = await blacklistModel.findByIdAndDelete(blacklistId)
+    if (!result) {
+      return res.json({ success: false, message: "Không tìm thấy bản ghi chặn" })
     }
 
-    const user = await userModel.findById(userId)
-    const admin = await userModel.findById(adminId)
-
-    console.log(`User ${user?.name} unblocked by ${admin?.name} (${admin?.role})`)
-    res.json({ success: true, message: "User unblocked successfully" })
+    console.log("User unblocked successfully")
+    res.json({ success: true, message: "Đã bỏ chặn người dùng thành công" })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error unblocking user" })
+    console.error("Error unblocking user:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Get blacklist (Admin/Staff only)
+// Get blacklist
 const getBlacklist = async (req, res) => {
   try {
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
+    console.log("=== GET BLACKLIST ===")
+    console.log("Request user role:", req.userRole)
+    console.log("Request user:", req.user ? req.user.name : "No user")
 
-    const blacklist = await blacklistModel
-      .find({})
-      .populate("userId", "name email")
-      .populate("blockedBy", "name role")
-      .skip(skip)
-      .limit(limit)
-      .sort({ blockedAt: -1 })
+    const blacklist = await blacklistModel.find({}).populate("userId", "name email").sort({ blockedAt: -1 })
 
-    const total = await blacklistModel.countDocuments({})
+    // Transform data to include user info directly
+    const transformedBlacklist = blacklist.map((item) => ({
+      _id: item._id,
+      userId: item.userId._id,
+      userName: item.userId.name,
+      email: item.userId.email,
+      reason: item.reason,
+      blockedAt: item.blockedAt,
+      blockedBy: item.blockedBy,
+    }))
+
+    console.log(`Found ${transformedBlacklist.length} blocked users`)
 
     res.json({
       success: true,
-      blacklist,
-      pagination: {
-        current: page,
-        total: Math.ceil(total / limit),
-        count: blacklist.length,
-        totalBlocked: total,
-      },
+      data: transformedBlacklist,
+      message: `Tìm thấy ${transformedBlacklist.length} người dùng bị chặn`,
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error fetching blacklist" })
+    console.error("Error getting blacklist:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Update user role (Admin only)
-const updateUserRole = async (req, res) => {
-  try {
-    const { userId, newRole } = req.body
-    const adminId = req.body.userId
-
-    if (!userId || !newRole) {
-      return res.json({ success: false, message: "User ID and new role are required" })
-    }
-
-    if (!["user", "staff", "admin"].includes(newRole)) {
-      return res.json({ success: false, message: "Invalid role" })
-    }
-
-    const user = await userModel.findByIdAndUpdate(userId, { role: newRole }, { new: true }).select("-password")
-
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    const admin = await userModel.findById(adminId)
-    console.log(`User ${user.name} role updated to ${newRole} by ${admin.name}`)
-
-    res.json({ success: true, message: "User role updated successfully", user })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error updating user role" })
-  }
-}
-
-// Delete user (Admin only)
+// Delete user (admin only)
 const deleteUser = async (req, res) => {
   try {
-    const { id } = req.params
-    const adminId = req.body.userId
+    const { userId } = req.body
 
-    if (!id) {
-      return res.json({ success: false, message: "User ID is required" })
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu userId" })
     }
 
-    const user = await userModel.findById(id)
+    const user = await userModel.findByIdAndDelete(userId)
     if (!user) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
 
-    // Prevent deleting admin accounts
-    if (user.role === "admin") {
-      return res.json({ success: false, message: "Cannot delete admin accounts" })
-    }
+    // Also remove from blacklist if exists
+    await blacklistModel.deleteOne({ userId })
 
-    // Remove from blacklist if exists
-    await blacklistModel.deleteOne({ userId: id })
-
-    // Delete user
-    await userModel.findByIdAndDelete(id)
-
-    const admin = await userModel.findById(adminId)
-    console.log(`User ${user.name} deleted by ${admin.name}`)
-
-    res.json({ success: true, message: "User deleted successfully" })
+    res.json({ success: true, message: "Đã xóa người dùng thành công" })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error deleting user" })
+    console.error("Error deleting user:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
@@ -427,12 +330,9 @@ export {
   adminLogin,
   getUserProfile,
   updateUserProfile,
-  changePassword,
   getAllUsers,
-  getUserStats,
   blockUser,
   unblockUser,
   getBlacklist,
-  updateUserRole,
   deleteUser,
 }

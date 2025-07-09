@@ -23,52 +23,102 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(true)
   const location = useLocation()
 
+  // Function to get user data from storage
+  const getUserFromStorage = () => {
+    try {
+      // Check localStorage first, then sessionStorage
+      const userData = localStorage.getItem("user") || sessionStorage.getItem("user")
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token")
+
+      if (token && userData) {
+        const user = JSON.parse(userData)
+        console.log("User data from storage:", user)
+        return { user, token }
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error)
+      // Clear corrupted data
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      sessionStorage.removeItem("token")
+      sessionStorage.removeItem("user")
+    }
+    return null
+  }
+
   useEffect(() => {
-    // Force dark mode
-    document.documentElement.classList.add("dark")
+    console.log("App useEffect - checking authentication")
+    const storageData = getUserFromStorage()
 
-    // Check if token exists in localStorage
-    const token = localStorage.getItem("token")
-    const userData = JSON.parse(localStorage.getItem("userData") || "{}")
-
-    if (token && userData.role) {
-      setIsAuthenticated(true)
-      setUserRole(userData.role)
+    if (storageData) {
+      const { user, token } = storageData
+      // Check if user has admin or staff role
+      if (user.role === "admin" || user.role === "staff") {
+        console.log("Setting authenticated user:", user.name, "Role:", user.role)
+        setIsAuthenticated(true)
+        setUserRole(user.role)
+      } else {
+        console.log("User does not have admin/staff role:", user.role)
+        // Clear invalid user data
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        sessionStorage.removeItem("token")
+        sessionStorage.removeItem("user")
+      }
+    } else {
+      console.log("No valid user data found in storage")
     }
     setIsLoading(false)
   }, [])
 
   // Function to handle login
   const handleLogin = (token, user) => {
+    console.log("handleLogin called with:", { token: token?.substring(0, 10) + "...", user })
+
+    if (!user || (user.role !== "admin" && user.role !== "staff")) {
+      console.error("Invalid user role:", user?.role)
+      return
+    }
+
+    // Store in localStorage by default (can be changed based on remember me)
     localStorage.setItem("token", token)
-    localStorage.setItem("userData", JSON.stringify(user))
+    localStorage.setItem("user", JSON.stringify(user))
+
     setIsAuthenticated(true)
     setUserRole(user.role)
+
+    console.log("Login successful, user role set to:", user.role)
   }
 
   // Function to handle logout
   const handleLogout = () => {
+    console.log("Logging out user")
     localStorage.removeItem("token")
-    localStorage.removeItem("userData")
+    localStorage.removeItem("user")
+    sessionStorage.removeItem("token")
+    sessionStorage.removeItem("user")
     setIsAuthenticated(false)
     setUserRole(null)
   }
 
-  // Role-based route protection
-  const ProtectedRoute = ({ children, allowedRoles = ["admin", "staff"] }) => {
+  // Protected route component
+  const ProtectedRoute = ({ children, adminOnly = false }) => {
     if (isLoading) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       )
     }
 
     if (!isAuthenticated) {
+      console.log("User not authenticated, redirecting to login")
       return <Navigate to="/login" state={{ from: location }} replace />
     }
 
-    if (!allowedRoles.includes(userRole)) {
+    // Check admin-only routes
+    if (adminOnly && userRole !== "admin") {
+      console.log("Admin-only route accessed by non-admin, redirecting to orders")
       return <Navigate to="/orders" replace />
     }
 
@@ -78,27 +128,18 @@ const App = () => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     )
   }
 
+  console.log("App render - isAuthenticated:", isAuthenticated, "userRole:", userRole)
+
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-gray-900 text-white transition-colors duration-300">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-        />
+      <div className="min-h-screen bg-gray-50 dark:bg-dark text-gray-900 dark:text-white transition-colors duration-300">
+        <ToastContainer />
         {isAuthenticated && <Sidebar onLogout={handleLogout} userRole={userRole} />}
         <main className={isAuthenticated ? "md:ml-64 pt-16 md:pt-0 transition-all duration-300" : ""}>
           <div className={isAuthenticated ? "px-0 py-0 md:px-4 md:py-6" : "container mx-auto px-4 py-6"}>
@@ -110,73 +151,73 @@ const App = () => {
 
               {/* Admin only routes */}
               <Route
-                path="/revenue"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <Revenue url={url} />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/add"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute adminOnly={true}>
                     <Add url={url} />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/profile"
+                path="/revenue"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <Profile url={url} />
+                  <ProtectedRoute adminOnly={true}>
+                    <Revenue url={url} />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Admin and Staff routes */}
+              {/* Staff and Admin routes */}
               <Route
-                path="/orders"
+                path="/list"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                    <Orders url={url} />
+                  <ProtectedRoute>
+                    <List url={url} userRole={userRole} />
                   </ProtectedRoute>
                 }
               />
               <Route
-                path="/list"
+                path="/orders"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                    <List url={url} />
+                  <ProtectedRoute>
+                    <Orders url={url} />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/vouchers"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                    <Vouchers url={url} />
+                  <ProtectedRoute>
+                    <Vouchers url={url} userRole={userRole} />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/comments"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "staff"]}>
-                    <Comments url={url} />
+                  <ProtectedRoute>
+                    <Comments url={url} userRole={userRole} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile url={url} />
                   </ProtectedRoute>
                 }
               />
               <Route
                 path="/chat"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "staff"]}>
+                  <ProtectedRoute>
                     <Chat />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Default route based on role */}
+              {/* Default route - redirect based on role */}
               <Route
                 path="/"
                 element={

@@ -1,10 +1,16 @@
-import { AlertCircle } from "lucide-react"
-
+/**
+ * ErrorMessage component for displaying login errors
+ *
+ * @param {Object} props - Component props
+ * @param {string} props.message - The error message to display
+ * @returns {JSX.Element|null} The rendered component or null if no message
+ */
 const ErrorMessage = ({ message }) => {
+  if (!message) return null
+
   return (
-    <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-3 flex items-center">
-      <AlertCircle size={20} className="text-red-400 mr-2 flex-shrink-0" />
-      <span className="text-red-400 text-sm">{message}</span>
+    <div className="mb-4 bg-red-900/30 border border-red-800 text-red-300 px-4 py-3 rounded-lg">
+      <p>{message}</p>
     </div>
   )
 }

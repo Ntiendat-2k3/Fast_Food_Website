@@ -1,15 +1,16 @@
-"use client"
-
-const RememberMeCheckbox = ({ rememberMe, setRememberMe, disabled }) => {
+/**
+ * RememberMeCheckbox component for the login form
+ *
+ * @returns {JSX.Element} The rendered component
+ */
+const RememberMeCheckbox = () => {
   return (
     <div className="flex items-center">
       <input
         id="remember-me"
+        name="remember-me"
         type="checkbox"
-        checked={rememberMe}
-        onChange={(e) => setRememberMe(e.target.checked)}
-        disabled={disabled}
-        className="h-4 w-4 text-orange-500 bg-gray-700 border-gray-600 rounded focus:ring-orange-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="h-4 w-4 text-primary focus:ring-primary border-gray-600 rounded bg-gray-700"
       />
       <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-300">
         Ghi nhớ đăng nhập

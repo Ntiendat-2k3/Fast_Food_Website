@@ -1,12 +1,11 @@
 import foodModel from "../models/foodModel.js"
 import fs from "fs"
-import mongoose from "mongoose"
 
+// add food item
 const addFood = async (req, res) => {
   const image_filename = `${req.file.filename}`
 
   const food = new foodModel({
-    _id: new mongoose.Types.ObjectId(),
     name: req.body.name,
     description: req.body.description,
     price: req.body.price,
@@ -15,7 +14,7 @@ const addFood = async (req, res) => {
   })
   try {
     await food.save()
-    res.json({ success: true, message: "Đã thêm món" })
+    res.json({ success: true, message: "Food Added" })
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: "Error" })
@@ -25,14 +24,7 @@ const addFood = async (req, res) => {
 // all food list
 const listFood = async (req, res) => {
   try {
-    const category = req.query.category
-    const query = {}
-
-    if (category && category !== "Tất cả") {
-      query.category = category
-    }
-
-    const foods = await foodModel.find(query)
+    const foods = await foodModel.find({})
     res.json({ success: true, data: foods })
   } catch (error) {
     console.log(error)
@@ -40,7 +32,7 @@ const listFood = async (req, res) => {
   }
 }
 
-//tìm kiếm food
+// tìm kiếm food
 const searchFood = async (req, res) => {
   try {
     const keyword = req.query.keyword
@@ -57,14 +49,24 @@ const searchFood = async (req, res) => {
 // Get food by ID
 const getFoodById = async (req, res) => {
   try {
-    const foodId = req.params.id
-    const food = await foodModel.findById(foodId)
-
+    const { id } = req.params
+    const food = await foodModel.findById(id)
     if (!food) {
-      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+      return res.json({ success: false, message: "Food not found" })
     }
-
     res.json({ success: true, data: food })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Error" })
+  }
+}
+
+// Get food by category
+const getFoodByCategory = async (req, res) => {
+  try {
+    const { category } = req.params
+    const foods = await foodModel.find({ category })
+    res.json({ success: true, data: foods })
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: "Error" })
@@ -74,32 +76,26 @@ const getFoodById = async (req, res) => {
 // Update food item
 const updateFood = async (req, res) => {
   try {
-    const foodId = req.body.id
-    const food = await foodModel.findById(foodId)
-
+    const food = await foodModel.findById(req.body.id)
     if (!food) {
-      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+      return res.json({ success: false, message: "Food not found" })
     }
 
     // Update fields
-    food.name = req.body.name || food.name
-    food.description = req.body.description || food.description
-    food.price = req.body.price || food.price
-    food.category = req.body.category || food.category
+    if (req.body.name) food.name = req.body.name
+    if (req.body.description) food.description = req.body.description
+    if (req.body.price) food.price = req.body.price
+    if (req.body.category) food.category = req.body.category
 
-    // If there's a new image
+    // Update image if new one is provided
     if (req.file) {
-      // Delete old image
-      fs.unlink(`uploads/${food.image}`, (err) => {
-        if (err) console.log("Error deleting old image:", err)
-      })
-
-      // Set new image
+      // Remove old image
+      fs.unlink(`uploads/${food.image}`, () => {})
       food.image = req.file.filename
     }
 
     await food.save()
-    res.json({ success: true, message: "Đã cập nhật sản phẩm" })
+    res.json({ success: true, message: "Food Updated" })
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: "Error" })
@@ -113,7 +109,7 @@ const removeFood = async (req, res) => {
     fs.unlink(`uploads/${food.image}`, () => {})
 
     await foodModel.findByIdAndDelete(req.body.id)
-    res.json({ success: true, message: "Đã xóa món" })
+    res.json({ success: true, message: "Food Removed" })
   } catch (error) {
     console.log(error)
     res.json({ success: false, message: "Error" })
@@ -155,4 +151,4 @@ const removeMultipleFood = async (req, res) => {
   }
 }
 
-export { addFood, listFood, searchFood, getFoodById, updateFood, removeFood, removeMultipleFood }
+export { addFood, listFood, searchFood, removeFood, updateFood, getFoodByCategory, getFoodById, removeMultipleFood }

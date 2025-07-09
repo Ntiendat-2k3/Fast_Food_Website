@@ -1,35 +1,15 @@
 import jwt from "jsonwebtoken"
 import userModel from "../models/userModel.js"
-import blacklistModel from "../models/blacklistModel.js"
-import dotenv from "dotenv"
 
-dotenv.config()
-
-// Middleware to check if user is authenticated
+// Basic auth middleware
 const authMiddleware = async (req, res, next) => {
   const { token } = req.headers
-
   if (!token) {
     return res.json({ success: false, message: "Not Authorized Login Again" })
   }
-
   try {
     const token_decode = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await userModel.findById(token_decode.id)
-
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
-    }
-
-    // Check if user is blocked
-    const isBlocked = await blacklistModel.findOne({ userId: user._id })
-    if (isBlocked) {
-      console.log("User is blocked:", user.name)
-      return res.json({ success: false, message: "Your account has been blocked" })
-    }
-
     req.body.userId = token_decode.id
-    req.user = user
     next()
   } catch (error) {
     console.log(error)
@@ -37,137 +17,132 @@ const authMiddleware = async (req, res, next) => {
   }
 }
 
-// Middleware to check if user is authenticated (alias for backward compatibility)
-export const requireSignIn = authMiddleware
-
-// Middleware to check if user is admin
-export const isAdmin = async (req, res, next) => {
+// Require sign in middleware
+const requireSignIn = async (req, res, next) => {
   try {
-    // Check if user exists in request (should be set by requireSignIn middleware)
-    if (!req.user) {
-      return res.json({
-        success: false,
-        message: "Authentication failed: User not found",
-      })
+    const token = req.headers.authorization || req.headers.token
+    console.log("Auth middleware - token received:", token ? "Yes" : "No")
+
+    if (!token) {
+      console.log("No token provided")
+      return res.json({ success: false, message: "Authorization token required" })
     }
 
-    // Check if user is admin
-    if (req.user.role !== "admin") {
-      return res.json({
-        success: false,
-        message: "Authorization failed: Admin access required",
-      })
-    }
+    const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token
+    console.log("Decoding token...")
 
-    // User is admin, proceed to next middleware
-    next()
-  } catch (error) {
-    console.error("Admin check middleware error:", error)
-    return res.json({
-      success: false,
-      message: "Authorization failed: Server error",
-    })
-  }
-}
+    const decoded = jwt.verify(actualToken, process.env.JWT_SECRET)
+    console.log("Token decoded successfully, user ID:", decoded.id)
 
-// Middleware to check if user is admin or staff
-export const isAdminOrStaff = async (req, res, next) => {
-  try {
-    // Check if user exists in request (should be set by requireSignIn middleware)
-    if (!req.user) {
-      return res.json({
-        success: false,
-        message: "Authentication failed: User not found",
-      })
-    }
-
-    // Check if user is admin or staff
-    if (req.user.role !== "admin" && req.user.role !== "staff") {
-      return res.json({
-        success: false,
-        message: "Authorization failed: Admin or Staff access required",
-      })
-    }
-
-    // User is admin or staff, proceed to next middleware
-    console.log("Authorization successful for user:", req.user.name, "with role:", req.user.role)
-    next()
-  } catch (error) {
-    console.error("Admin/Staff check middleware error:", error)
-    return res.json({
-      success: false,
-      message: "Authorization failed: Server error",
-    })
-  }
-}
-
-// Middleware to verify admin (combines authentication and admin check)
-export const verifyAdmin = async (req, res, next) => {
-  const { token } = req.headers
-
-  if (!token) {
-    return res.json({ success: false, message: "Not Authorized Login Again" })
-  }
-
-  try {
-    const token_decode = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await userModel.findById(token_decode.id)
-
+    const user = await userModel.findById(decoded.id).select("-password")
     if (!user) {
+      console.log("User not found in database")
       return res.json({ success: false, message: "User not found" })
     }
 
-    // Check if user is admin
-    if (user.role !== "admin") {
-      console.log("Access denied - user is not admin:", user.name)
-      return res.json({
-        success: false,
-        message: "Authorization failed: Admin access required",
-      })
-    }
+    console.log("User found:", { id: user._id, name: user.name, role: user.role })
 
-    req.body.userId = token_decode.id
     req.user = user
+    req.userId = user._id
+    req.userRole = user.role
     next()
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
+    console.error("Auth middleware error:", error.message)
+    return res.json({ success: false, message: "Invalid token" })
   }
 }
 
-// Middleware to verify admin or staff (combines authentication and admin/staff check)
-export const verifyAdminOrStaff = async (req, res, next) => {
-  const { token } = req.headers
-
-  if (!token) {
-    return res.json({ success: false, message: "Not Authorized Login Again" })
-  }
-
+// Admin verification
+const isAdmin = (req, res, next) => {
   try {
-    const token_decode = jwt.verify(token, process.env.JWT_SECRET)
-    const user = await userModel.findById(token_decode.id)
-
-    if (!user) {
-      return res.json({ success: false, message: "User not found" })
+    console.log("Admin check - user role:", req.user?.role)
+    if (req.user && req.user.role === "admin") {
+      next()
+    } else {
+      console.log("Admin access denied")
+      return res.json({ success: false, message: "Admin access required" })
     }
-
-    // Check if user is admin or staff
-    if (user.role !== "admin" && user.role !== "staff") {
-      console.log("Access denied - user is not admin or staff:", user.name, "role:", user.role)
-      return res.json({
-        success: false,
-        message: "Authorization failed: Admin or Staff access required",
-      })
-    }
-
-    req.body.userId = token_decode.id
-    req.user = user
-    next()
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
+    console.error("Admin check error:", error)
+    return res.json({ success: false, message: "Authorization error" })
   }
 }
 
-// For backward compatibility - default export
-export default authMiddleware
+// Staff or Admin verification
+const isStaffOrAdmin = (req, res, next) => {
+  try {
+    console.log("Staff/Admin check - user role:", req.user?.role)
+    if (req.user && (req.user.role === "admin" || req.user.role === "staff")) {
+      next()
+    } else {
+      console.log("Staff/Admin access denied")
+      return res.json({ success: false, message: "Staff or Admin access required" })
+    }
+  } catch (error) {
+    console.error("Staff/Admin check error:", error)
+    return res.json({ success: false, message: "Authorization error" })
+  }
+}
+
+// Verify admin only
+const verifyAdmin = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization || req.headers.token
+    console.log("Admin verification - token received:", token ? "Yes" : "No")
+
+    if (!token) {
+      return res.json({ success: false, message: "Authorization token required" })
+    }
+
+    const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token
+    const decoded = jwt.verify(actualToken, process.env.JWT_SECRET)
+
+    const user = await userModel.findById(decoded.id).select("-password")
+    if (!user || user.role !== "admin") {
+      console.log("Admin verification failed - user role:", user?.role)
+      return res.json({ success: false, message: "Admin access required" })
+    }
+
+    console.log("Admin verification successful")
+    req.user = user
+    req.userId = user._id
+    req.userRole = user.role
+    next()
+  } catch (error) {
+    console.error("Admin verification error:", error)
+    return res.json({ success: false, message: "Invalid token or insufficient permissions" })
+  }
+}
+
+// Verify staff or admin
+const verifyStaffOrAdmin = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization || req.headers.token
+    console.log("Staff/Admin verification - token received:", token ? "Yes" : "No")
+
+    if (!token) {
+      return res.json({ success: false, message: "Authorization token required" })
+    }
+
+    const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token
+    const decoded = jwt.verify(actualToken, process.env.JWT_SECRET)
+
+    const user = await userModel.findById(decoded.id).select("-password")
+    if (!user || (user.role !== "admin" && user.role !== "staff")) {
+      console.log("Staff/Admin verification failed - user role:", user?.role)
+      return res.json({ success: false, message: "Staff or Admin access required" })
+    }
+
+    console.log("Staff/Admin verification successful - role:", user.role)
+    req.user = user
+    req.userId = user._id
+    req.userRole = user.role
+    next()
+  } catch (error) {
+    console.error("Staff/Admin verification error:", error)
+    return res.json({ success: false, message: "Invalid token or insufficient permissions" })
+  }
+}
+
+export { authMiddleware, isAdmin, isStaffOrAdmin, verifyAdmin, verifyStaffOrAdmin }
+export default requireSignIn

@@ -1,37 +1,43 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
-const ThemeContext = createContext()
+export const ThemeContext = createContext()
+
+// Provider component
+export const ThemeProvider = ({ children }) => {
+  // Check theme from localStorage or user preference
+  const [darkMode, setDarkMode] = useState(() => {
+    // Check localStorage first
+    const savedTheme = localStorage.getItem("theme")
+    if (savedTheme) {
+      return savedTheme === "dark"
+    }
+    // If not, check system preference
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+  })
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark")
+      localStorage.setItem("theme", "dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+      localStorage.setItem("theme", "light")
+    }
+  }, [darkMode])
+
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => !prev)
+  }
+
+  return <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>{children}</ThemeContext.Provider>
+}
 
 export const useTheme = () => {
   const context = useContext(ThemeContext)
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useTheme must be used within a ThemeProvider")
   }
   return context
-}
-
-export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState("dark") // Default to dark theme
-
-  useEffect(() => {
-    // Force dark mode
-    document.documentElement.classList.add("dark")
-    localStorage.setItem("theme", "dark")
-  }, [])
-
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light"
-    setTheme(newTheme)
-    localStorage.setItem("theme", newTheme)
-
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-    }
-  }
-
-  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
 }

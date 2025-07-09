@@ -7,7 +7,7 @@ import {
   clearCart,
   updateCartQuantity,
 } from "../controllers/cartController.js"
-import authMiddleware from "../middleware/auth.js"
+import { authMiddleware } from "../middleware/auth.js"
 
 const cartRouter = express.Router()
 

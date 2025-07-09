@@ -1,6 +1,4 @@
 import express from "express"
-import requireSignIn from "../middleware/auth.js"
-import authMiddleware from "../middleware/auth.js"
 import {
   placeOrder,
   verifyOrder,
@@ -11,16 +9,22 @@ import {
   getRevenueStats,
 } from "../controllers/orderController.js"
 import { getUserPurchaseHistory } from "../controllers/purchaseHistoryController.js"
+import requireSignIn, { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
 
 const orderRouter = express.Router()
 
+// Public/User routes
 orderRouter.post("/place", authMiddleware, placeOrder)
 orderRouter.post("/verify", verifyOrder)
 orderRouter.post("/userorders", authMiddleware, userOrders)
-orderRouter.get("/list", listOrders)
-orderRouter.post("/status", updateStatus)
-orderRouter.post("/payment-status", updatePaymentStatus)
 orderRouter.post("/purchase-history", requireSignIn, getUserPurchaseHistory)
-orderRouter.get("/revenue-stats", getRevenueStats)
+
+// Staff/Admin routes
+orderRouter.get("/list", verifyStaffOrAdmin, listOrders)
+orderRouter.post("/status", verifyStaffOrAdmin, updateStatus)
+orderRouter.post("/payment-status", verifyStaffOrAdmin, updatePaymentStatus)
+
+// Admin only routes
+orderRouter.get("/revenue-stats", verifyAdmin, getRevenueStats)
 
 export default orderRouter

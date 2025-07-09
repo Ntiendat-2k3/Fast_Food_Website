@@ -1,11 +1,11 @@
 import express from "express"
-import { requireSignIn, verifyAdmin } from "../middleware/auth.js"
 import {
   getUserPurchaseHistory,
   addToPurchaseHistory,
   deletePurchaseHistory,
   getPurchaseHistoryDetail,
 } from "../controllers/purchaseHistoryController.js"
+import requireSignIn, { verifyAdmin } from "../middleware/auth.js"
 
 const router = express.Router()
 

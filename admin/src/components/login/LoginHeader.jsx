@@ -1,15 +1,16 @@
-import { Shield } from "lucide-react"
-
-const LoginHeader = () => {
+/**
+ * LoginHeader component displays the logo and title section of the login page
+ *
+ * @param {Object} props - Component props
+ * @param {string} props.logoSrc - Source URL for the logo image
+ * @returns {JSX.Element} The rendered component
+ */
+const LoginHeader = ({ logoSrc = "/logo.png" }) => {
   return (
     <div className="text-center mb-8">
-      <div className="flex justify-center mb-4">
-        <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
-          <Shield size={32} className="text-white" />
-        </div>
-      </div>
-      <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
-      <p className="text-gray-400">Đăng nhập để truy cập hệ thống quản trị</p>
+      <img className="mx-auto h-16 w-auto" src={logoSrc || "/placeholder.svg"} alt="Logo" />
+      <h2 className="mt-4 text-3xl font-extrabold text-white">Đăng nhập vào trang quản trị</h2>
+      <p className="mt-2 text-sm text-gray-400">Vui lòng đăng nhập để truy cập vào hệ thống quản lý</p>
     </div>
   )
 }

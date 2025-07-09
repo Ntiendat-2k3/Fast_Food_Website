@@ -85,7 +85,7 @@ const Comments = ({ url }) => {
       console.log("Comments API response:", response.data)
 
       if (response.data.success) {
-        setComments(response.data.data || [])
+        setComments(response.data.data)
       } else {
         console.error("API returned error:", response.data.message)
         setError(response.data.message || "Lỗi khi tải danh sách đánh giá")
@@ -107,10 +107,10 @@ const Comments = ({ url }) => {
       console.log("Food list API response:", response.data)
 
       if (response.data.success) {
-        setFoodList(response.data.data || [])
+        setFoodList(response.data.data)
 
         // Extract unique categories from food list
-        const uniqueCategories = [...new Set((response.data.data || []).map((food) => food.category))]
+        const uniqueCategories = [...new Set(response.data.data.map((food) => food.category))]
         setCategories(uniqueCategories.sort())
         console.log("Extracted categories:", uniqueCategories)
       } else {
@@ -138,7 +138,7 @@ const Comments = ({ url }) => {
       })
 
       if (response.data.success) {
-        setUsers(response.data.data || [])
+        setUsers(response.data.data)
       } else {
         console.error("API returned error:", response.data.message)
         toast.error(response.data.message || "Lỗi khi tải danh sách người dùng")
@@ -159,26 +159,35 @@ const Comments = ({ url }) => {
         return
       }
 
-      // Fetch notifications - fix endpoint from /all to /list
-      try {
-        const notificationsResponse = await axios.get(`${url}/api/notification/list`, {
-          headers: {
-            token: token,
-          },
-        })
+      console.log("Fetching notifications from:", `${url}/api/notification/all`)
 
-        if (notificationsResponse.data.success) {
-          setNotifications(notificationsResponse.data.data || [])
-        } else {
-          console.error("API returned error:", notificationsResponse.data.message)
-          toast.error(notificationsResponse.data.message || "Lỗi khi tải thông báo")
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error)
-        toast.error("Lỗi kết nối đến máy chủ khi tải thông báo")
+      const notificationsResponse = await axios.get(`${url}/api/notification/all`, {
+        headers: {
+          token: token,
+        },
+      })
+
+      console.log("Notifications API response:", notificationsResponse.data)
+
+      if (notificationsResponse.data.success) {
+        setNotifications(notificationsResponse.data.data)
+      } else {
+        console.error("API returned error:", notificationsResponse.data.message)
+        toast.error(notificationsResponse.data.message || "Lỗi khi tải thông báo")
       }
     } catch (error) {
-      console.error("Error in fetchNotifications:", error)
+      console.error("Error fetching notifications:", error)
+      if (error.response) {
+        console.error("Response data:", error.response.data)
+        console.error("Response status:", error.response.status)
+        toast.error(`Lỗi ${error.response.status}: ${error.response.data?.message || "Lỗi kết nối đến máy chủ"}`)
+      } else if (error.request) {
+        console.error("Request error:", error.request)
+        toast.error("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.")
+      } else {
+        console.error("Error:", error.message)
+        toast.error("Lỗi không xác định: " + error.message)
+      }
     } finally {
       setNotificationsLoading(false)
     }
@@ -201,14 +210,14 @@ const Comments = ({ url }) => {
       })
 
       if (response.data.success) {
-        setBlacklist(response.data.data || [])
+        setBlacklist(response.data.data)
       } else {
         console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi tải danh sách người dùng bị chặn")
+        toast.error(response.data.message || "Lỗi khi tải danh sách đen")
       }
     } catch (error) {
       console.error("Error fetching blacklist:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi tải danh sách người dùng bị chặn")
+      toast.error("Lỗi kết nối đến máy chủ khi tải danh sách đen")
     } finally {
       setBlacklistLoading(false)
     }
@@ -287,16 +296,17 @@ const Comments = ({ url }) => {
         return
       }
 
+      console.log("Sending notification:", newNotification)
+
       const response = await axios.post(`${url}/api/notification/create`, newNotification, {
         headers: {
           token: token,
         },
       })
 
-      if (response.data.success) {
-        // Add to local state for immediate feedback
-        setNotifications([response.data.notification, ...notifications])
+      console.log("Create notification response:", response.data)
 
+      if (response.data.success) {
         // Reset form
         setNewNotification({
           title: "",
@@ -306,14 +316,18 @@ const Comments = ({ url }) => {
         })
 
         toast.success("Đã gửi thông báo thành công")
-        fetchNotifications()
+        fetchNotifications() // Refresh danh sách
       } else {
         console.error("API returned error:", response.data.message)
         toast.error(response.data.message || "Lỗi khi gửi thông báo")
       }
     } catch (error) {
       console.error("Error sending notification:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi gửi thông báo")
+      if (error.response) {
+        toast.error(`Lỗi ${error.response.status}: ${error.response.data?.message || "Lỗi kết nối đến máy chủ"}`)
+      } else {
+        toast.error("Lỗi kết nối đến máy chủ khi gửi thông báo")
+      }
     }
   }
 
@@ -453,10 +467,12 @@ const Comments = ({ url }) => {
         return
       }
 
-      // Fix API call to use PUT method and correct endpoint
-      const response = await axios.put(
-        `${url}/api/notification/read/${notificationId}`,
-        {},
+      const response = await axios.post(
+        `${url}/api/notification/read`,
+        {
+          id: notificationId,
+          read: isRead,
+        },
         {
           headers: {
             token: token,
@@ -532,12 +548,15 @@ const Comments = ({ url }) => {
       }
     } else if (type === "deleteNotification") {
       try {
-        // Fix API call to use DELETE method and correct endpoint
-        const response = await axios.delete(`${url}/api/notification/${id}`, {
-          headers: {
-            token: token,
+        const response = await axios.post(
+          `${url}/api/notification/delete`,
+          { id },
+          {
+            headers: {
+              token: token,
+            },
           },
-        })
+        )
 
         if (response.data.success) {
           // Update local state
@@ -700,23 +719,6 @@ const Comments = ({ url }) => {
     setBlockUserForm({ ...blockUserForm, userId })
   }
 
-  // Render loading state
-  if (loading && activeTab === "comments") {
-    return (
-      <div className="w-full">
-        <div className="bg-white dark:bg-dark-light md:rounded-2xl md:shadow-custom p-3 md:p-6 mb-4 md:mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-6 flex items-center">
-            <MessageSquare className="mr-2" size={24} />
-            Quản lý người dùng
-          </h1>
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="w-full">
       <div className="bg-white dark:bg-dark-light md:rounded-2xl md:shadow-custom p-3 md:p-6 mb-4 md:mb-8">
@@ -744,7 +746,11 @@ const Comments = ({ url }) => {
             />
 
             {/* Comments List */}
-            {error ? (
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
               <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-lg">
                 <p className="font-medium">Lỗi:</p>
                 <p>{error}</p>
@@ -771,7 +777,7 @@ const Comments = ({ url }) => {
             )}
 
             {/* Pagination */}
-            {!error && totalCommentsPages > 1 && (
+            {!loading && !error && totalCommentsPages > 1 && (
               <div className="mt-6">
                 <Pagination currentPage={currentPage} totalPages={totalCommentsPages} onPageChange={handlePageChange} />
               </div>

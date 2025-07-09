@@ -2,13 +2,13 @@ import express from "express"
 import {
   addFood,
   listFood,
-  searchFood,
-  getFoodById,
-  updateFood,
   removeFood,
-  removeMultipleFood,
+  updateFood,
+  getFoodByCategory,
+  getFoodById,
 } from "../controllers/foodController.js"
 import multer from "multer"
+import { verifyAdmin } from "../middleware/auth.js"
 
 const foodRouter = express.Router()
 
@@ -22,12 +22,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
-foodRouter.post("/add", upload.single("image"), addFood)
+// Routes
+foodRouter.post("/add", verifyAdmin, upload.single("image"), addFood)
 foodRouter.get("/list", listFood)
-foodRouter.get("/search", searchFood)
+foodRouter.post("/remove", verifyAdmin, removeFood)
+foodRouter.post("/update", verifyAdmin, upload.single("image"), updateFood)
+foodRouter.get("/category/:category", getFoodByCategory)
 foodRouter.get("/:id", getFoodById)
-foodRouter.post("/update", upload.single("image"), updateFood)
-foodRouter.post("/remove", removeFood)
-foodRouter.post("/remove-multiple", removeMultipleFood)
 
 export default foodRouter

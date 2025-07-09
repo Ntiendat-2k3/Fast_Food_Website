@@ -2,25 +2,23 @@ import express from "express"
 import {
   addVoucher,
   listVouchers,
-  getActiveVouchers,
   updateVoucher,
-  removeVoucher,
+  deleteVoucher,
   applyVoucher,
-  getVoucherStats,
+  getActiveVouchers,
 } from "../controllers/voucherController.js"
-import { requireSignIn, verifyAdminOrStaff } from "../middleware/auth.js"
+import { verifyAdmin } from "../middleware/auth.js"
 
-const voucherRouter = express.Router()
+const router = express.Router()
+
+// Admin routes
+router.post("/add", verifyAdmin, addVoucher)
+router.get("/list", verifyAdmin, listVouchers)
+router.post("/update", verifyAdmin, updateVoucher)
+router.post("/delete", verifyAdmin, deleteVoucher)
 
 // Public routes
-voucherRouter.get("/active", getActiveVouchers)
-voucherRouter.post("/apply", requireSignIn, applyVoucher)
+router.post("/apply", applyVoucher)
+router.get("/active", getActiveVouchers)
 
-// Admin/Staff routes - Staff can now manage vouchers
-voucherRouter.post("/add", verifyAdminOrStaff, addVoucher)
-voucherRouter.get("/list", verifyAdminOrStaff, listVouchers)
-voucherRouter.get("/stats", verifyAdminOrStaff, getVoucherStats)
-voucherRouter.put("/update/:id", verifyAdminOrStaff, updateVoucher)
-voucherRouter.delete("/remove/:id", verifyAdminOrStaff, removeVoucher)
-
-export default voucherRouter
+export default router

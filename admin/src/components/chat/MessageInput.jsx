@@ -1,57 +1,69 @@
 "use client"
-import { Send, ImageIcon, X, Loader } from "lucide-react"
+
+import { Send, ImageIcon } from "lucide-react"
 
 const MessageInput = ({
   newMessage,
-  onMessageChange,
+  setNewMessage,
   onSendMessage,
-  onImageUpload,
+  onKeyPress,
+  sending,
   imagePreview,
-  onClearImage,
-  loading,
+  onImageUpload,
+  fileInputRef,
+  onFileChange,
 }) => {
   return (
-    <div className="p-3 border-t border-gray-700">
+    <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      {/* Image Preview */}
       {imagePreview && (
-        <div className="relative mb-2 inline-block">
-          <img
-            src={imagePreview || "/placeholder.svg"}
-            alt="Preview"
-            className="h-20 w-auto rounded-md border border-gray-300"
-          />
-          <button onClick={onClearImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1">
-            <X size={14} />
-          </button>
+        <div className="mb-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <img src={imagePreview || "/placeholder.svg"} alt="Preview" className="max-h-20 rounded" />
         </div>
       )}
 
-      <form onSubmit={onSendMessage} className="flex items-center">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => onMessageChange(e.target.value)}
-          className="flex-1 bg-gray-800 text-white p-2 rounded-l-md focus:outline-none"
-          placeholder="Nhập tin nhắn..."
-          disabled={loading}
-        />
-        <label className="bg-gray-700 px-3 py-2 cursor-pointer">
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            onChange={onImageUpload}
-            className="hidden"
-            disabled={loading}
-          />
-          <ImageIcon size={20} className="text-gray-300" />
-        </label>
+      <div className="flex items-end space-x-2">
+        {/* File Input */}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+
+        {/* Image Upload Button */}
         <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700 disabled:opacity-50"
-          disabled={loading}
+          onClick={onImageUpload}
+          disabled={sending}
+          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+          title="Gửi hình ảnh"
         >
-          {loading ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
+          <ImageIcon size={20} />
         </button>
-      </form>
+
+        {/* Message Input */}
+        <div className="flex-1">
+          <textarea
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={onKeyPress}
+            placeholder="Nhập tin nhắn..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+            rows="1"
+            style={{ minHeight: "40px", maxHeight: "120px" }}
+            disabled={sending}
+          />
+        </div>
+
+        {/* Send Button */}
+        <button
+          onClick={onSendMessage}
+          disabled={!newMessage.trim() || sending}
+          className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Gửi tin nhắn"
+        >
+          {sending ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+          ) : (
+            <Send size={20} />
+          )}
+        </button>
+      </div>
     </div>
   )
 }

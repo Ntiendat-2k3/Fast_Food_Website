@@ -1,28 +1,48 @@
 import express from "express"
 import {
-  getAllComments,
-  getCommentsByFood,
   addComment,
+  updateComment,
+  getCommentsByFood,
+  getAllComments,
   updateCommentStatus,
-  replyToComment,
   deleteComment,
-  getCommentStats,
+  replyToComment,
+  getFoodRatingStats,
+  checkCanReview,
+  debugUserOrders,
 } from "../controllers/commentController.js"
-import { requireSignIn, verifyAdminOrStaff } from "../middleware/auth.js"
+import auth from "../middleware/auth.js"
 
-const commentRouter = express.Router()
+const router = express.Router()
 
-// Public routes
-commentRouter.get("/food/:foodId", getCommentsByFood)
+// Add a new comment (requires authentication)
+router.post("/add", auth, addComment)
 
-// User routes (require authentication)
-commentRouter.post("/add", requireSignIn, addComment)
+// Update a comment (requires authentication)
+router.put("/update", auth, updateComment)
 
-// Admin/Staff routes - Staff can now manage comments
-commentRouter.get("/all", verifyAdminOrStaff, getAllComments)
-commentRouter.get("/stats", verifyAdminOrStaff, getCommentStats)
-commentRouter.put("/status/:id", verifyAdminOrStaff, updateCommentStatus)
-commentRouter.post("/reply/:id", verifyAdminOrStaff, replyToComment)
-commentRouter.delete("/delete/:id", verifyAdminOrStaff, deleteComment)
+// Get comments by food ID (public)
+router.get("/food/:foodId", getCommentsByFood)
 
-export default commentRouter
+// Get food rating stats (public)
+router.get("/food/:foodId/stats", getFoodRatingStats)
+
+// Get all comments (admin only, requires authentication)
+router.get("/all", auth, getAllComments)
+
+// Update comment status (admin only, requires authentication)
+router.post("/status", auth, updateCommentStatus)
+
+// Delete a comment (admin only, requires authentication)
+router.post("/delete", auth, deleteComment)
+
+// Reply to a comment (admin only, requires authentication)
+router.post("/reply", auth, replyToComment)
+
+// Check if user can review a product (requires authentication)
+router.get("/can-review/:userId/:foodId", auth, checkCanReview)
+
+// Debug endpoint to see user orders and purchase data
+router.get("/debug/:userId/:foodId", auth, debugUserOrders)
+
+export default router

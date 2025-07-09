@@ -1,222 +1,174 @@
 import notificationModel from "../models/notificationModel.js"
 import userModel from "../models/userModel.js"
 
-// Create notification (Admin/Staff only)
+// Create notification
 const createNotification = async (req, res) => {
   try {
-    const { title, message, type, targetUsers } = req.body
-    const createdById = req.body.userId
+    const { title, message, targetUser, type = "info" } = req.body
+    console.log("Creating notification:", { title, message, targetUser, type })
 
     if (!title || !message) {
-      return res.json({ success: false, message: "Title and message are required" })
+      return res.json({ success: false, message: "Thiếu tiêu đề hoặc nội dung" })
     }
 
-    const validTypes = ["info", "warning", "success", "error"]
-    if (type && !validTypes.includes(type)) {
-      return res.json({ success: false, message: "Invalid notification type" })
+    // Get creator info
+    const creator = await userModel.findById(req.userId)
+    if (!creator) {
+      return res.json({ success: false, message: "Không tìm thấy người tạo" })
     }
 
-    let recipients = []
+    let targetUsers = []
 
-    if (targetUsers === "all") {
+    if (targetUser === "all") {
       // Send to all users
       const allUsers = await userModel.find({ role: "user" }).select("_id")
-      recipients = allUsers.map((user) => user._id)
-    } else if (Array.isArray(targetUsers)) {
-      // Send to specific users
-      recipients = targetUsers
+      targetUsers = allUsers.map((user) => user._id)
     } else {
-      return res.json({ success: false, message: "Invalid target users" })
+      // Send to specific user
+      targetUsers = [targetUser]
     }
 
-    // Create notifications for each recipient
-    const notifications = recipients.map((userId) => ({
-      userId,
+    // Create notifications for each target user
+    const notifications = targetUsers.map((userId) => ({
       title,
       message,
-      type: type || "info",
-      createdById,
+      userId,
+      type,
+      createdBy: creator.name,
+      createdAt: new Date(),
     }))
 
-    await notificationModel.insertMany(notifications)
-
-    const creator = await userModel.findById(createdById)
-    console.log(`Notification "${title}" created by ${creator.name} (${creator.role}) for ${recipients.length} users`)
+    const result = await notificationModel.insertMany(notifications)
+    console.log(`Created ${result.length} notifications`)
 
     res.json({
       success: true,
-      message: `Notification sent to ${recipients.length} users`,
-      recipientCount: recipients.length,
+      message: `Đã tạo ${result.length} thông báo thành công`,
+      data: result,
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error creating notification" })
+    console.error("Error creating notification:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Get notifications for user
-const getNotifications = async (req, res) => {
+// Get all notifications (admin)
+const getAllNotifications = async (req, res) => {
   try {
-    const userId = req.body.userId
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
+    console.log("Getting all notifications, requester role:", req.userRole)
 
-    console.log("Getting notifications for user:", userId)
+    const notifications = await notificationModel.find({}).populate("userId", "name email").sort({ createdAt: -1 })
 
-    const notifications = await notificationModel.find({ userId }).skip(skip).limit(limit).sort({ createdAt: -1 })
-
-    const total = await notificationModel.countDocuments({ userId })
-    const unreadCount = await notificationModel.countDocuments({ userId, isRead: false })
+    console.log(`Found ${notifications.length} notifications`)
 
     res.json({
       success: true,
-      notifications,
-      unreadCount,
-      pagination: {
-        current: page,
-        total: Math.ceil(total / limit),
-        count: notifications.length,
-        totalNotifications: total,
-      },
+      data: notifications,
+      message: `Tìm thấy ${notifications.length} thông báo`,
     })
   } catch (error) {
     console.error("Error getting notifications:", error)
-    res.json({ success: false, message: "Error fetching notifications" })
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-// Get all notifications (Admin/Staff only)
-const getAllNotifications = async (req, res) => {
+// Get user notifications
+const getUserNotifications = async (req, res) => {
   try {
-    const page = Number.parseInt(req.query.page) || 1
-    const limit = Number.parseInt(req.query.limit) || 10
-    const skip = (page - 1) * limit
+    const { page = 1, limit = 10 } = req.query
+    const userId = req.userId
 
     const notifications = await notificationModel
-      .find({})
-      .populate("userId", "name email")
-      .populate("createdById", "name role")
-      .skip(skip)
-      .limit(limit)
+      .find({ userId })
       .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
 
-    const total = await notificationModel.countDocuments({})
+    const total = await notificationModel.countDocuments({ userId })
 
     res.json({
       success: true,
-      notifications,
+      data: notifications,
       pagination: {
-        current: page,
-        total: Math.ceil(total / limit),
-        count: notifications.length,
-        totalNotifications: total,
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit),
       },
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error fetching all notifications" })
+    console.error("Error getting user notifications:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
 // Mark notification as read
 const markAsRead = async (req, res) => {
   try {
-    const { id } = req.params
-    const userId = req.body.userId
+    const { id, read = true } = req.body
+    console.log("Marking notification as read:", { id, read })
 
     if (!id) {
-      return res.json({ success: false, message: "Notification ID is required" })
+      return res.json({ success: false, message: "Thiếu ID thông báo" })
     }
 
-    const notification = await notificationModel.findOneAndUpdate(
-      { _id: id, userId },
-      { isRead: true, readAt: new Date() },
+    const notification = await notificationModel.findByIdAndUpdate(
+      id,
+      { read, readAt: read ? new Date() : null },
       { new: true },
     )
 
     if (!notification) {
-      return res.json({ success: false, message: "Notification not found" })
+      return res.json({ success: false, message: "Không tìm thấy thông báo" })
     }
-
-    res.json({ success: true, message: "Notification marked as read" })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error marking notification as read" })
-  }
-}
-
-// Mark all notifications as read
-const markAllAsRead = async (req, res) => {
-  try {
-    const userId = req.body.userId
-
-    await notificationModel.updateMany({ userId, isRead: false }, { isRead: true, readAt: new Date() })
-
-    res.json({ success: true, message: "All notifications marked as read" })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error marking all notifications as read" })
-  }
-}
-
-// Delete notification (Admin/Staff only)
-const deleteNotification = async (req, res) => {
-  try {
-    const { id } = req.params
-    const deletedBy = req.body.userId
-
-    if (!id) {
-      return res.json({ success: false, message: "Notification ID is required" })
-    }
-
-    const notification = await notificationModel.findById(id)
-    if (!notification) {
-      return res.json({ success: false, message: "Notification not found" })
-    }
-
-    await notificationModel.findByIdAndDelete(id)
-
-    const user = await userModel.findById(deletedBy)
-    console.log(`Notification ${id} deleted by ${user.name} (${user.role})`)
-
-    res.json({ success: true, message: "Notification deleted successfully" })
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error deleting notification" })
-  }
-}
-
-// Get notification statistics (Admin/Staff only)
-const getNotificationStats = async (req, res) => {
-  try {
-    const totalNotifications = await notificationModel.countDocuments({})
-    const readNotifications = await notificationModel.countDocuments({ isRead: true })
-    const unreadNotifications = await notificationModel.countDocuments({ isRead: false })
-
-    const typeStats = await notificationModel.aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }])
 
     res.json({
       success: true,
-      stats: {
-        total: totalNotifications,
-        read: readNotifications,
-        unread: unreadNotifications,
-        byType: typeStats,
-      },
+      message: read ? "Đã đánh dấu đã đọc" : "Đã đánh dấu chưa đọc",
+      data: notification,
     })
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error fetching notification statistics" })
+    console.error("Error marking notification as read:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
 
-export {
-  createNotification,
-  getNotifications,
-  getAllNotifications,
-  markAsRead,
-  markAllAsRead,
-  deleteNotification,
-  getNotificationStats,
+// Delete notification
+const deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.body
+    console.log("Deleting notification:", id)
+
+    if (!id) {
+      return res.json({ success: false, message: "Thiếu ID thông báo" })
+    }
+
+    const notification = await notificationModel.findByIdAndDelete(id)
+    if (!notification) {
+      return res.json({ success: false, message: "Không tìm thấy thông báo" })
+    }
+
+    res.json({ success: true, message: "Đã xóa thông báo thành công" })
+  } catch (error) {
+    console.error("Error deleting notification:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
 }
+
+// Get unread count
+const getUnreadCount = async (req, res) => {
+  try {
+    const userId = req.userId
+    const count = await notificationModel.countDocuments({
+      userId,
+      read: { $ne: true },
+    })
+
+    res.json({ success: true, data: { count } })
+  } catch (error) {
+    console.error("Error getting unread count:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
+export { createNotification, getAllNotifications, getUserNotifications, markAsRead, deleteNotification, getUnreadCount }

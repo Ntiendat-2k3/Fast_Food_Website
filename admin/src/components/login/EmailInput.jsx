@@ -1,28 +1,30 @@
 "use client"
 
-import { Mail } from "lucide-react"
-
-const EmailInput = ({ email, setEmail, disabled }) => {
+/**
+ * EmailInput component for the login form
+ *
+ * @param {Object} props - Component props
+ * @param {string} props.value - Current email value
+ * @param {Function} props.onChange - Function to call when email changes
+ * @returns {JSX.Element} The rendered component
+ */
+const EmailInput = ({ value, onChange }) => {
   return (
     <div>
-      <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+      <label htmlFor="email" className="block text-sm font-medium text-gray-300">
         Email
       </label>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Mail size={20} className="text-gray-400" />
-        </div>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={disabled}
-          className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-          placeholder="Nhập email của bạn"
-          required
-        />
-      </div>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+        value={value}
+        onChange={onChange}
+        className="mt-1 block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+        placeholder="Nhập email của bạn"
+      />
     </div>
   )
 }
