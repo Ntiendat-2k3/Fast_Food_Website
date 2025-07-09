@@ -8,14 +8,14 @@ const notificationSchema = new mongoose.Schema({
     enum: ["info", "warning", "success", "error", "order", "payment", "system", "user"],
     default: "info",
   },
-  orderId: { type: String, default: null },
-  userId: { type: String, default: null },
-  createdBy: { type: String, default: null },
-  targetUser: { type: String, default: null },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
   read: { type: Boolean, default: false },
   isRead: { type: Boolean, default: false },
+  readAt: { type: Date },
+  createdBy: { type: String },
+  targetUser: { type: String },
   createdAt: { type: Date, default: Date.now },
-  readAt: { type: Date, default: null },
+  updatedAt: { type: Date, default: Date.now },
 })
 
 const notificationModel = mongoose.models.notification || mongoose.model("notification", notificationSchema)

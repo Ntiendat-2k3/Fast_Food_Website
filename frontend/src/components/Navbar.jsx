@@ -20,6 +20,7 @@ const Navbar = ({ setShowLogin }) => {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [wishlistCount, setWishlistCount] = useState(0)
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
 
   // Handle scroll effect
   useEffect(() => {
@@ -52,32 +53,67 @@ const Navbar = ({ setShowLogin }) => {
   }, [dropdownOpen, notificationsOpen])
 
   // Fetch notifications
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!token) return
+  const fetchNotifications = async () => {
+    if (!token) return
 
-      try {
-        const response = await axios.get(`${url}/api/notification/user`, {
-          headers: { token },
-        })
+    setLoadingNotifications(true)
+    try {
+      console.log("Fetching notifications...")
+      const response = await axios.get(`${url}/api/notification/list?page=1&limit=20`, {
+        headers: { token },
+      })
 
-        if (response.data.success) {
-          setNotifications(response.data.data)
-          // Count unread notifications
-          const unread = response.data.data.filter((notification) => !notification.read).length
-          setUnreadCount(unread)
-        }
-      } catch (error) {
-        console.error("Error fetching notifications:", error)
+      console.log("Notifications response:", response.data)
+
+      if (response.data.success) {
+        setNotifications(response.data.data)
+        // Count unread notifications
+        const unread = response.data.data.filter((notification) => !notification.read && !notification.isRead).length
+        setUnreadCount(unread)
+        console.log(`Loaded ${response.data.data.length} notifications, ${unread} unread`)
+      } else {
+        console.error("Failed to fetch notifications:", response.data.message)
       }
+    } catch (error) {
+      console.error("Error fetching notifications:", error)
+    } finally {
+      setLoadingNotifications(false)
     }
+  }
 
+  // Fetch unread count
+  const fetchUnreadCount = async () => {
+    if (!token) return
+
+    try {
+      const response = await axios.get(`${url}/api/notification/unread-count`, {
+        headers: { token },
+      })
+
+      if (response.data.success) {
+        setUnreadCount(response.data.data.count)
+        console.log("Unread count:", response.data.data.count)
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error)
+    }
+  }
+
+  // Fetch notifications when component mounts and token changes
+  useEffect(() => {
     if (token) {
       fetchNotifications()
+      fetchUnreadCount()
 
-      // Set up polling to check for new notifications every minute
-      const intervalId = setInterval(fetchNotifications, 60000)
+      // Set up polling to check for new notifications every 30 seconds
+      const intervalId = setInterval(() => {
+        fetchNotifications()
+        fetchUnreadCount()
+      }, 30000)
       return () => clearInterval(intervalId)
+    } else {
+      setNotifications([])
+      setUnreadCount(0)
     }
   }, [token, url])
 
@@ -112,17 +148,21 @@ const Navbar = ({ setShowLogin }) => {
     if (!token) return
 
     try {
-      await axios.post(`${url}/api/notification/read`, { id: notificationId, read: true }, { headers: { token } })
+      console.log("Marking notification as read:", notificationId)
+      const response = await axios.post(`${url}/api/notification/read`, { id: notificationId }, { headers: { token } })
 
-      // Update local state
-      setNotifications((prevNotifications) =>
-        prevNotifications.map((notification) =>
-          notification._id === notificationId ? { ...notification, read: true } : notification,
-        ),
-      )
+      if (response.data.success) {
+        // Update local state
+        setNotifications((prevNotifications) =>
+          prevNotifications.map((notification) =>
+            notification._id === notificationId ? { ...notification, read: true, isRead: true } : notification,
+          ),
+        )
 
-      // Update unread count
-      setUnreadCount((prev) => Math.max(0, prev - 1))
+        // Update unread count
+        setUnreadCount((prev) => Math.max(0, prev - 1))
+        console.log("Notification marked as read successfully")
+      }
     } catch (error) {
       console.error("Error marking notification as read:", error)
     }
@@ -134,6 +174,8 @@ const Navbar = ({ setShowLogin }) => {
     setToken("")
     setUser(null)
     setWishlistCount(0)
+    setNotifications([])
+    setUnreadCount(0)
     navigate("/")
   }
 
@@ -150,8 +192,38 @@ const Navbar = ({ setShowLogin }) => {
         return "bg-green-500/20 text-green-300 border border-green-500/30"
       case "error":
         return "bg-red-500/20 text-red-300 border border-red-500/30"
+      case "order":
+        return "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+      case "payment":
+        return "bg-green-500/20 text-green-300 border border-green-500/30"
+      case "system":
+        return "bg-gray-500/20 text-gray-300 border border-gray-500/30"
       default:
         return "bg-gray-500/20 text-gray-300 border border-gray-500/30"
+    }
+  }
+
+  // Get notification type label
+  const getNotificationTypeLabel = (type) => {
+    switch (type) {
+      case "info":
+        return "Thông tin"
+      case "warning":
+        return "Cảnh báo"
+      case "success":
+        return "Thành công"
+      case "error":
+        return "Lỗi"
+      case "order":
+        return "Đơn hàng"
+      case "payment":
+        return "Thanh toán"
+      case "system":
+        return "Hệ thống"
+      case "user":
+        return "Người dùng"
+      default:
+        return "Khác"
     }
   }
 
@@ -279,7 +351,12 @@ const Navbar = ({ setShowLogin }) => {
             {token && (
               <div className="notifications-dropdown relative">
                 <button
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  onClick={() => {
+                    setNotificationsOpen(!notificationsOpen)
+                    if (!notificationsOpen) {
+                      fetchNotifications() // Refresh notifications when opening
+                    }
+                  }}
                   className="relative p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   aria-expanded={notificationsOpen}
                   aria-haspopup="true"
@@ -300,8 +377,11 @@ const Navbar = ({ setShowLogin }) => {
                       transition={{ duration: 0.2 }}
                       className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700 py-2 z-10 max-h-96 overflow-y-auto"
                     >
-                      <div className="px-4 py-3 border-b border-slate-700">
+                      <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
                         <h3 className="font-medium text-white">Thông báo</h3>
+                        {loadingNotifications && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        )}
                       </div>
                       {notifications.length > 0 ? (
                         <div>
@@ -309,25 +389,29 @@ const Navbar = ({ setShowLogin }) => {
                             <div
                               key={notification._id}
                               className={`px-4 py-3 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                !notification.read ? "bg-blue-500/10" : ""
+                                !notification.read && !notification.isRead ? "bg-blue-500/10" : ""
                               }`}
                               onClick={() => markAsRead(notification._id)}
                             >
                               <div className="flex items-center justify-between mb-1">
-                                <h4 className={`font-medium ${!notification.read ? "text-primary" : "text-white"}`}>
+                                <h4
+                                  className={`font-medium text-sm ${!notification.read && !notification.isRead ? "text-primary" : "text-white"}`}
+                                >
                                   {notification.title}
                                 </h4>
                                 <span
                                   className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeStyle(notification.type)}`}
                                 >
-                                  {notification.type === "info" && "Thông tin"}
-                                  {notification.type === "warning" && "Cảnh báo"}
-                                  {notification.type === "success" && "Thành công"}
-                                  {notification.type === "error" && "Lỗi"}
+                                  {getNotificationTypeLabel(notification.type)}
                                 </span>
                               </div>
                               <p className="text-sm text-gray-300 mb-1">{notification.message}</p>
-                              <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
+                                {notification.createdBy && (
+                                  <p className="text-xs text-gray-500">bởi {notification.createdBy}</p>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

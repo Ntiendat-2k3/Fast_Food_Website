@@ -22,6 +22,9 @@ const StoreContextProvider = (props) => {
   const [user, setUser] = useState(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [isLoadingCart, setIsLoadingCart] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
 
   // Add to cart - Save to database immediately
   const addToCart = async (itemName, quantity = 1) => {
@@ -301,6 +304,76 @@ const StoreContextProvider = (props) => {
     localStorage.removeItem("user")
   }
 
+  // Fetch user notifications
+  const fetchNotifications = async (page = 1, limit = 10) => {
+    if (!token) return
+
+    setIsLoadingNotifications(true)
+    try {
+      console.log("Fetching notifications...")
+      const response = await axios.get(`${url}/api/notification/list?page=${page}&limit=${limit}`, {
+        headers: { token },
+      })
+
+      if (response.data.success) {
+        console.log("Notifications fetched successfully:", response.data.data)
+        setNotifications(response.data.data)
+        return response.data
+      } else {
+        console.error("Failed to fetch notifications:", response.data.message)
+        return null
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error)
+      return null
+    } finally {
+      setIsLoadingNotifications(false)
+    }
+  }
+
+  // Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    if (!token) return
+
+    try {
+      const response = await axios.get(`${url}/api/notification/unread-count`, {
+        headers: { token },
+      })
+
+      if (response.data.success) {
+        console.log("Unread count fetched:", response.data.data.count)
+        setUnreadCount(response.data.data.count)
+        return response.data.data.count
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error)
+    }
+  }
+
+  // Mark notification as read
+  const markNotificationAsRead = async (notificationId) => {
+    if (!token) return
+
+    try {
+      const response = await axios.post(
+        `${url}/api/notification/read`,
+        { id: notificationId, read: true },
+        { headers: { token } },
+      )
+
+      if (response.data.success) {
+        console.log("Notification marked as read")
+        // Refresh notifications and unread count
+        await fetchNotifications()
+        await fetchUnreadCount()
+        return true
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error)
+      return false
+    }
+  }
+
   const contextValue = {
     food_list,
     cartItems,
@@ -321,7 +394,28 @@ const StoreContextProvider = (props) => {
     fetchUserData,
     clearCart,
     loadCartData,
+    // Notification functions
+    notifications,
+    setNotifications,
+    unreadCount,
+    setUnreadCount,
+    isLoadingNotifications,
+    fetchNotifications,
+    fetchUnreadCount,
+    markNotificationAsRead,
   }
+
+  // Fetch notifications when user logs in
+  useEffect(() => {
+    if (token && user) {
+      console.log("User logged in, fetching notifications...")
+      fetchNotifications()
+      fetchUnreadCount()
+    } else {
+      setNotifications([])
+      setUnreadCount(0)
+    }
+  }, [token, user])
 
   return <StoreContext.Provider value={contextValue}>{props.children}</StoreContext.Provider>
 }

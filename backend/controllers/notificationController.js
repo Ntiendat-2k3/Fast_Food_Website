@@ -85,6 +85,8 @@ const getUserNotifications = async (req, res) => {
     const { page = 1, limit = 10 } = req.query
     const userId = req.userId
 
+    console.log("Getting user notifications for userId:", userId)
+
     const notifications = await notificationModel
       .find({ userId })
       .sort({ createdAt: -1 })
@@ -92,6 +94,8 @@ const getUserNotifications = async (req, res) => {
       .skip((page - 1) * limit)
 
     const total = await notificationModel.countDocuments({ userId })
+
+    console.log(`Found ${notifications.length} notifications for user ${userId}`)
 
     res.json({
       success: true,
@@ -170,10 +174,14 @@ const deleteNotification = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.userId
+    console.log("Getting unread count for userId:", userId)
+
     const count = await notificationModel.countDocuments({
       userId,
       $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
+
+    console.log(`Unread count for user ${userId}: ${count}`)
 
     res.json({ success: true, data: { count } })
   } catch (error) {
