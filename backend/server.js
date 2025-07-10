@@ -16,6 +16,7 @@ import purchaseHistoryRouter from "./routes/purchaseHistoryRoute.js"
 // import revenueRouter from "./routes/revenueRoute.js"
 import shippingRouter from "./routes/shippingRoute.js"
 import aiRouter from "./routes/aiRoute.js"
+import staffRouter from "./routes/staffRoute.js"
 import fs from "fs"
 
 // app config
@@ -54,6 +55,7 @@ app.use("/api/address", addressRouter)
 app.use("/api/purchase-history", purchaseHistoryRouter)
 // app.use("/api/revenue", revenueRouter)
 app.use("/api/shipping", shippingRouter)
+app.use("/api/staff", staffRouter)
 app.use("/api/ai", aiRouter)
 
 // Serve static files

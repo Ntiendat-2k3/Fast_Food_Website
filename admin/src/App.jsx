@@ -16,6 +16,7 @@ import Login from "./pages/Login/Login"
 import { useState, useEffect } from "react"
 import Chat from "./pages/Chat/Chat"
 import axios from "axios"
+import Staff from "./pages/Staff/Staff"
 
 const App = () => {
   const url = "http://localhost:4000"
@@ -202,6 +203,14 @@ const App = () => {
                 element={
                   <ProtectedRoute adminOnly={true}>
                     <Revenue url={url} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/staff"
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <Staff url={url} />
                   </ProtectedRoute>
                 }
               />

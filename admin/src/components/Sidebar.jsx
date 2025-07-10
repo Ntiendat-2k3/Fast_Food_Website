@@ -15,6 +15,7 @@ import {
   Plus,
   Crown,
   Sparkles,
+  Users,
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
 
@@ -127,6 +128,12 @@ const Sidebar = ({ onLogout, userRole }) => {
         path: "/add",
         name: "Thêm sản phẩm",
         icon: <Plus size={20} />,
+        roles: ["admin"],
+      },
+      {
+        path: "/staff",
+        name: "Quản lý nhân viên",
+        icon: <Users size={20} />,
         roles: ["admin"],
       },
     ]
