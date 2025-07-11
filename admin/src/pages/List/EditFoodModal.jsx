@@ -8,6 +8,7 @@ import { X, Upload, Tag, DollarSign, FileText, Save } from "lucide-react"
 const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [categories, setCategories] = useState([])
   const [data, setData] = useState({
     id: food._id,
     name: food.name,
@@ -19,7 +20,22 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   useEffect(() => {
     // Set image preview from existing food image
     setImagePreview(`${url}/images/${food.image}`)
+    // Fetch categories
+    fetchCategories()
   }, [food, url])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${url}/api/category/active`)
+      if (response.data.success) {
+        setCategories(response.data.data.map((cat) => cat.name))
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+      // Fallback to default categories including "Đồ uống"
+      setCategories(["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart", "Đồ uống"])
+    }
+  }
 
   // Handle input changes
   const onChangeHandler = (event) => {
@@ -67,8 +83,6 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
       toast.error(error.response?.data?.message || "Lỗi khi cập nhật sản phẩm. Vui lòng thử lại sau.")
     }
   }
-
-  const categories = ["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart"]
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -127,6 +141,14 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
                         accept="image/*"
                       />
                     </label>
+                  )}
+                  {!imagePreview && (
+                    <input
+                      type="file"
+                      onChange={handleImageChange}
+                      accept="image/*"
+                      className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-dark hover:file:bg-primary-dark"
+                    />
                   )}
                 </div>
               </div>

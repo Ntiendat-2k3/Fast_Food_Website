@@ -35,13 +35,21 @@ const List = ({ url }) => {
   const fetchList = async (category = "Tất cả") => {
     setLoading(true)
     try {
-      const response = await axios.get(`${url}/api/food/list?category=${category !== "Tất cả" ? category : ""}`)
+      let apiUrl = `${url}/api/food/list`
+
+      // Add category filter if not "Tất cả"
+      if (category !== "Tất cả") {
+        apiUrl += `?category=${encodeURIComponent(category)}`
+      }
+
+      const response = await axios.get(apiUrl)
       if (response.data.success) {
         setList(response.data.data)
       } else {
         toast.error("Error fetching products")
       }
     } catch (error) {
+      console.error("Error fetching products:", error)
       toast.error("Error connecting to server")
     } finally {
       setLoading(false)
@@ -71,7 +79,11 @@ const List = ({ url }) => {
     // Filter items based on search term
     let filtered = list
     if (searchTerm.trim() !== "") {
-      filtered = list.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      filtered = list.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.description.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
     }
 
     setFilteredItems(filtered)
@@ -93,17 +105,13 @@ const List = ({ url }) => {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    if (searchTerm.trim() === "") {
-      fetchList(selectedCategory)
-    } else {
-      const filteredList = list.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-      setFilteredItems(filteredList)
-    }
+    // Search is handled by useEffect, no need for additional logic here
   }
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category)
     setSearchTerm("")
+    setCurrentPage(1)
   }
 
   const handleEditClick = (food) => {
@@ -218,6 +226,7 @@ const List = ({ url }) => {
             selectedCategory={selectedCategory}
             handleCategoryChange={handleCategoryChange}
             refreshList={() => fetchList(selectedCategory)}
+            url={url}
           />
         </div>
 

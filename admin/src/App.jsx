@@ -17,6 +17,7 @@ import { useState, useEffect } from "react"
 import Chat from "./pages/Chat/Chat"
 import axios from "axios"
 import Staff from "./pages/Staff/Staff"
+import Categories from "./pages/Categories/Categories"
 
 const App = () => {
   const url = "http://localhost:4000"
@@ -203,6 +204,14 @@ const App = () => {
                 element={
                   <ProtectedRoute adminOnly={true}>
                     <Revenue url={url} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/categories"
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <Categories url={url} />
                   </ProtectedRoute>
                 }
               />

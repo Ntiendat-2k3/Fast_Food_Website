@@ -16,6 +16,7 @@ import {
   Crown,
   Sparkles,
   Users,
+  Grid3X3,
 } from "lucide-react"
 import { useTheme } from "../context/ThemeContext"
 
@@ -122,6 +123,12 @@ const Sidebar = ({ onLogout, userRole }) => {
         path: "/revenue",
         name: "Doanh thu",
         icon: <PieChart size={20} />,
+        roles: ["admin"],
+      },
+      {
+        path: "/categories",
+        name: "Danh mục",
+        icon: <Grid3X3 size={20} />,
         roles: ["admin"],
       },
       {

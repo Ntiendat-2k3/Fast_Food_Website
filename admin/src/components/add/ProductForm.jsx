@@ -1,12 +1,31 @@
 "use client"
 
+import { useState, useEffect } from "react"
+import axios from "axios"
 import { FileText, Tag, DollarSign, Save } from "lucide-react"
 import FormField from "./FormField"
 import FormSelect from "./FormSelect"
 import ImageUploader from "./ImageUploader"
 
-const ProductForm = ({ data, onChangeHandler, onImageChange, onSubmit }) => {
-  const categories = ["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart"]
+const ProductForm = ({ data, onChangeHandler, onImageChange, onSubmit, url }) => {
+  const [categories, setCategories] = useState([])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(`${url}/api/category/active`)
+      if (response.data.success) {
+        setCategories(response.data.data.map((cat) => cat.name))
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+      // Fallback to default categories
+      setCategories(["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart"])
+    }
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">

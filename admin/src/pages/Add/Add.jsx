@@ -69,6 +69,7 @@ const Add = ({ url }) => {
           onChangeHandler={onChangeHandler}
           onImageChange={handleImageChange}
           onSubmit={onSubmitHandler}
+          url={url}
         />
       </div>
     </div>
