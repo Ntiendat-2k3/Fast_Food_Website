@@ -3,7 +3,7 @@
 import { useContext, useState } from "react"
 import { StoreContext } from "../context/StoreContext"
 import { useNavigate } from "react-router-dom"
-import { ShoppingCart, Star, Check, Heart, Eye, Plus } from "lucide-react"
+import { Star, Check, Heart, Eye, Plus } from "lucide-react"
 import { motion } from "framer-motion"
 import { slugify } from "../utils/slugify"
 
@@ -13,6 +13,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
   const [isAdding, setIsAdding] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const handleClick = () => {
     navigate(`/product/${slugify(name)}`)
@@ -38,6 +39,33 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
     navigate(`/product/${slugify(name)}`)
   }
 
+  // Encode filename for URL to handle special characters and spaces
+  const getImageUrl = (imageName) => {
+    if (!imageName) return "/placeholder.svg"
+
+    try {
+      // Encode the filename to handle spaces and special characters
+      const encodedName = encodeURIComponent(imageName)
+      return `${url}/images/${encodedName}`
+    } catch (error) {
+      console.error("Error encoding image name:", error)
+      return "/placeholder.svg"
+    }
+  }
+
+  const handleImageError = (e) => {
+    console.error("Image failed to load:", image, "URL:", getImageUrl(image))
+    setImageError(true)
+    e.target.src = "/placeholder.svg"
+  }
+
+  const handleImageLoad = () => {
+    setImageLoaded(true)
+    setImageError(false)
+  }
+
+  const imageUrl = imageError ? "/placeholder.svg" : getImageUrl(image)
+
   if (viewMode === "list") {
     return (
       <motion.div
@@ -51,19 +79,27 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
         <div className="flex flex-col sm:flex-row">
           {/* Image */}
           <div className="relative h-48 sm:h-32 sm:w-48 flex-shrink-0 overflow-hidden">
-            {!imageLoaded && (
+            {!imageLoaded && !imageError && (
               <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
             <img
-              src={url + "/images/" + image || "/placeholder.svg"}
+              src={imageUrl || "/placeholder.svg"}
               alt={name}
               className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
                 imageLoaded ? "opacity-100" : "opacity-0"
               }`}
-              onLoad={() => setImageLoaded(true)}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
             />
+
+            {/* Error indicator */}
+            {imageError && (
+              <div className="absolute top-2 right-2 bg-red-500/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+                No Image
+              </div>
+            )}
 
             {/* Quick Actions Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -173,20 +209,28 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
       {/* Image Container */}
       <div className="relative h-48 sm:h-56 overflow-hidden">
-        {!imageLoaded && (
+        {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
         <motion.img
-          src={url + "/images/" + image || "/placeholder.svg"}
+          src={imageUrl}
           alt={name}
           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${
             imageLoaded ? "opacity-100" : "opacity-0"
           }`}
           whileHover={{ scale: 1.1 }}
-          onLoad={() => setImageLoaded(true)}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
         />
+
+        {/* Error indicator */}
+        {imageError && (
+          <div className="absolute top-2 right-2 bg-red-500/80 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
+            No Image
+          </div>
+        )}
 
         {/* Image Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -301,7 +345,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
             </>
           ) : (
             <>
-              <ShoppingCart size={18} />
+              <Plus size={18} />
               Thêm vào giỏ
             </>
           )}

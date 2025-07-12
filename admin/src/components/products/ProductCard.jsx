@@ -1,5 +1,6 @@
 "use client"
 import { Edit, Trash2, Check } from "lucide-react"
+import { useState } from "react"
 
 const ProductCard = ({
   item,
@@ -10,6 +11,37 @@ const ProductCard = ({
   handleEditClick,
   handleDeleteClick,
 }) => {
+  const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
+
+  // Encode filename for URL to handle special characters and spaces
+  const getImageUrl = (imageName) => {
+    if (!imageName) return "/placeholder.svg"
+
+    try {
+      // Encode the filename to handle spaces and special characters
+      const encodedName = encodeURIComponent(imageName)
+      return `${url}/images/${encodedName}`
+    } catch (error) {
+      console.error("Error encoding image name:", error)
+      return "/placeholder.svg"
+    }
+  }
+
+  const handleImageError = (e) => {
+    console.error("Image failed to load:", item.image, "URL:", getImageUrl(item.image))
+    setImageError(true)
+    setImageLoading(false)
+    e.target.src = "/placeholder.svg"
+  }
+
+  const handleImageLoad = () => {
+    setImageLoading(false)
+    setImageError(false)
+  }
+
+  const imageUrl = imageError ? "/placeholder.svg" : getImageUrl(item.image)
+
   return (
     <div
       onClick={() => deleteMode && toggleSelectItem(item._id)}
@@ -20,6 +52,13 @@ const ProductCard = ({
       } ${deleteMode ? "cursor-pointer" : ""}`}
     >
       <div className="h-32 sm:h-40 md:h-48 overflow-hidden relative">
+        {/* Loading state */}
+        {imageLoading && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+
         {/* Overlay khi chọn trong chế độ xóa */}
         {deleteMode && (
           <div
@@ -32,12 +71,23 @@ const ProductCard = ({
             </div>
           </div>
         )}
+
         <img
-          src={`${url}/images/${item.image}`}
+          src={imageUrl || "/placeholder.svg"}
           alt={item.name}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
+            imageLoading ? "opacity-0" : "opacity-100"
+          }`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
         />
+
+        {/* Error indicator */}
+        {imageError && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">No Image</div>
+        )}
       </div>
+
       <div className="p-2 sm:p-3 md:p-4">
         <h3 className="font-bold text-gray-800 dark:text-white text-sm md:text-lg mb-1 line-clamp-1">{item.name}</h3>
         <div className="flex items-center mb-2">
@@ -47,7 +97,9 @@ const ProductCard = ({
           {item.description}
         </p>
         <div className="flex justify-between items-center">
-          <span className="text-sm md:text-lg font-bold text-primary">{item.price.toLocaleString("vi-VN")} đ</span>
+          <span className="text-sm md:text-lg font-bold text-primary">
+            {item.price?.toLocaleString("vi-VN") || 0} đ
+          </span>
           {!deleteMode && (
             <div className="flex space-x-1">
               <button
