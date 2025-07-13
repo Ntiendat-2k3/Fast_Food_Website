@@ -1,145 +1,75 @@
 "use client"
 
-import React from "react"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
-const Pagination = ({ currentPage, totalPages, onPageChange, className = "" }) => {
-  // Don't render pagination if there's only one page
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null
 
-  // Calculate the range of page numbers to display
-  const getPageNumbers = () => {
-    const pageNumbers = []
-    const maxPagesToShow = 5 // Show at most 5 page numbers
+  const getVisiblePages = () => {
+    const delta = 2
+    const range = []
+    const rangeWithDots = []
 
-    if (totalPages <= maxPagesToShow) {
-      // If we have 5 or fewer pages, show all of them
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i)
-      }
-    } else {
-      // Always include first page
-      pageNumbers.push(1)
-
-      // Calculate start and end of page range
-      let start = Math.max(2, currentPage - 1)
-      let end = Math.min(totalPages - 1, currentPage + 1)
-
-      // Adjust if we're at the beginning
-      if (currentPage <= 2) {
-        end = 4
-      }
-
-      // Adjust if we're at the end
-      if (currentPage >= totalPages - 2) {
-        start = totalPages - 3
-      }
-
-      // Add ellipsis after first page if needed
-      if (start > 2) {
-        pageNumbers.push("...")
-      }
-
-      // Add middle pages
-      for (let i = start; i <= end; i++) {
-        pageNumbers.push(i)
-      }
-
-      // Add ellipsis before last page if needed
-      if (end < totalPages - 1) {
-        pageNumbers.push("...")
-      }
-
-      // Always include last page
-      pageNumbers.push(totalPages)
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+      range.push(i)
     }
 
-    return pageNumbers
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, "...")
+    } else {
+      rangeWithDots.push(1)
+    }
+
+    rangeWithDots.push(...range)
+
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push("...", totalPages)
+    } else {
+      rangeWithDots.push(totalPages)
+    }
+
+    return rangeWithDots
   }
 
-  const pageNumbers = getPageNumbers()
+  const visiblePages = getVisiblePages()
 
   return (
-    <div className={`flex justify-center items-center mt-6 ${className}`}>
-      <div className="flex items-center space-x-1">
-        {/* First page button */}
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          className={`p-2 rounded-md ${
-            currentPage === 1
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-          }`}
-          aria-label="First page"
-        >
-          <ChevronsLeft size={18} />
-        </button>
+    <div className="flex items-center justify-center space-x-2">
+      {/* Previous Button */}
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
 
-        {/* Previous page button */}
+      {/* Page Numbers */}
+      {visiblePages.map((page, index) => (
         <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className={`p-2 rounded-md ${
-            currentPage === 1
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+          key={index}
+          onClick={() => typeof page === "number" && onPageChange(page)}
+          disabled={page === "..."}
+          className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            page === currentPage
+              ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-lg"
+              : page === "..."
+                ? "text-gray-400 dark:text-gray-500 cursor-default"
+                : "text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 border border-gray-300 dark:border-gray-600"
           }`}
-          aria-label="Previous page"
         >
-          <ChevronLeft size={18} />
+          {page}
         </button>
+      ))}
 
-        {/* Page numbers */}
-        {pageNumbers.map((page, index) => (
-          <React.Fragment key={index}>
-            {page === "..." ? (
-              <span className="px-3 py-2 text-gray-500 dark:text-gray-400">...</span>
-            ) : (
-              <button
-                onClick={() => onPageChange(page)}
-                className={`px-3 py-1 rounded-md ${
-                  currentPage === page
-                    ? "bg-primary text-white font-medium"
-                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                }`}
-                aria-label={`Page ${page}`}
-                aria-current={currentPage === page ? "page" : undefined}
-              >
-                {page}
-              </button>
-            )}
-          </React.Fragment>
-        ))}
-
-        {/* Next page button */}
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className={`p-2 rounded-md ${
-            currentPage === totalPages
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-          }`}
-          aria-label="Next page"
-        >
-          <ChevronRight size={18} />
-        </button>
-
-        {/* Last page button */}
-        <button
-          onClick={() => onPageChange(totalPages)}
-          disabled={currentPage === totalPages}
-          className={`p-2 rounded-md ${
-            currentPage === totalPages
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-          }`}
-          aria-label="Last page"
-        >
-          <ChevronsRight size={18} />
-        </button>
-      </div>
+      {/* Next Button */}
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
     </div>
   )
 }

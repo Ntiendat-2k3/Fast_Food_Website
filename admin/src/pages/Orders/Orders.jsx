@@ -55,10 +55,8 @@ const Orders = ({ url }) => {
     }
   }
 
-  // Update order status
-  const statusHandler = async (event, orderId) => {
-    const newStatus = event.target.value
-
+  // Update order status - Refactored to accept orderId and newStatus directly
+  const statusHandler = async (orderId, newStatus) => {
     setConfirmModal({
       isOpen: true,
       orderId: orderId,
@@ -187,7 +185,7 @@ const Orders = ({ url }) => {
                 key={order._id}
                 order={order}
                 url={url}
-                onStatusChange={statusHandler}
+                onStatusChange={statusHandler} // Pass the refactored statusHandler
                 formatDate={formatDate}
                 formatCurrency={formatCurrency}
                 SHIPPING_FEE={SHIPPING_FEE}

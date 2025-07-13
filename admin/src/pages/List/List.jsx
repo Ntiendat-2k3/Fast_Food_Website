@@ -30,7 +30,7 @@ const List = ({ url }) => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [filteredItems, setFilteredItems] = useState([])
-  const itemsPerPage = 10
+  const itemsPerPage = 12
 
   const fetchList = async (category = "Tất cả") => {
     setLoading(true)

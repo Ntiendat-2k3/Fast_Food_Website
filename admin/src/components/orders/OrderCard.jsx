@@ -1,56 +1,53 @@
 import OrderHeader from "./OrderHeader"
 import OrderItemsList from "./OrderItemsList"
 import OrderSummary from "./OrderSummary"
-import { Clock, Truck, CheckCircle, Package } from "lucide-react"
+import PaymentMethodIcon from "./PaymentMethodIcon"
 
 const OrderCard = ({ order, url, onStatusChange, formatDate, formatCurrency, SHIPPING_FEE }) => {
-  // Get status icon based on status
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Đang xử lý":
-      case "Đang chuẩn bị đồ":
-        return <Clock size={18} className="text-yellow-500" />
-      case "Đang giao hàng":
-        return <Truck size={18} className="text-blue-500" />
-      case "Đã giao":
-      case "Đã giao hàng":
-        return <CheckCircle size={18} className="text-green-500" />
-      default:
-        return <Package size={18} className="text-gray-500" />
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Đang xử lý":
-      case "Đang chuẩn bị đồ":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-      case "Đang giao hàng":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-      case "Đã giao":
-      case "Đã giao hàng":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-    }
-  }
-
   return (
-    <div className="bg-white dark:bg-dark md:rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-dark-lighter">
-      <OrderHeader
-        order={order}
-        onStatusChange={onStatusChange}
-        formatDate={formatDate}
-        getStatusColor={getStatusColor}
-        getStatusIcon={getStatusIcon}
-      />
+    <div className="bg-gray-50 dark:bg-dark-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <OrderHeader order={order} onStatusChange={onStatusChange} formatDate={formatDate} />
 
-      <div className="p-3 sm:p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <OrderItemsList items={order.items} url={url} formatCurrency={formatCurrency} />
-          <OrderSummary order={order} SHIPPING_FEE={SHIPPING_FEE} formatCurrency={formatCurrency} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div className="md:col-span-2">
+          <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200 mb-2">Chi tiết đơn hàng:</h3>
+          <OrderItemsList items={order.items} formatCurrency={formatCurrency} />
+        </div>
+        <div className="md:col-span-1">
+          <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200 mb-2">Thông tin giao hàng:</h3>
+          <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+            <p>
+              <strong>Tên:</strong> {order.address.name}
+            </p>
+            <p>
+              <strong>Số điện thoại:</strong> {order.address.phone}
+            </p>
+            <p>
+              <strong>Địa chỉ:</strong> {order.address.street}, {order.address.ward}, {order.address.district},{" "}
+              {order.address.province}
+            </p>
+            <p>
+              <strong>Mã bưu điện:</strong> {order.address.zipcode}
+            </p>
+          </div>
+
+          <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200 mt-4 mb-2">Phương thức thanh toán:</h3>
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+            <PaymentMethodIcon method={order.paymentMethod} />
+            <span className="ml-2">
+              {order.paymentMethod === "COD" ? "Thanh toán khi nhận hàng" : order.paymentMethod}
+            </span>
+          </div>
         </div>
       </div>
+
+      <OrderSummary
+        totalAmount={order.amount}
+        discount={order.discountAmount || 0}
+        shippingFee={SHIPPING_FEE}
+        formatCurrency={formatCurrency}
+        voucherCode={order.voucherCode}
+      />
     </div>
   )
 }
