@@ -1,33 +1,36 @@
 "use client"
+import { ChevronDown } from "lucide-react"
 
-import { Filter, RefreshCw } from "lucide-react"
+const OrderStatusFilter = ({ onFilter, currentFilter }) => {
+  const statusOptions = [
+    { value: "all", label: "Tất cả", count: null },
+    { value: "Đang xử lý", label: "Đang xử lý", count: null },
+    { value: "Đang giao hàng", label: "Đang giao hàng", count: null },
+    { value: "Đã giao", label: "Đã giao", count: null },
+    { value: "Đã hủy", label: "Đã hủy", count: null },
+  ]
 
-const OrderStatusFilter = ({ statusFilter, setStatusFilter, onRefresh }) => {
+  const getCurrentLabel = () => {
+    const current = statusOptions.find((option) => option.value === currentFilter)
+    return current ? current.label : "Tất cả"
+  }
+
   return (
-    <div className="flex items-center space-x-2">
-      <div className="relative flex-grow">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Filter className="h-4 w-4 text-gray-400" />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="pl-10 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark py-2 px-4 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="Tất cả">Tất cả trạng thái</option>
-          <option value="Đang xử lý">Đang xử lý</option>
-          <option value="Đang chuẩn bị đồ">Đang chuẩn bị đồ</option>
-          <option value="Đang giao hàng">Đang giao hàng</option>
-          <option value="Đã giao">Đã giao</option>
-        </select>
-      </div>
-      <button
-        onClick={onRefresh}
-        className="p-2 bg-gray-100 dark:bg-dark-lighter rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-dark transition-colors flex-shrink-0"
-        title="Refresh"
+    <div className="relative">
+      <select
+        value={currentFilter}
+        onChange={(e) => onFilter(e.target.value)}
+        className="appearance-none px-4 py-2 bg-gray-800/50 border border-gray-600 rounded-xl text-white focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all duration-300 cursor-pointer pr-10"
       >
-        <RefreshCw size={18} />
-      </button>
+        {statusOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+        <ChevronDown className="h-4 w-4 text-gray-400" />
+      </div>
     </div>
   )
 }

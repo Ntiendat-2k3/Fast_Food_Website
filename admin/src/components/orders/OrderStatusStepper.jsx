@@ -1,76 +1,55 @@
 "use client"
 
-import { Clock, Utensils, Truck, CheckCircle } from "lucide-react"
-import { cn } from "../../lib/utils" // Corrected import path for cn
+import { Clock, Truck, CheckCircle, XCircle } from "lucide-react"
 
-const STATUS_STEPS = [
-  { status: "Đang xử lý", icon: Clock },
-  { status: "Đang chuẩn bị đồ", icon: Utensils },
-  { status: "Đang giao hàng", icon: Truck },
-  { status: "Đã giao", icon: CheckCircle },
-]
+const OrderStatusStepper = ({ currentStatus }) => {
+  const steps = [
+    { status: "Food Processing", label: "Processing", icon: Clock, color: "orange" },
+    { status: "Out for delivery", label: "Delivery", icon: Truck, color: "blue" },
+    { status: "Delivered", label: "Delivered", icon: CheckCircle, color: "green" },
+  ]
 
-const OrderStatusStepper = ({ currentStatus, orderId, onStatusChange }) => {
-  const currentIndex = STATUS_STEPS.findIndex((step) => step.status === currentStatus)
+  const getCurrentStepIndex = () => {
+    if (currentStatus === "Cancelled") return -1
+    return steps.findIndex((step) => step.status === currentStatus)
+  }
 
-  const handleStepClick = (newStatus, index) => {
-    // Prevent moving backward or clicking the current/already completed steps
-    // Also, only allow moving to the immediate next step
-    if (index <= currentIndex || index > currentIndex + 1) {
-      return
-    }
-    onStatusChange(orderId, newStatus)
+  const currentStepIndex = getCurrentStepIndex()
+
+  if (currentStatus === "Cancelled") {
+    return (
+      <div className="flex items-center justify-center p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <XCircle className="w-4 h-4 text-red-400 mr-2" />
+        <span className="text-sm font-medium text-red-400">Order Cancelled</span>
+      </div>
+    )
   }
 
   return (
-    <div className="flex items-center justify-between w-full max-w-md mx-auto mt-4 sm:mt-0">
-      {STATUS_STEPS.map((step, index) => {
-        const Icon = step.icon
-        const isCompleted = index < currentIndex
-        const isActive = index === currentIndex
-        const isDisabled = index < currentIndex || index > currentIndex + 1 // Can only move to next step
+    <div className="flex items-center justify-between p-3 bg-gray-800/20 rounded-lg border border-gray-700/30">
+      {steps.map((step, index) => {
+        const StepIcon = step.icon
+        const isActive = index <= currentStepIndex
+        const isCurrent = index === currentStepIndex
 
         return (
-          <div key={step.status} className="flex items-center flex-1">
+          <div key={step.status} className="flex items-center">
             <div
-              className={cn(
-                "flex flex-col items-center relative z-10 cursor-pointer transition-all duration-300",
-                isDisabled ? "opacity-50 cursor-not-allowed" : "hover:scale-105",
-              )}
-              onClick={() => !isDisabled && handleStepClick(step.status, index)}
+              className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all duration-300 ${
+                isActive ? `bg-${step.color}-500 border-${step.color}-500` : "bg-gray-700 border-gray-600"
+              }`}
             >
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-white",
-                  isCompleted
-                    ? "bg-green-500"
-                    : isActive
-                      ? "bg-primary"
-                      : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300",
-                )}
-              >
-                <Icon size={16} />
-              </div>
-              <span
-                className={cn(
-                  "mt-1 text-xs text-center font-medium whitespace-nowrap",
-                  isCompleted
-                    ? "text-green-600 dark:text-green-400"
-                    : isActive
-                      ? "text-primary dark:text-primary-light"
-                      : "text-gray-500 dark:text-gray-400",
-                )}
-              >
-                {step.status}
-              </span>
+              <StepIcon className={`w-3 h-3 ${isActive ? "text-white" : "text-gray-400"}`} />
             </div>
-            {index < STATUS_STEPS.length - 1 && (
+            <span className={`ml-2 text-xs font-medium ${isActive ? `text-${step.color}-400` : "text-gray-400"}`}>
+              {step.label}
+            </span>
+            {index < steps.length - 1 && (
               <div
-                className={cn(
-                  "flex-1 h-0.5 mx-2 transition-all duration-300",
-                  isCompleted ? "bg-green-500" : isActive ? "bg-primary" : "bg-gray-300 dark:bg-gray-600",
-                )}
-              ></div>
+                className={`w-8 h-0.5 mx-3 transition-all duration-300 ${
+                  index < currentStepIndex ? `bg-${step.color}-500` : "bg-gray-600"
+                }`}
+              />
             )}
           </div>
         )

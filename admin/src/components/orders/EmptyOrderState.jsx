@@ -1,28 +1,33 @@
 "use client"
-import { PackageX, Plus } from "lucide-react"
+
+import { Package, Plus, RefreshCw } from "lucide-react"
 
 const EmptyOrderState = () => {
   return (
-    <div className="relative flex flex-col items-center justify-center p-8 bg-neutral-900 rounded-xl shadow-lg text-center min-h-[400px] overflow-hidden border border-neutral-800">
-      {/* Animated background circles */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute w-48 h-48 bg-amber-500 rounded-full opacity-10 -top-10 -left-10 animate-float-slow"></div>
-        <div className="absolute w-64 h-64 bg-yellow-500 rounded-full opacity-10 -bottom-20 -right-20 animate-float-medium"></div>
-        <div className="absolute w-32 h-32 bg-amber-400 rounded-full opacity-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-float-fast"></div>
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="relative mb-6">
+        <div className="w-20 h-20 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl flex items-center justify-center border border-gray-700">
+          <Package className="w-10 h-10 text-gray-500" />
+        </div>
+        <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+          <Plus className="w-3 h-3 text-black" />
+        </div>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center">
-        <div className="p-4 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full mb-6 shadow-xl">
-          <PackageX className="w-16 h-16 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-white mb-3">Không có đơn hàng nào</h2>
-        <p className="text-gray-300 mb-6 max-w-md">
-          Có vẻ như chưa có đơn hàng nào được tạo hoặc không khớp với tiêu chí tìm kiếm của bạn.
-        </p>
-        <button className="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white font-semibold rounded-lg shadow-md hover:from-amber-600 hover:to-yellow-600 transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
-          <Plus className="w-5 h-5" />
-          Tạo đơn hàng mới
+      <h3 className="text-xl font-semibold text-white mb-2">Không tìm thấy đơn hàng</h3>
+      <p className="text-gray-400 text-center mb-6 max-w-md">
+        Không có đơn hàng nào phù hợp với bộ lọc hiện tại. Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc kiểm tra lại sau.
+      </p>
+
+      <div className="flex items-center gap-3">
+        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300">
+          <RefreshCw className="w-4 h-4" />
+          Làm mới đơn hàng
         </button>
+      </div>
+
+      <div className="mt-8 text-center">
+        <p className="text-xs text-gray-500">Đơn hàng sẽ xuất hiện ở đây khi khách hàng bắt đầu đặt hàng</p>
       </div>
     </div>
   )

@@ -1,291 +1,290 @@
 "use client"
 
 import { useState } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { NavLink, useLocation } from "react-router-dom"
 import {
+  Home,
   Package,
   ShoppingCart,
-  User,
-  LogOut,
+  Users,
+  MessageCircle,
+  BarChart3,
+  ChevronDown,
+  ChevronRight,
   Menu,
   X,
-  PieChart,
-  Tag,
-  MessageSquare,
   Plus,
-  Crown,
-  Sparkles,
-  Users,
+  List,
   Grid3X3,
+  UserCheck,
+  MessageSquare,
+  Gift,
+  Bell,
+  User,
+  LogOut,
+  ChevronLeft,
 } from "lucide-react"
-import { useTheme } from "../context/ThemeContext"
 
-// Lazy load NotificationBell with error boundary
-const NotificationBell = ({ url }) => {
-  try {
-    const NotificationBellComponent = require("./notifications/NotificationBell").default
-    return <NotificationBellComponent url={url} />
-  } catch (error) {
-    console.error("Error loading NotificationBell:", error)
-    return null
-  }
-}
-
-const Sidebar = ({ onLogout, userRole }) => {
-  const [isOpen, setIsOpen] = useState(false)
+const Sidebar = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState({})
   const location = useLocation()
-  const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
-  const url = "http://localhost:4000"
 
-  // Get user role from props or localStorage as fallback
-  const getCurrentUserRole = () => {
-    if (userRole) return userRole
+  const menuItems = [
+    {
+      id: "dashboard",
+      title: "Tổng quan",
+      icon: Home,
+      path: "/",
+      color: "from-blue-500 to-blue-600",
+    },
+    {
+      id: "products",
+      title: "Sản phẩm",
+      icon: Package,
+      color: "from-green-500 to-green-600",
+      submenu: [
+        { title: "Thêm sản phẩm", path: "/add", icon: Plus },
+        { title: "Danh sách", path: "/list", icon: List },
+        { title: "Danh mục", path: "/categories", icon: Grid3X3 },
+      ],
+    },
+    {
+      id: "orders",
+      title: "Đơn hàng",
+      icon: ShoppingCart,
+      path: "/orders",
+      color: "from-amber-500 to-yellow-500",
+      badge: "12",
+    },
+    {
+      id: "customers",
+      title: "Khách hàng",
+      icon: Users,
+      color: "from-purple-500 to-purple-600",
+      submenu: [
+        { title: "Danh sách KH", path: "/customers", icon: Users },
+        { title: "Nhân viên", path: "/staff", icon: UserCheck },
+      ],
+    },
+    {
+      id: "communication",
+      title: "Giao tiếp",
+      icon: MessageCircle,
+      color: "from-pink-500 to-pink-600",
+      submenu: [
+        { title: "Tin nhắn", path: "/chat", icon: MessageSquare },
+        { title: "Bình luận", path: "/comments", icon: MessageCircle },
+      ],
+    },
+    {
+      id: "marketing",
+      title: "Marketing",
+      icon: Gift,
+      color: "from-indigo-500 to-indigo-600",
+      submenu: [
+        { title: "Voucher", path: "/vouchers", icon: Gift },
+        { title: "Thông báo", path: "/notifications", icon: Bell },
+      ],
+    },
+    {
+      id: "reports",
+      title: "Báo cáo",
+      icon: BarChart3,
+      path: "/revenue",
+      color: "from-red-500 to-red-600",
+    },
+    {
+      id: "profile",
+      title: "Hồ sơ",
+      icon: User,
+      path: "/profile",
+      color: "from-gray-500 to-gray-600",
+    },
+  ]
 
-    try {
-      const userData = localStorage.getItem("user") || sessionStorage.getItem("user")
-      if (userData) {
-        const user = JSON.parse(userData)
-        return user.role
-      }
-    } catch (error) {
-      console.error("Error parsing user data:", error)
+  const toggleMenu = (menuId) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [menuId]: !prev[menuId],
+    }))
+  }
+
+  const isActiveMenu = (item) => {
+    if (item.path) {
+      return location.pathname === item.path
     }
-    return "staff" // Default to staff if no role found
-  }
-
-  const currentUserRole = getCurrentUserRole()
-  console.log("Sidebar - Current user role:", currentUserRole)
-
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen)
-  }
-
-  const closeSidebar = () => {
-    setIsOpen(false)
-  }
-
-  const handleLogout = () => {
-    if (onLogout) {
-      onLogout()
+    if (item.submenu) {
+      return item.submenu.some((sub) => location.pathname === sub.path)
     }
-    navigate("/login")
+    return false
   }
 
-  const isActive = (path) => {
+  const isActiveSubmenu = (path) => {
     return location.pathname === path
   }
 
-  // Define menu items based on role
-  const getMenuItems = () => {
-    const baseItems = [
-      {
-        path: "/orders",
-        name: "Đơn hàng",
-        icon: <ShoppingCart size={20} />,
-        roles: ["admin", "staff"],
-      },
-      {
-        path: "/list",
-        name: "Sản phẩm",
-        icon: <Package size={20} />,
-        roles: ["admin", "staff"], // Staff can view but not modify
-      },
-      {
-        path: "/vouchers",
-        name: "Mã giảm giá",
-        icon: <Tag size={20} />,
-        roles: ["admin", "staff"],
-      },
-      {
-        path: "/comments",
-        name: "Quản lý người dùng",
-        icon: <MessageSquare size={20} />,
-        roles: ["admin", "staff"],
-      },
-      {
-        path: "/profile",
-        name: "Hồ sơ",
-        icon: <User size={20} />,
-        roles: ["admin", "staff"],
-      },
-      {
-        path: "/chat",
-        name: "Quản lý tin nhắn",
-        icon: <MessageSquare size={20} />,
-        roles: ["admin", "staff"],
-      },
-    ]
-
-    // Admin-only items
-    const adminOnlyItems = [
-      {
-        path: "/revenue",
-        name: "Doanh thu",
-        icon: <PieChart size={20} />,
-        roles: ["admin"],
-      },
-      {
-        path: "/categories",
-        name: "Danh mục",
-        icon: <Grid3X3 size={20} />,
-        roles: ["admin"],
-      },
-      {
-        path: "/add",
-        name: "Thêm sản phẩm",
-        icon: <Plus size={20} />,
-        roles: ["admin"],
-      },
-      {
-        path: "/staff",
-        name: "Quản lý nhân viên",
-        icon: <Users size={20} />,
-        roles: ["admin"],
-      },
-    ]
-
-    // Combine items and filter by role
-    const allItems = [...adminOnlyItems, ...baseItems]
-    const filteredItems = allItems.filter((item) => item.roles.includes(currentUserRole))
-
-    console.log(
-      "Filtered menu items for role",
-      currentUserRole,
-      ":",
-      filteredItems.map((item) => item.name),
-    )
-
-    return filteredItems
-  }
-
-  const menuItems = getMenuItems()
-
-  return (
-    <>
-      {/* Mobile menu button */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-dark-card border-b border-dark-border shadow-dark-lg md:hidden">
-        <button
-          onClick={toggleSidebar}
-          className="p-2 rounded-xl text-golden-400 hover:bg-dark-lighter hover:shadow-golden/20 focus:outline-none transition-all duration-300"
-        >
-          <Menu size={22} />
-        </button>
-        <div className="flex items-center space-x-3">
-          <NotificationBell url={url} />
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700/50">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center">
+                <Package className="w-6 h-6 text-black" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">FastFood</h2>
+                <p className="text-xs text-gray-400">Admin Panel</p>
+              </div>
+            </div>
+          )}
           <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl text-golden-400 hover:bg-dark-lighter hover:shadow-golden/20 focus:outline-none transition-all duration-300"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 rounded-lg bg-gray-800/50 border border-gray-600 text-gray-400 hover:text-amber-400 hover:border-amber-400/50 transition-all duration-300"
           >
-            <Sparkles size={18} />
-          </button>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-xl text-red-400 hover:bg-red-900/20 hover:shadow-red-500/20 focus:outline-none transition-all duration-300"
-          >
-            <LogOut size={18} />
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Sidebar overlay for mobile */}
-      <div
-        className={`fixed inset-0 z-50 md:hidden ${
-          isOpen ? "block" : "hidden"
-        } bg-black/80 backdrop-blur-sm transition-opacity duration-300`}
-        onClick={closeSidebar}
-      ></div>
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-gradient-to-b from-dark to-dark-light shadow-2xl transform transition-transform duration-300 ease-in-out md:translate-x-0 border-r border-dark-border ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-dark-border bg-dark-card">
-          <Link
-            to={currentUserRole === "admin" ? "/revenue" : "/orders"}
-            className="flex items-center space-x-3 hover:scale-105 transition-transform duration-300"
-            onClick={closeSidebar}
-          >
-            <div className="relative">
-              <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-golden rounded-full animate-pulse"></div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold bg-gradient-golden bg-clip-text text-transparent">
-                {currentUserRole === "admin" ? "Admin Panel" : "Staff Panel"}
-              </span>
-              <div className="flex items-center space-x-2">
-                {currentUserRole === "admin" && <Crown size={12} className="text-golden-400" />}
-                <span className="text-sm text-golden-400 capitalize font-medium">{currentUserRole}</span>
-              </div>
-            </div>
-          </Link>
-          <div className="flex items-center space-x-2">
-            <div className="hidden md:block">
-              <NotificationBell url={url} />
-            </div>
-            <button
-              onClick={closeSidebar}
-              className="p-2 rounded-xl text-gray-400 hover:bg-dark-lighter hover:text-golden-400 md:hidden focus:outline-none transition-all duration-300"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="mt-6 px-4 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-golden">
-          <ul className="space-y-2">
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`sidebar-item ${isActive(item.path) ? "active" : "text-gray-300 hover:text-golden-400"}`}
-                  onClick={closeSidebar}
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {menuItems.map((item) => (
+          <div key={item.id}>
+            {item.submenu ? (
+              <div>
+                <button
+                  onClick={() => toggleMenu(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group ${
+                    isActiveMenu(item)
+                      ? "bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-amber-400/30 text-amber-400"
+                      : "text-gray-300 hover:bg-gray-800/50 hover:text-white"
+                  }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        isActive(item.path) ? "bg-white/20" : "bg-dark-lighter group-hover:bg-golden-500/20"
-                      } transition-all duration-300`}
-                    >
-                      {item.icon}
-                    </div>
-                    <span className="font-medium">{item.name}</span>
+                  <div
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color} ${
+                      isCollapsed ? "w-6 h-6" : ""
+                    }`}
+                  >
+                    <item.icon className={`text-white ${isCollapsed ? "w-4 h-4" : "w-5 h-5"}`} />
                   </div>
-                  {isActive(item.path) && (
-                    <div className="ml-auto">
-                      <Sparkles size={16} className="text-white animate-pulse" />
-                    </div>
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 text-left font-medium">{item.title}</span>
+                      {item.badge && (
+                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
+                      )}
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform duration-300 ${
+                          expandedMenus[item.id] ? "rotate-180" : ""
+                        }`}
+                      />
+                    </>
                   )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        {/* Footer */}
-        <div className="absolute bottom-0 w-full p-4 border-t border-dark-border bg-dark-card">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={toggleTheme}
-              className="flex items-center space-x-3 px-4 py-3 text-golden-400 hover:bg-dark-lighter rounded-xl transition-all duration-300 hover:shadow-golden/20"
-            >
-              <Sparkles size={18} />
-              <span className="font-medium">Golden Theme</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center p-3 text-red-400 hover:bg-red-900/20 rounded-xl transition-all duration-300 hover:shadow-red-500/20"
-              title="Đăng xuất"
-            >
-              <LogOut size={18} />
-            </button>
+                </button>
+                {!isCollapsed && expandedMenus[item.id] && (
+                  <div className="ml-6 mt-2 space-y-1">
+                    {item.submenu.map((subItem) => (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                          isActiveSubmenu(subItem.path)
+                            ? "bg-amber-400/10 text-amber-400 border-l-2 border-amber-400"
+                            : "text-gray-400 hover:bg-gray-800/30 hover:text-white"
+                        }`}
+                      >
+                        <subItem.icon className="w-4 h-4" />
+                        <span className="text-sm">{subItem.title}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <NavLink
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group ${
+                  isActiveMenu(item)
+                    ? "bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-amber-400/30 text-amber-400"
+                    : "text-gray-300 hover:bg-gray-800/50 hover:text-white"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color} ${
+                    isCollapsed ? "w-6 h-6" : ""
+                  }`}
+                >
+                  <item.icon className={`text-white ${isCollapsed ? "w-4 h-4" : "w-5 h-5"}`} />
+                </div>
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 font-medium">{item.title}</span>
+                    {item.badge && (
+                      <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            )}
           </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      {!isCollapsed && (
+        <div className="p-4 border-t border-gray-700/50">
+          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600">
+              <LogOut className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-medium">Đăng xuất</span>
+          </button>
         </div>
-      </aside>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setIsMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-gray-900 via-black to-gray-900 border-r border-gray-700/50 backdrop-blur-xl z-50 transition-all duration-300 ${
+          isCollapsed ? "w-20" : "w-64"
+        } ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+      >
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setIsMobileOpen(false)}
+          className="absolute top-4 right-4 lg:hidden p-2 text-gray-400 hover:text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <SidebarContent />
+      </div>
+
+      {/* Main Content Spacer */}
+      <div className={`${isCollapsed ? "lg:ml-20" : "lg:ml-64"} transition-all duration-300`} />
     </>
   )
 }

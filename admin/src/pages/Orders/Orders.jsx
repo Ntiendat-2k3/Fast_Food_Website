@@ -1,151 +1,116 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
 import axios from "axios"
-import ConfirmModal from "../../components/ConfirmModal"
-import Pagination from "../../components/Pagination"
+import { Package, TrendingUp, Clock, CheckCircle, RefreshCw, Download, DollarSign } from "lucide-react"
+import OrderCard from "../../components/orders/OrderCard"
 import OrderSearchBar from "../../components/orders/OrderSearchBar"
 import OrderStatusFilter from "../../components/orders/OrderStatusFilter"
-import OrderCard from "../../components/orders/OrderCard"
 import EmptyOrderState from "../../components/orders/EmptyOrderState"
 
 const Orders = ({ url }) => {
   const [orders, setOrders] = useState([])
+  const [filteredOrders, setFilteredOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredOrders, setFilteredOrders] = useState([])
-  const [statusFilter, setStatusFilter] = useState("Tất cả")
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    orderId: null,
-    newStatus: "",
-    title: "",
-    message: "",
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    processing: 0,
+    delivered: 0,
+    revenue: 0,
   })
 
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
-
-  // Phí ship cố định
-  const SHIPPING_FEE = 14000
-
-  // Fetch all orders from API
   const fetchAllOrders = async () => {
-    setLoading(true)
     try {
       const response = await axios.get(url + "/api/order/list")
       if (response.data.success) {
-        // Sort orders by date (newest first)
-        const sortedOrders = response.data.data.sort((a, b) => {
-          return new Date(b.date) - new Date(a.date)
-        })
-        console.log("Orders data:", sortedOrders) // Debug log
-        setOrders(sortedOrders)
-        setFilteredOrders(sortedOrders)
+        const ordersData = response.data.data
+        setOrders(ordersData)
+        setFilteredOrders(ordersData)
+        calculateStats(ordersData)
       } else {
-        toast.error(response.data.message || "Lỗi khi tải danh sách đơn hàng")
+        toast.error("Lỗi khi tải danh sách đơn hàng")
       }
     } catch (error) {
       console.error("Error fetching orders:", error)
-      toast.error(error.response?.data?.message || "Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.")
+      toast.error("Lỗi kết nối server")
     } finally {
       setLoading(false)
     }
   }
 
-  // Update order status - Refactored to accept orderId and newStatus directly
-  const statusHandler = async (orderId, newStatus) => {
-    setConfirmModal({
-      isOpen: true,
-      orderId: orderId,
-      newStatus: newStatus,
-      title: "Xác nhận thay đổi trạng thái",
-      message: `Bạn có chắc chắn muốn thay đổi trạng thái đơn hàng thành "${newStatus}"?`,
-    })
+  const calculateStats = (ordersData) => {
+    const stats = {
+      total: ordersData.length,
+      pending: ordersData.filter((order) => order.status === "Đang xử lý").length,
+      processing: ordersData.filter((order) => order.status === "Đang giao hàng").length,
+      delivered: ordersData.filter((order) => order.status === "Đã giao").length,
+      revenue: ordersData.reduce((sum, order) => sum + order.amount, 0),
+    }
+    setStats(stats)
   }
 
-  const handleConfirmStatusChange = async () => {
+  const statusHandler = async (event, orderId) => {
     try {
       const response = await axios.post(url + "/api/order/status", {
-        orderId: confirmModal.orderId,
-        status: confirmModal.newStatus,
+        orderId,
+        status: event.target.value,
       })
-
       if (response.data.success) {
         await fetchAllOrders()
-        toast.success("Trạng thái đơn hàng đã được cập nhật")
-      } else {
-        toast.error(response.data.message || "Lỗi khi cập nhật trạng thái đơn hàng")
+        toast.success("Cập nhật trạng thái thành công")
       }
     } catch (error) {
-      console.error("Error updating order status:", error)
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật trạng thái đơn hàng. Vui lòng thử lại sau.")
+      console.error("Error updating status:", error)
+      toast.error("Lỗi khi cập nhật trạng thái")
+    }
+  }
+
+  const handleSearch = (term) => {
+    setSearchTerm(term)
+    filterOrders(term, statusFilter)
+  }
+
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status)
+    filterOrders(searchTerm, status)
+  }
+
+  const filterOrders = (search, status) => {
+    let filtered = orders
+
+    if (search) {
+      filtered = filtered.filter(
+        (order) =>
+          order._id.toLowerCase().includes(search.toLowerCase()) ||
+          order.address.name.toLowerCase().includes(search.toLowerCase()) ||
+          order.address.phone.includes(search),
+      )
     }
 
-    // Close the confirmation modal
-    setConfirmModal({
-      isOpen: false,
-      orderId: null,
-      newStatus: "",
-      title: "",
-      message: "",
-    })
+    if (status !== "all") {
+      filtered = filtered.filter((order) => order.status === status)
+    }
+
+    setFilteredOrders(filtered)
   }
 
   useEffect(() => {
     fetchAllOrders()
   }, [])
 
-  useEffect(() => {
-    // Filter orders based on search term and status filter
-    let filtered = orders
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-          order.address.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.address.phone.includes(searchTerm) ||
-          order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (order.voucherCode && order.voucherCode.toLowerCase().includes(searchTerm.toLowerCase())),
-      )
-    }
-
-    if (statusFilter !== "Tất cả") {
-      filtered = filtered.filter((order) => order.status === statusFilter)
-    }
-
-    setFilteredOrders(filtered)
-    setCurrentPage(1) // Reset to first page when filters change
-  }, [searchTerm, statusFilter, orders])
-
-  // Get current page items
-  const getCurrentItems = () => {
-    const indexOfLastItem = currentPage * itemsPerPage
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage
-    return filteredOrders.slice(indexOfFirstItem, indexOfLastItem)
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(amount)
   }
 
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber)
-  }
-
-  // Format date function
-  const formatDate = (dateString) => {
-    if (!dateString) return "Không có ngày"
-
-    const date = new Date(dateString)
-
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      return "Ngày không hợp lệ"
-    }
-
-    // Format date to Vietnamese format
-    return date.toLocaleDateString("vi-VN", {
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -154,70 +119,144 @@ const Orders = ({ url }) => {
     })
   }
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return amount?.toLocaleString("vi-VN") + " đ" || "0 đ"
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-white text-lg">Đang tải đơn hàng...</span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const currentItems = getCurrentItems()
-
   return (
-    <div className="w-full">
-      <div className="bg-white dark:bg-dark-light md:rounded-2xl md:shadow-custom p-3 md:p-6 mb-4 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-6">Quản lý đơn hàng</h1>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6">
+      {/* Floating Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-amber-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-40 right-32 w-96 h-96 bg-yellow-500/3 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-32 left-1/3 w-80 h-80 bg-amber-400/4 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
 
-        <div className="flex flex-col md:flex-row justify-between gap-3 mb-4 md:mb-6">
-          {/* Search Bar */}
-          <OrderSearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <div className="relative z-10 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <Package className="w-6 h-6 text-black" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-white">Quản lý đơn hàng</h1>
+              <p className="text-gray-400">Theo dõi và xử lý các đơn hàng</p>
+            </div>
+          </div>
 
-          {/* Status Filter */}
-          <OrderStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} onRefresh={fetchAllOrders} />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div className="stats-card-compact">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{stats.total}</p>
+                  <p className="text-xs text-gray-400">Tổng đơn</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="stats-card-compact">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{stats.pending}</p>
+                  <p className="text-xs text-gray-400">Chờ xử lý</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="stats-card-compact">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{stats.processing}</p>
+                  <p className="text-xs text-gray-400">Đang giao</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="stats-card-compact">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-white">{stats.delivered}</p>
+                  <p className="text-xs text-gray-400">Hoàn thành</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="stats-card-compact">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-black" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-white">{formatCurrency(stats.revenue)}</p>
+                  <p className="text-xs text-gray-400">Doanh thu</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Filter */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <OrderSearchBar onSearch={handleSearch} />
+            </div>
+            <div className="flex gap-3">
+              <OrderStatusFilter onFilter={handleStatusFilter} currentFilter={statusFilter} />
+              <button
+                onClick={fetchAllOrders}
+                className="px-4 py-2 bg-gray-800/50 border border-gray-600 rounded-xl text-gray-300 hover:text-amber-400 hover:border-amber-400/50 transition-all duration-300 flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span className="hidden sm:inline">Làm mới</span>
+              </button>
+              <button className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Xuất file</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        ) : filteredOrders.length > 0 ? (
-          <div className="space-y-3 md:space-y-4">
-            {currentItems.map((order) => (
+        {/* Orders List */}
+        <div className="space-y-4">
+          {filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
               <OrderCard
                 key={order._id}
                 order={order}
-                url={url}
-                onStatusChange={statusHandler} // Pass the refactored statusHandler
+                onStatusChange={statusHandler}
                 formatDate={formatDate}
                 formatCurrency={formatCurrency}
-                SHIPPING_FEE={SHIPPING_FEE}
+                url={url}
               />
-            ))}
-
-            {/* Pagination */}
-            <div className="px-3 md:px-0">
-              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
-            </div>
-          </div>
-        ) : (
-          <EmptyOrderState />
-        )}
+            ))
+          ) : (
+            <EmptyOrderState />
+          )}
+        </div>
       </div>
-
-      {/* Confirm Status Change Modal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        onClose={() =>
-          setConfirmModal({
-            isOpen: false,
-            orderId: null,
-            newStatus: "",
-            title: "",
-            message: "",
-          })
-        }
-        onConfirm={handleConfirmStatusChange}
-        title={confirmModal.title}
-        message={confirmModal.message}
-      />
     </div>
   )
 }
