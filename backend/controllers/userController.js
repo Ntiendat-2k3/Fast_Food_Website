@@ -254,8 +254,15 @@ const getAllUsers = async (req, res) => {
       return res.json({ success: false, message: "Không có quyền truy cập" })
     }
 
-    console.log("Fetching users from database...")
-    const users = await userModel.find({}).select("-password").sort({ createdAt: -1 })
+    const { role } = req.query // Get role from query parameters
+    const query = {}
+
+    if (role) {
+      query.role = role // Filter by role if provided
+    }
+
+    console.log("Fetching users from database with query:", query)
+    const users = await userModel.find(query).select("-password").sort({ createdAt: -1 })
     console.log(`Successfully found ${users.length} users`)
 
     res.json({

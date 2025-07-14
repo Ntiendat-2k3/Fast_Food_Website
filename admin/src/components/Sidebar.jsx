@@ -64,7 +64,7 @@ const Sidebar = () => {
       icon: Users,
       color: "from-purple-500 to-purple-600",
       submenu: [
-        { title: "Danh sách KH", path: "/customers", icon: Users },
+        { title: "Danh sách KH", path: "/customers", icon: Users }, // New: Customer List
         { title: "Nhân viên", path: "/staff", icon: UserCheck },
       ],
     },
@@ -85,7 +85,7 @@ const Sidebar = () => {
       color: "from-indigo-500 to-indigo-600",
       submenu: [
         { title: "Voucher", path: "/vouchers", icon: Gift },
-        { title: "Thông báo", path: "/notifications", icon: Bell },
+        { title: "Thông báo", path: "/notifications", icon: Bell }, // Moved: Notifications
       ],
     },
     {

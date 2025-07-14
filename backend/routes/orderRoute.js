@@ -7,6 +7,7 @@ import {
   updateStatus,
   updatePaymentStatus,
   getRevenueStats,
+  exportInvoice, // Import the new function
 } from "../controllers/orderController.js"
 import { getUserPurchaseHistory } from "../controllers/purchaseHistoryController.js"
 import requireSignIn, { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
@@ -26,5 +27,6 @@ orderRouter.post("/payment-status", verifyStaffOrAdmin, updatePaymentStatus)
 
 // Admin only routes
 orderRouter.get("/revenue-stats", verifyAdmin, getRevenueStats)
+orderRouter.get("/export-invoice/:orderId", verifyStaffOrAdmin, exportInvoice)
 
 export default orderRouter

@@ -98,6 +98,33 @@ const Orders = ({ url }) => {
     setFilteredOrders(filtered)
   }
 
+  const handleExportInvoice = async (orderId) => {
+    try {
+      toast.info("Đang tạo hóa đơn...", { autoClose: 2000 })
+      const response = await axios.get(`${url}/api/order/export-invoice/${orderId}`, {
+        responseType: "blob", // Important for downloading files
+      })
+
+      if (response.status === 200) {
+        const blob = new Blob([response.data], { type: "application/pdf" })
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = downloadUrl
+        link.setAttribute("download", `invoice_${orderId.slice(-8).toUpperCase()}.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(downloadUrl)
+        toast.success("Hóa đơn đã được tải xuống!")
+      } else {
+        toast.error("Không thể tạo hóa đơn.")
+      }
+    } catch (error) {
+      console.error("Error exporting invoice:", error)
+      toast.error("Lỗi khi xuất hóa đơn. Vui lòng thử lại.")
+    }
+  }
+
   useEffect(() => {
     fetchAllOrders()
   }, [])
@@ -249,6 +276,7 @@ const Orders = ({ url }) => {
                 onStatusChange={statusHandler}
                 formatDate={formatDate}
                 formatCurrency={formatCurrency}
+                onExportInvoice={handleExportInvoice} // Pass the new handler
                 url={url}
               />
             ))

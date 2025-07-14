@@ -1,6 +1,13 @@
 import orderModel from "../models/orderModel.js"
 import userModel from "../models/userModel.js"
 import notificationModel from "../models/notificationModel.js"
+import PDFDocument from "pdfkit"
+import path from "path"
+import { fileURLToPath } from "url"
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // placing user order from frontend
 const placeOrder = async (req, res) => {
@@ -38,6 +45,7 @@ const placeOrder = async (req, res) => {
       amount: amount,
       address: address,
       date: new Date(),
+      status: "Đang xử lý", // Set initial status
       paymentMethod: paymentMethod || "COD",
       paymentStatus: paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
       voucherCode: voucherCode || null,
@@ -234,6 +242,170 @@ const getRevenueStats = async (req, res) => {
   } catch (error) {
     console.log("Error getting revenue stats:", error)
     res.json({ success: false, message: "Lỗi khi lấy thống kê doanh thu" })
+  }
+}
+
+// Export invoice as PDF
+const exportInvoice = async (req, res) => {
+  try {
+    const { orderId } = req.params
+    const order = await orderModel.findById(orderId)
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" })
+    }
+
+    const doc = new PDFDocument({ size: "A4", margin: 50 })
+
+    // Register font for Vietnamese characters
+    // Make sure 'Roboto-Regular.ttf' is in backend/fonts/
+    try {
+      doc.registerFont("Roboto", path.join(__dirname, "../fonts/Roboto-Regular.ttf"))
+      doc.registerFont("Roboto-Bold", path.join(__dirname, "../fonts/Roboto-Bold.ttf"))
+    } catch (fontError) {
+      console.error("Error registering font:", fontError)
+      doc.font("Helvetica")
+    }
+
+    res.setHeader("Content-Type", "application/pdf")
+    res.setHeader("Content-Disposition", `attachment; filename=invoice_${order._id}.pdf`)
+
+    doc.pipe(res)
+
+    // Helper function to format currency
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+      }).format(amount)
+    }
+
+    // Helper function to format date
+    const formatDate = (date) => {
+      return new Date(date).toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    }
+
+    // Set default font for the document
+    doc.font("Roboto")
+
+    // Shop Name Header
+    doc.fontSize(28).fillColor("#FFD700").text("GreenEats", { align: "center" })
+    doc.fontSize(10).fillColor("#333").text("Món ngon giao tận nơi!", { align: "center" }) // Changed to darker gray
+    doc.moveDown(1.5)
+
+    // Invoice Title
+    doc.fontSize(22).fillColor("#000").text("HÓA ĐƠN THANH TOÁN", { align: "center" }) // Changed to black
+    doc.moveDown(1.5)
+
+    // Order Details Header
+    doc.fontSize(12).fillColor("#555").text(`Mã đơn hàng: `, { continued: true }) // Changed to darker gray
+    doc.fillColor("#000").text(`#${order._id.toString().slice(-8).toUpperCase()}`) // Changed to black
+    doc.fillColor("#555").text(`Ngày đặt hàng: `, { continued: true }) // Changed to darker gray
+    doc.fillColor("#000").text(`${formatDate(order.date)}`) // Changed to black
+    doc.moveDown(1)
+
+    // Customer Information Section
+    doc.fillColor("#FFD700").fontSize(16).text("Thông tin khách hàng:", { underline: true })
+    doc.moveDown(0.5)
+    doc.fillColor("#333").fontSize(12) // Changed to darker gray
+    doc.text(`Tên khách hàng: ${order.address.name}`)
+    doc.text(`Số điện thoại: ${order.address.phone}`)
+    doc.text(
+      `Địa chỉ: ${order.address.street}, ${order.address.ward}, ${order.address.district}, ${order.address.province}`,
+    )
+    doc.moveDown(1.5)
+
+    // Order Items Table
+    doc.fillColor("#FFD700").fontSize(16).text("Chi tiết đơn hàng:", { underline: true })
+    doc.moveDown(0.5)
+
+    const tableHeaders = ["Sản phẩm", "Số lượng", "Đơn giá", "Thành tiền"]
+    const columnWidths = [200, 80, 100, 100]
+    const startX = 50
+    let currentY = doc.y
+
+    // Draw table header
+    doc.font("Roboto-Bold").fillColor("#000").fontSize(12) // Changed to black
+    tableHeaders.forEach((header, i) => {
+      doc.text(header, startX + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), currentY, {
+        width: columnWidths[i],
+        align: i === 1 || i === 2 || i === 3 ? "right" : "left", // Align quantity, price, total right
+      })
+    })
+    doc.moveDown(0.5)
+    doc
+      .strokeColor("#555")
+      .lineWidth(0.5)
+      .moveTo(startX, doc.y)
+      .lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), doc.y)
+      .stroke()
+    doc.moveDown(0.5)
+
+    // Draw table rows
+    doc.font("Roboto").fillColor("#333").fontSize(11) // Changed to darker gray
+    order.items.forEach((item) => {
+      currentY = doc.y
+      doc.text(item.name, startX, currentY, { width: columnWidths[0] })
+      doc.text(item.quantity.toString(), startX + columnWidths[0], currentY, { width: columnWidths[1], align: "right" })
+      doc.text(formatCurrency(item.price), startX + columnWidths[0] + columnWidths[1], currentY, {
+        width: columnWidths[2],
+        align: "right",
+      })
+      doc.text(
+        formatCurrency(item.price * item.quantity),
+        startX + columnWidths[0] + columnWidths[1] + columnWidths[2],
+        currentY,
+        { width: columnWidths[3], align: "right" },
+      )
+      doc.moveDown(0.7)
+    })
+    doc.moveDown(1)
+
+    // Summary Section
+    doc.fillColor("#333").fontSize(12) // Changed to darker gray
+    doc.text(`Tổng phụ: ${formatCurrency(order.itemsTotal || order.subtotal)}`, { align: "right" })
+    doc.text(`Phí vận chuyển: ${formatCurrency(order.shippingFee || order.deliveryFee)}`, { align: "right" })
+    if (order.voucherCode) {
+      doc.text(`Mã giảm giá (${order.voucherCode}): -${formatCurrency(order.discountAmount)}`, { align: "right" })
+    }
+    doc.moveDown(0.5)
+    doc
+      .strokeColor("#555")
+      .lineWidth(1)
+      .moveTo(startX + 300, doc.y)
+      .lineTo(startX + columnWidths.reduce((a, b) => a + b, 0), doc.y)
+      .stroke()
+    doc.moveDown(0.5)
+    doc
+      .fontSize(16)
+      .fillColor("#FFD700")
+      .text(`TỔNG CỘNG: ${formatCurrency(order.amount)}`, { align: "right" })
+    doc.moveDown(1.5)
+
+    // Payment Information
+    doc.fillColor("#555").fontSize(12).text(`Phương thức thanh toán: `, { continued: true }) // Changed to darker gray
+    doc.fillColor("#000").text(`${order.paymentMethod}`) // Changed to black
+    doc.fillColor("#555").text(`Trạng thái thanh toán: `, { continued: true }) // Changed to darker gray
+    doc.fillColor("#000").text(`${order.paymentStatus}`) // Changed to black
+    doc.moveDown(2)
+
+    // Footer
+    doc.fillColor("#555").fontSize(10).text("Cảm ơn quý khách đã đặt hàng tại GreenEats!", { align: "center" }) // Changed to darker gray
+    doc.text("Hẹn gặp lại quý khách!", { align: "center" })
+    doc.moveDown(0.5)
+    doc.text("Địa chỉ: 123 Đường ABC, Quận XYZ, TP.HCM", { align: "center" })
+    doc.text("Điện thoại: 0123 456 789 | Email: contact@greeneats.com", { align: "center" })
+
+    doc.end()
+  } catch (error) {
+    console.error("Error exporting invoice:", error)
+    res.status(500).json({ success: false, message: "Lỗi khi xuất hóa đơn" })
   }
 }
 
@@ -434,4 +606,5 @@ export {
   updatePaymentStatus,
   getUserPurchaseHistory,
   getRevenueStats,
+  exportInvoice,
 }

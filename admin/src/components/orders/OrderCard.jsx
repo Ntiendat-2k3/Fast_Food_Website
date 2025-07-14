@@ -19,11 +19,12 @@ import {
   Smartphone,
   Building,
   Check,
+  FileText,
 } from "lucide-react"
 import OrderItemsList from "./OrderItemsList"
 import OrderSummary from "./OrderSummary"
 
-const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency }) => {
+const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency, onExportInvoice }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -389,6 +390,17 @@ const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency }) => {
 
           {/* Order Summary */}
           <OrderSummary order={order} formatCurrency={formatCurrency} />
+
+          {/* Export Invoice Button */}
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => onExportInvoice(order._id)}
+              className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Xuất hóa đơn
+            </button>
+          </div>
         </div>
       )}
     </div>

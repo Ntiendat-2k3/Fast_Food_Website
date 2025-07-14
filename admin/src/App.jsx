@@ -18,6 +18,8 @@ import Chat from "./pages/Chat/Chat"
 import axios from "axios"
 import Staff from "./pages/Staff/Staff"
 import Categories from "./pages/Categories/Categories"
+import Notifications from "./pages/Notifications/Notifications" // New import
+import Customers from "./pages/Customers/Customers" // New import
 
 const App = () => {
   const url = "http://localhost:4000"
@@ -270,6 +272,22 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <Chat />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications" // New route for Notifications
+                element={
+                  <ProtectedRoute>
+                    <Notifications url={url} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/customers" // New route for Customers
+                element={
+                  <ProtectedRoute>
+                    <Customers url={url} />
                   </ProtectedRoute>
                 }
               />
