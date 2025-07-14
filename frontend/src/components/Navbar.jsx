@@ -4,11 +4,28 @@ import { useState, useContext, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { StoreContext } from "../context/StoreContext"
 import { useTheme } from "../context/ThemeContext"
-import { ShoppingCart, User, LogOut, Package, Menu, X, Sun, Moon, Bell, Heart, History } from "lucide-react"
+import {
+  ShoppingCart,
+  User,
+  LogOut,
+  Package,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Bell,
+  Heart,
+  History,
+  KeyRound,
+  MapPin,
+} from "lucide-react"
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
+import { assets } from "../assets/assets" // Re-added assets import
 
-const Navbar = ({ setShowLogin }) => {
+const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
+  // Receive setShowChangePasswordModal as prop
+  const [menu, setMenu] = useState("home")
   const { getTotalCartAmount, token, setToken, cartItems, url, user, setUser } = useContext(StoreContext)
   const { darkMode, toggleDarkMode } = useTheme()
   const navigate = useNavigate()
@@ -292,7 +309,7 @@ const Navbar = ({ setShowLogin }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <div className="bg-gradient-to-r from-primary to-primary-dark p-2 rounded-xl group-hover:scale-110 transition-transform duration-300">
-              <svg
+            <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
                 height="24"
@@ -465,7 +482,7 @@ const Navbar = ({ setShowLogin }) => {
                 <span className="sm:hidden">Login</span>
               </button>
             ) : (
-              <div className="user-dropdown relative">
+              <div className="user-dropdown relative group">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="p-2 lg:p-3 text-white hover:text-primary transition-colors rounded-lg hover:bg-slate-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -513,6 +530,25 @@ const Navbar = ({ setShowLogin }) => {
                         <History size={16} className="mr-3" />
                         Lịch sử mua hàng
                       </Link>
+                      <Link
+                        to="/address" // Assuming you have an address page/route
+                        className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        <MapPin size={16} className="mr-3" />
+                        Địa chỉ của tôi
+                      </Link>
+                      {/* New: Change Password option */}
+                      <button
+                        onClick={() => {
+                          setShowChangePasswordModal(true) // Use prop to show modal
+                          setDropdownOpen(false)
+                        }}
+                        className="block w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
+                      >
+                        <KeyRound size={16} className="mr-3" />
+                        Đổi mật khẩu
+                      </button>
                       <button
                         onClick={() => {
                           logout()
@@ -616,6 +652,33 @@ const Navbar = ({ setShowLogin }) => {
                           Lịch sử mua hàng
                         </Link>
                       </motion.div>
+                      <motion.div variants={menuItemVariants} custom={navItems.length + 3}>
+                        <Link
+                          to="/address" // Assuming you have an address page/route
+                          className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] ${
+                            location.pathname === "/address"
+                              ? "text-primary bg-slate-700/50"
+                              : "text-white hover:text-primary hover:bg-slate-700/30"
+                          }`}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <MapPin size={16} className="mr-3" />
+                          Địa chỉ của tôi
+                        </Link>
+                      </motion.div>
+                      {/* New: Change Password option in mobile menu */}
+                      <motion.div variants={menuItemVariants} custom={navItems.length + 4}>
+                        <button
+                          onClick={() => {
+                            setShowChangePasswordModal(true) // Use prop to show modal
+                            setMobileMenuOpen(false)
+                          }}
+                          className="w-full text-left font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] text-white hover:text-primary hover:bg-slate-700/30"
+                        >
+                          <KeyRound size={16} className="mr-3" />
+                          Đổi mật khẩu
+                        </button>
+                      </motion.div>
                     </>
                   )}
                 </nav>
@@ -624,6 +687,7 @@ const Navbar = ({ setShowLogin }) => {
           )}
         </AnimatePresence>
       </div>
+      {/* ChangePasswordModal is now rendered in App.jsx */}
     </header>
   )
 }

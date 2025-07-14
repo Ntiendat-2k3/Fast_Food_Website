@@ -20,16 +20,20 @@ import Wishlist from "./pages/Wishlist/Wishlist"
 import PurchaseHistory from "./pages/PurchaseHistory/PurchaseHistory"
 import AIAssistant from "./components/AIAssistant"
 import { MessageCircle } from "lucide-react"
+import ResetPassword from "./pages/ResetPassword/ResetPassword"
+import ChangePasswordModal from "./components/ChangePasswordModal"
 
 const App = () => {
   const [showLogin, setShowLogin] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
 
   return (
     <>
       {showLogin ? <LoginPopup setShowLogin={setShowLogin} /> : <></>}
+      {showChangePasswordModal && <ChangePasswordModal onClose={() => setShowChangePasswordModal(false)} />}{" "}
       <div className="app">
-        <Navbar setShowLogin={setShowLogin} />
+      <Navbar setShowLogin={setShowLogin} setShowChangePasswordModal={setShowChangePasswordModal} />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
@@ -43,6 +47,7 @@ const App = () => {
           <Route path="/thankyou" element={<Thankyou />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/purchase-history" element={<PurchaseHistory />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </div>
       <Footer />

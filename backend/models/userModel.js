@@ -2,28 +2,31 @@ import mongoose from "mongoose"
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true }, // Changed to unique: true for username
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: false }, // Make password optional for Google users
-    role: { type: String, enum: ["user", "staff", "admin"], default: "user" }, // Added staff role
+    password: { type: String, required: true }, // Required for local users
+    role: { type: String, enum: ["user", "staff", "admin"], default: "user" },
     cartData: { type: Object, default: {} },
-    googleId: { type: String, unique: true, sparse: true }, // Add Google ID field
-    avatar: { type: String }, // Add avatar field for Google profile picture
-    authProvider: { type: String, enum: ["local", "google"], default: "local" }, // Track auth method
+    googleId: { type: String, unique: true, sparse: true },
+    avatar: { type: String },
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
 
-    // Staff-specific fields
     phone: { type: String, default: "" },
     address: { type: String, default: "" },
-    position: { type: String, default: "Nhân viên" }, // Job position
-    isActive: { type: Boolean, default: true }, // Active status
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" }, // Who created this staff
+    position: { type: String, default: "Nhân viên" },
+    isActive: { type: Boolean, default: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
     updatedAt: { type: Date, default: Date.now },
+
+    isVerified: { type: Boolean, default: false },
+    verificationCode: { type: String }, // Reused for email verification and password reset codes
+    verificationCodeExpires: { type: Date }, // Reused for email verification and password reset codes
   },
   { minimize: false, timestamps: true },
 )
 
-// Index for better performance
 userSchema.index({ email: 1 })
+userSchema.index({ name: 1 }) // Index for username
 userSchema.index({ role: 1 })
 userSchema.index({ isActive: 1 })
 
