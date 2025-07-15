@@ -16,6 +16,7 @@ export const useProductDetail = (slug) => {
   const [relatedProducts, setRelatedProducts] = useState([])
   const [isInWishlist, setIsInWishlist] = useState(false)
   const [relatedRatings, setRelatedRatings] = useState({})
+  const [suggestedDrink, setSuggestedDrink] = useState(null) // New state for suggested drink
 
   // Tìm sản phẩm dựa trên slug (từ tên sản phẩm)
   const foodItem = food_list.find((item) => compareNameWithSlug(item.name, slug))
@@ -41,8 +42,12 @@ export const useProductDetail = (slug) => {
           fetchRelatedRating(item._id)
         }
       })
+
+      // Fetch suggested drink for the current food item's category
+      console.log("Fetching suggested drink for category:", foodItem.category) // Debug log
+      fetchSuggestedDrink(foodItem.category)
     }
-  }, [foodItem, food_list, slug])
+  }, [foodItem, food_list, slug, token, url])
 
   const fetchRelatedRating = async (foodId) => {
     try {
@@ -55,6 +60,20 @@ export const useProductDetail = (slug) => {
       }
     } catch (error) {
       console.error("Error fetching related rating:", error)
+    }
+  }
+
+  const fetchSuggestedDrink = async (categoryName) => {
+    try {
+      const response = await axios.get(`${url}/api/order/suggested-drink?categoryName=${categoryName}`)
+      if (response.data.success && response.data.data) {
+        setSuggestedDrink(response.data.data)
+      } else {
+        setSuggestedDrink(null)
+      }
+    } catch (error) {
+      console.error("Error fetching suggested drink:", error)
+      setSuggestedDrink(null)
     }
   }
 
@@ -153,6 +172,7 @@ export const useProductDetail = (slug) => {
     relatedProducts,
     isInWishlist,
     relatedRatings,
+    suggestedDrink, // Return suggested drink
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,

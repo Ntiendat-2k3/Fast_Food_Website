@@ -1,6 +1,8 @@
 import orderModel from "../models/orderModel.js"
 import userModel from "../models/userModel.js"
 import notificationModel from "../models/notificationModel.js"
+import foodModel from "../models/foodModel.js" // Import foodModel
+import categoryModel from "../models/categoryModel.js" // Import categoryModel
 import PDFDocument from "pdfkit"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -409,6 +411,107 @@ const exportInvoice = async (req, res) => {
   }
 }
 
+// New function to get suggested drink based on category
+const getSuggestedDrinkForCategory = async (req, res) => {
+  try {
+    const { categoryName } = req.query // Category of the main food item
+
+    if (!categoryName) {
+      return res.json({ success: false, message: "Category name is required" })
+    }
+    console.log(`[Suggested Drink] Request for category: ${categoryName}`)
+
+    // 1. Find food items in the given category
+    const foodsInCategory = await foodModel.find({ category: categoryName }).select("_id")
+    const foodIdsInCategory = foodsInCategory.map((food) => food._id)
+    console.log(
+      `[Suggested Drink] Food IDs in category '${categoryName}':`,
+      foodIdsInCategory.map((id) => id.toString()),
+    )
+
+    if (foodIdsInCategory.length === 0) {
+      console.log(`[Suggested Drink] No food items found in category '${categoryName}'.`)
+      return res.json({ success: true, data: null, message: `No food items found in category '${categoryName}'.` })
+    }
+
+    // 2. Find the 'Drinks' category ID
+    const drinkCategory = await categoryModel.findOne({ name: "Đồ uống" })
+    console.log(`[Suggested Drink] Found drink category object:`, drinkCategory)
+
+    if (!drinkCategory) {
+      console.log(
+        "Drinks category not found in DB. Please check the 'name' field for your drinks category in the 'categories' collection.",
+      )
+      return res.json({ success: true, data: null, message: "Drinks category not found." })
+    }
+    const drinkCategoryName = drinkCategory.name // Lấy tên từ trường 'name'
+    console.log(`[Suggested Drink] Resolved drink category name: ${drinkCategoryName}`)
+
+    // 3. Aggregate orders to find popular drinks within orders containing the target category's food
+    const pipeline = [
+      // Match orders that contain at least one item from the target food category
+      {
+        $match: {
+          "items.foodId": { $in: foodIdsInCategory },
+        },
+      },
+      // Unwind the items array to process each item individually
+      {
+        $unwind: "$items",
+      },
+      // Lookup food details for each item to get its category
+      {
+        $lookup: {
+          from: "foods", // The collection name for food items (usually lowercase plural of model name)
+          localField: "items.foodId",
+          foreignField: "_id",
+          as: "foodDetails",
+        },
+      },
+      // Unwind foodDetails to get individual food item details
+      {
+        $unwind: "$foodDetails",
+      },
+      // Filter for items that are drinks
+      {
+        $match: {
+          "foodDetails.category": drinkCategoryName, // Match by category name for drinks
+        },
+      },
+      // Group by drink foodId and count occurrences
+      {
+        $group: {
+          _id: "$foodDetails._id",
+          name: { $first: "$foodDetails.name" },
+          image: { $first: "$foodDetails.image" },
+          price: { $first: "$foodDetails.price" },
+          count: { $sum: "$items.quantity" }, // Sum quantities to get total purchased
+        },
+      },
+      // Sort by count in descending order
+      {
+        $sort: { count: -1 },
+      },
+      // Limit to the top 1 suggested drink
+      {
+        $limit: 1,
+      },
+    ]
+
+    const suggestedDrink = await orderModel.aggregate(pipeline)
+    console.log(`[Suggested Drink] Aggregation result:`, suggestedDrink)
+
+    if (suggestedDrink.length > 0) {
+      res.json({ success: true, data: suggestedDrink[0] })
+    } else {
+      res.json({ success: true, data: null, message: "No suggested drink found for this category." })
+    }
+  } catch (error) {
+    console.error("Error getting suggested drink:", error)
+    res.json({ success: false, message: "Lỗi khi lấy gợi ý đồ uống" })
+  }
+}
+
 // Các hàm khác giữ nguyên
 const verifyOrder = async (req, res) => {
   const { orderId, success, paymentMethod } = req.body
@@ -607,4 +710,5 @@ export {
   getUserPurchaseHistory,
   getRevenueStats,
   exportInvoice,
+  getSuggestedDrinkForCategory, // Export the new function
 }
