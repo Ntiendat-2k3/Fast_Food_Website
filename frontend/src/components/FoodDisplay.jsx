@@ -13,7 +13,7 @@ const FoodDisplay = ({ category }) => {
   const [viewMode, setViewMode] = useState("grid")
   const [showFilters, setShowFilters] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 200000])
-  const [ratings, setRatings] = useState({})
+  const [ratings, setRatings] = useState({}) // Assuming ratings are fetched or calculated elsewhere
   const [loading, setLoading] = useState(true)
 
   // Simulate loading
@@ -38,29 +38,35 @@ const FoodDisplay = ({ category }) => {
         case "price-high":
           return b.price - a.price
         case "rating":
+          // Placeholder for actual rating logic if available
           return (ratings[b._id] || 0) - (ratings[a._id] || 0)
         default:
           return a.name.localeCompare(b.name)
       }
     })
 
-  // Animation variants
+  // Animation variants for smoother entrance
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
+        staggerChildren: 0.08, // Slightly reduced stagger for a quicker, cohesive feel
       },
     },
   }
 
   const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
+    hidden: { y: 40, opacity: 0 }, // Increased initial y for more noticeable slide-up
     visible: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
+      transition: {
+        type: "spring",
+        stiffness: 70, // Softer spring
+        damping: 18, // More damping for a smoother stop
+        mass: 0.8, // Adjust mass for overall feel
+      },
     },
   }
 
@@ -86,7 +92,7 @@ const FoodDisplay = ({ category }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
         className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-4 border border-slate-700"
       >
         <div className="flex flex-col lg:flex-row gap-4">
@@ -159,7 +165,7 @@ const FoodDisplay = ({ category }) => {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="overflow-hidden"
             >
               <div className="pt-4 border-t border-slate-700 mt-4">
@@ -216,7 +222,7 @@ const FoodDisplay = ({ category }) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
+        transition={{ delay: 0.2, ease: "easeOut" }}
         className="flex items-center justify-between text-gray-300"
       >
         <p className="text-sm">
@@ -238,6 +244,7 @@ const FoodDisplay = ({ category }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             className={`grid gap-6 ${
               viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
             }`}
@@ -267,8 +274,8 @@ const FoodDisplay = ({ category }) => {
                   price={item.price}
                   image={item.image}
                   index={index}
-                  rating={ratings[item._id] || 0}
-                  totalReviews={0}
+                  rating={ratings[item._id] || 0} // Use actual rating if available
+                  totalReviews={0} // Use actual totalReviews if available
                   viewMode={viewMode}
                 />
               </motion.div>
@@ -280,6 +287,7 @@ const FoodDisplay = ({ category }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             className="text-center py-12"
           >
             <div className="bg-slate-800/30 rounded-xl p-8 max-w-md mx-auto">

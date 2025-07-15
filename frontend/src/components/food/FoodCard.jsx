@@ -64,8 +64,8 @@ const FoodCard = ({
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.5, delay: index * 0.05, ease: "easeOut" }} // Slightly faster delay
+        whileHover={{ scale: 1.02, transition: { duration: 0.3, ease: "easeOut" } }} // Added transition for hover
         className="group bg-slate-800/50 backdrop-blur-xl rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 border border-slate-700 hover:border-primary/50 cursor-pointer"
         onClick={handleClick}
       >
@@ -155,8 +155,8 @@ const FoodCard = ({
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{ y: -8 }}
+      transition={{ duration: 0.5, delay: index * 0.05, ease: "easeOut" }} // Slightly faster delay
+      whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }} // Added transition for hover
       className="group relative bg-slate-800/50 backdrop-blur-xl rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-500 border border-slate-700 hover:border-primary/50 cursor-pointer h-full flex flex-col"
       onClick={handleClick}
     >
@@ -177,7 +177,7 @@ const FoodCard = ({
             className="absolute top-3 right-3 bg-black/30 backdrop-blur-sm rounded-full p-2 border border-white/20"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: index * 0.1 + 0.3 }}
+            transition={{ delay: index * 0.05 + 0.3, type: "spring", stiffness: 200 }} // Adjusted delay and added spring
           >
             <Rating value={rating} size="sm" showValue />
           </motion.div>
@@ -209,7 +209,7 @@ const FoodCard = ({
           className="absolute bottom-3 left-3"
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: index * 0.1 + 0.5 }}
+          transition={{ delay: index * 0.05 + 0.4, ease: "easeOut" }} // Adjusted delay
         >
           <PriceDisplay
             price={price}
@@ -219,41 +219,40 @@ const FoodCard = ({
         </motion.div>
       </div>
 
-      <div className="p-4 sm:p-6 flex-1 flex flex-col relative z-10">
+      <div className="p-4 sm:p-6 flex-1 flex-col relative z-10 flex">
+        {" "}
+        {/* Added flex and flex-col */}
         <motion.h3
           className="text-lg sm:text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors duration-300"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: index * 0.1 + 0.2 }}
+          transition={{ delay: index * 0.05 + 0.1, ease: "easeOut" }} // Adjusted delay
         >
           {name}
         </motion.h3>
-
         <motion.p
           className="text-gray-300 text-sm mb-4 line-clamp-2 flex-1 leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: index * 0.1 + 0.3 }}
+          transition={{ delay: index * 0.05 + 0.2, ease: "easeOut" }} // Adjusted delay
         >
           {description}
         </motion.p>
-
         {totalReviews > 0 && (
           <motion.div
             className="flex items-center gap-2 mb-4 text-xs text-gray-400"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.1 + 0.4 }}
+            transition={{ delay: index * 0.05 + 0.3, ease: "easeOut" }} // Adjusted delay
           >
             <Rating value={rating} size="sm" />
             <span>({totalReviews} đánh giá)</span>
           </motion.div>
         )}
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 + 0.5 }}
+          transition={{ delay: index * 0.05 + 0.4, ease: "easeOut" }} // Adjusted delay
         >
           <Button
             onClick={handleAddToCart}

@@ -421,19 +421,19 @@ const LoginPopup = ({ setShowLogin }) => {
       await handleForgotPasswordEmail()
     } else if (currState === "ForgotPasswordCode") {
       if (!isCodeEnteredForReset) {
-        handleConfirmResetCode() // First, confirm the code
+        handleConfirmResetCode()
       } else {
-        await handleResetPasswordWithCode() // Then, reset the password
+        await handleResetPasswordWithCode()
       }
     }
   }
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
-      <div className="bg-white dark:bg-dark-card rounded-xl shadow-lg w-full max-w-md overflow-hidden animate-fadeIn">
+      <div className="bg-zinc-900 rounded-xl shadow-lg shadow-yellow-500/30 border border-yellow-500/50 w-full max-w-md overflow-hidden animate-fadeIn transition-all duration-300 ease-in-out">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-dark dark:text-white">
+            <h2 className="text-2xl font-bold text-yellow-400">
               {currState === "Login"
                 ? "Đăng nhập"
                 : currState === "Sign Up"
@@ -450,13 +450,13 @@ const LoginPopup = ({ setShowLogin }) => {
             </h2>
             <button
               onClick={() => setShowLogin(false)}
-              className="text-gray-400 hover:text-dark dark:hover:text-white transition-colors"
+              className="text-gray-400 hover:text-yellow-500 transition-colors"
             >
               <X size={24} />
             </button>
           </div>
 
-          {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
+          {error && <div className="mb-4 p-3 bg-red-900 text-red-300 rounded-lg text-sm">{error}</div>}
 
           {(currState === "Login" || currState === "Sign Up") && (
             <>
@@ -468,12 +468,10 @@ const LoginPopup = ({ setShowLogin }) => {
               {/* Divider */}
               <div className="relative mb-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  <div className="w-full border-t border-yellow-500/50"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-dark-card text-gray-500 dark:text-gray-400">
-                    Hoặc tiếp tục với email
-                  </span>
+                  <span className="px-2 bg-zinc-900 text-gray-400">Hoặc tiếp tục với email</span>
                 </div>
               </div>
             </>
@@ -483,7 +481,7 @@ const LoginPopup = ({ setShowLogin }) => {
             {/* Name input for Login and Sign Up */}
             {(currState === "Login" || currState === "Sign Up") && (
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                 <input
                   name="name"
                   onChange={onChangeHandler}
@@ -491,7 +489,7 @@ const LoginPopup = ({ setShowLogin }) => {
                   type="text"
                   placeholder="Tên đăng nhập của bạn"
                   required
-                  className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
               </div>
             )}
@@ -502,7 +500,7 @@ const LoginPopup = ({ setShowLogin }) => {
               currState === "ForgotPasswordEmail" ||
               currState === "ForgotPasswordCode") && (
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                 <input
                   name="email"
                   onChange={onChangeHandler}
@@ -511,7 +509,7 @@ const LoginPopup = ({ setShowLogin }) => {
                   placeholder="Email của bạn"
                   required
                   disabled={currState === "Verify Email" || currState === "ForgotPasswordCode"} // Disable email input during verification/code input
-                  className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
+                  className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:bg-zinc-700 disabled:cursor-not-allowed"
                 />
               </div>
             )}
@@ -519,7 +517,7 @@ const LoginPopup = ({ setShowLogin }) => {
             {/* Password input for Login and Sign Up */}
             {(currState === "Login" || currState === "Sign Up") && (
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                 <input
                   name="password"
                   onChange={onChangeHandler}
@@ -527,7 +525,7 @@ const LoginPopup = ({ setShowLogin }) => {
                   type="password"
                   placeholder="Mật khẩu"
                   required
-                  className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
               </div>
             )}
@@ -535,7 +533,7 @@ const LoginPopup = ({ setShowLogin }) => {
             {/* Verification Code input for Verify Email and Forgot Password Code states */}
             {(currState === "Verify Email" || currState === "ForgotPasswordCode") && (
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                 <input
                   name="verificationCode"
                   onChange={(e) => setVerificationCode(e.target.value)}
@@ -543,8 +541,8 @@ const LoginPopup = ({ setShowLogin }) => {
                   type="text"
                   placeholder="Mã xác minh"
                   required
-                  disabled={isCodeEnteredForReset && currState === "ForgotPasswordCode"} // Disable code input after it's "entered" for forgot password
-                  className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
+                  disabled={isCodeEnteredForReset && currState === "ForgotPasswordCode"}
+                  className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:bg-zinc-700 disabled:cursor-not-allowed"
                 />
               </div>
             )}
@@ -553,7 +551,7 @@ const LoginPopup = ({ setShowLogin }) => {
             {currState === "ForgotPasswordCode" && isCodeEnteredForReset && (
               <>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                   <input
                     name="newPassword"
                     onChange={onChangeHandler}
@@ -561,11 +559,11 @@ const LoginPopup = ({ setShowLogin }) => {
                     type="password"
                     placeholder="Mật khẩu mới"
                     required
-                    className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-yellow-500" size={20} />
                   <input
                     name="confirmNewPassword"
                     onChange={onChangeHandler}
@@ -573,7 +571,7 @@ const LoginPopup = ({ setShowLogin }) => {
                     type="password"
                     placeholder="Xác nhận mật khẩu mới"
                     required
-                    className="w-full bg-white dark:bg-dark-light text-dark dark:text-white border border-gray-300 dark:border-dark-lighter rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full bg-zinc-800 text-gray-100 border border-zinc-700 rounded-lg py-3 pl-10 pr-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                   />
                 </div>
               </>
@@ -582,7 +580,7 @@ const LoginPopup = ({ setShowLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary-light text-dark py-3 rounded-lg transition-colors disabled:opacity-50"
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-zinc-900 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-[1.02] disabled:opacity-50"
             >
               {loading
                 ? "Đang xử lý..."
@@ -604,7 +602,7 @@ const LoginPopup = ({ setShowLogin }) => {
                 type="button"
                 onClick={currState === "Verify Email" ? handleResendCode : handleResendResetCode}
                 disabled={loading || resendTimer > 0}
-                className="w-full text-primary hover:underline mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full text-yellow-500 hover:underline mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resendTimer > 0 ? `Gửi lại mã sau ${resendTimer}s` : "Gửi lại mã"}
               </button>
@@ -616,9 +614,9 @@ const LoginPopup = ({ setShowLogin }) => {
                   type="checkbox"
                   id="terms"
                   required
-                  className="w-4 h-4 bg-white dark:bg-dark-light border-gray-300 dark:border-dark-lighter rounded focus:ring-primary"
+                  className="w-4 h-4 bg-zinc-800 border-zinc-700 rounded focus:ring-yellow-500"
                 />
-                <label htmlFor="terms" className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                <label htmlFor="terms" className="ml-2 text-sm text-gray-300">
                   Bằng cách tiếp tục, tôi đồng ý với điều khoản và chính sách bảo mật
                 </label>
               </div>
@@ -626,7 +624,7 @@ const LoginPopup = ({ setShowLogin }) => {
 
             {currState === "Login" ? (
               <>
-                <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                <p className="text-center text-gray-300 text-sm">
                   Tạo tài khoản mới?{" "}
                   <button
                     type="button"
@@ -636,12 +634,12 @@ const LoginPopup = ({ setShowLogin }) => {
                       setData({ name: "", email: "", password: "", newPassword: "", confirmNewPassword: "" }) // Clear data
                       setIsCodeEnteredForReset(false) // Reset state
                     }}
-                    className="text-primary hover:underline focus:outline-none"
+                    className="text-yellow-500 hover:underline focus:outline-none"
                   >
                     Nhấn vào đây
                   </button>
                 </p>
-                <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                <p className="text-center text-gray-300 text-sm">
                   <button
                     type="button"
                     onClick={() => {
@@ -650,14 +648,14 @@ const LoginPopup = ({ setShowLogin }) => {
                       setData({ name: "", email: "", password: "", newPassword: "", confirmNewPassword: "" }) // Clear data
                       setIsCodeEnteredForReset(false) // Reset state
                     }}
-                    className="text-primary hover:underline focus:outline-none"
+                    className="text-yellow-500 hover:underline focus:outline-none"
                   >
                     Quên mật khẩu?
                   </button>
                 </p>
               </>
             ) : currState === "Sign Up" ? (
-              <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+              <p className="text-center text-gray-300 text-sm">
                 Bạn đã có tài khoản?{" "}
                 <button
                   type="button"
@@ -667,13 +665,13 @@ const LoginPopup = ({ setShowLogin }) => {
                     setData({ name: "", email: "", password: "", newPassword: "", confirmNewPassword: "" }) // Clear data
                     setIsCodeEnteredForReset(false) // Reset state
                   }}
-                  className="text-primary hover:underline focus:outline-none"
+                  className="text-yellow-500 hover:underline focus:outline-none"
                 >
                   Đăng nhập tại đây
                 </button>
               </p>
             ) : (
-              <p className="text-center text-gray-500 dark:text-gray-400 text-sm">
+              <p className="text-center text-gray-300 text-sm">
                 Quay lại{" "}
                 <button
                   type="button"
@@ -683,7 +681,7 @@ const LoginPopup = ({ setShowLogin }) => {
                     setData({ name: "", email: "", password: "", newPassword: "", confirmNewPassword: "" }) // Clear data
                     setIsCodeEnteredForReset(false) // Reset state
                   }}
-                  className="text-primary hover:underline focus:outline-none"
+                  className="text-yellow-500 hover:underline focus:outline-none"
                 >
                   Đăng nhập
                 </button>
