@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect, useContext, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { StoreContext } from "../context/StoreContext"
 import axios from "axios"
@@ -16,47 +16,92 @@ export const useProductDetail = (slug) => {
   const [relatedProducts, setRelatedProducts] = useState([])
   const [isInWishlist, setIsInWishlist] = useState(false)
   const [relatedRatings, setRelatedRatings] = useState({})
+  const [ratingStats, setRatingStats] = useState({ averageRating: 0, totalReviews: 0 })
+  const [suggestedDrinks, setSuggestedDrinks] = useState([])
+  const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
 
-  // Tìm sản phẩm dựa trên slug (từ tên sản phẩm)
   const foodItem = food_list.find((item) => compareNameWithSlug(item.name, slug))
+
+  const fetchRatingsForProducts = useCallback(
+    async (productIds) => {
+      if (productIds.length === 0) return
+
+      try {
+        const response = await axios.post(`${url}/api/comment/get-ratings`, { foodIds: productIds })
+        if (response.data.success) {
+          const newRatingsMap = {}
+          response.data.ratings.forEach((r) => {
+            newRatingsMap[r.foodId] = {
+              rating: r.averageRating,
+              totalReviews: r.totalReviews,
+            }
+          })
+          setRelatedRatings((prev) => ({ ...prev, ...newRatingsMap }))
+        } else {
+          console.error("Failed to fetch ratings:", response.data.message)
+        }
+      } catch (error) {
+        console.error("Error fetching ratings:", error)
+      }
+    },
+    [url],
+  )
 
   useEffect(() => {
     window.scrollTo(0, 0)
 
-    // Nếu tìm thấy sản phẩm, tìm các sản phẩm liên quan
     if (foodItem) {
+      // Set rating stats for the current food item
+      if (relatedRatings[foodItem._id]) {
+        setRatingStats(relatedRatings[foodItem._id])
+      } else {
+        fetchRatingsForProducts([foodItem._id])
+      }
+
       const related = food_list
         .filter((item) => item.category === foodItem.category && item.name !== foodItem.name)
         .slice(0, 4)
       setRelatedProducts(related)
 
+      if (related.length > 0) {
+        fetchRatingsForProducts(related.map((item) => item._id))
+      }
+
+      // Fetch suggested drinks if the current product is not a drink
+      if (foodItem.category !== "Đồ uống") {
+        setIsLoadingSuggestedDrinks(true)
+        axios
+          .get(`${url}/api/food/list?category=Đồ uống`)
+          .then((response) => {
+            if (response.data.success) {
+              const drinks = response.data.data.slice(0, 4) // Limit to 4 suggested drinks
+              setSuggestedDrinks(drinks)
+              // Fetch ratings for suggested drinks
+              if (drinks.length > 0) {
+                fetchRatingsForProducts(drinks.map((item) => item._id))
+              }
+            } else {
+              console.error("Failed to fetch suggested drinks:", response.data.message)
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching suggested drinks:", error)
+            toast.error("Không thể tải gợi ý đồ uống.")
+          })
+          .finally(() => {
+            setIsLoadingSuggestedDrinks(false)
+          })
+      } else {
+        setSuggestedDrinks([])
+        setIsLoadingSuggestedDrinks(false)
+      }
+
       // Check wishlist status
-      if (foodItem._id) {
+      if (foodItem._id && token) {
         checkWishlistStatus(foodItem._id)
       }
-
-      // Fetch ratings for related products
-      related.forEach((item) => {
-        if (item._id) {
-          fetchRelatedRating(item._id)
-        }
-      })
     }
-  }, [foodItem, food_list, slug])
-
-  const fetchRelatedRating = async (foodId) => {
-    try {
-      const response = await axios.get(`${url}/api/comment/food/${foodId}/stats`)
-      if (response.data.success) {
-        setRelatedRatings((prev) => ({
-          ...prev,
-          [foodId]: response.data.data.averageRating,
-        }))
-      }
-    } catch (error) {
-      console.error("Error fetching related rating:", error)
-    }
-  }
+  }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts, relatedRatings])
 
   const checkWishlistStatus = async (foodId) => {
     if (!token) return
@@ -153,6 +198,9 @@ export const useProductDetail = (slug) => {
     relatedProducts,
     isInWishlist,
     relatedRatings,
+    ratingStats,
+    suggestedDrinks,
+    isLoadingSuggestedDrinks,
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,

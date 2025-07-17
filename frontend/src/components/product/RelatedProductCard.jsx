@@ -6,6 +6,8 @@ import { toast } from "react-toastify"
 import { slugify } from "../../utils/slugify"
 
 const RelatedProductCard = ({ item, index, url, relatedRatings, navigate, addToCart }) => {
+  const itemRating = relatedRatings[item._id] || { rating: 0, totalReviews: 0 }
+
   return (
     <motion.div
       key={item.name}
@@ -26,7 +28,7 @@ const RelatedProductCard = ({ item, index, url, relatedRatings, navigate, addToC
           <div className="flex items-center">
             <Star className="h-4 w-4 text-primary fill-primary" />
             <span className="text-xs font-medium ml-1 text-white">
-              {relatedRatings[item._id] ? relatedRatings[item._id].toFixed(1) : "0.0"}
+              {itemRating.rating > 0 ? itemRating.rating.toFixed(1) : "0.0"}
             </span>
           </div>
         </div>
@@ -57,7 +59,7 @@ const RelatedProductCard = ({ item, index, url, relatedRatings, navigate, addToC
           <motion.button
             onClick={(e) => {
               e.stopPropagation()
-              addToCart(item.name, 1)
+              addToCart(item._id, 1)
               toast.success("Đã thêm vào giỏ hàng", { autoClose: 2000 })
             }}
             className="bg-primary hover:bg-primary-dark text-slate-900 p-2 rounded-full transition-colors"

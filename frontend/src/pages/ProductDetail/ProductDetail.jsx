@@ -1,25 +1,21 @@
 "use client"
-
 import { useContext } from "react"
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { StoreContext } from "../../context/StoreContext"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-
 import { useProductDetail } from "../../hooks/useProductDetail"
 import { useReviews } from "../../hooks/useReviews"
-
 import Breadcrumb from "../../components/product/Breadcrumb"
 import ProductNotFound from "../../components/product/ProductNotFound"
 import ProductImageGallery from "../../components/product/ProductImageGallery"
 import ProductInfo from "../../components/product/ProductInfo"
 import ProductTabs from "../../components/product/ProductTabs"
 import RelatedProducts from "../../components/product/RelatedProducts"
-
 const ProductDetail = () => {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const { url, user, token } = useContext(StoreContext)
-
   const {
     foodItem,
     quantity,
@@ -28,19 +24,20 @@ const ProductDetail = () => {
     relatedProducts,
     isInWishlist,
     relatedRatings,
+    ratingStats,
+    suggestedDrinks,
+    isLoadingSuggestedDrinks,
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,
     decreaseQuantity,
     toggleWishlist,
   } = useProductDetail(slug)
-
   const {
     showReviewForm,
     setShowReviewForm,
     reviews,
     isLoadingReviews,
-    ratingStats,
     editingCommentId,
     reviewEligibility,
     isCheckingEligibility,
@@ -50,19 +47,15 @@ const ProductDetail = () => {
     handleSaveEdit,
     handleCancelEdit,
   } = useReviews(foodItem)
-
   // Nếu không tìm thấy sản phẩm
   if (!foodItem) {
     return <ProductNotFound />
   }
-
-  // Tạo mảng hình ảnh giả lập (trong thực tế sẽ lấy từ API)
   const productImages = [
     url + "/images/" + foodItem.image,
     "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
     "https://images.unsplash.com/photo-1565958011703-44f9829ba187?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
   ]
-
   // Thông tin chi tiết sản phẩm (giả lập)
   const productDetails = {
     weight: "300g",
@@ -79,20 +72,17 @@ const ProductDetail = () => {
       sodium: "380mg",
     },
   }
-
   // Breadcrumb items
   const breadcrumbItems = [
     { label: "Trang chủ", link: "/" },
     { label: "Thực đơn", link: "/foods" },
     { label: foodItem.name },
   ]
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20 pb-16">
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <Breadcrumb items={breadcrumbItems} />
-
         {/* Product Detail Section */}
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-8">
@@ -104,7 +94,6 @@ const ProductDetail = () => {
               toggleWishlist={toggleWishlist}
               ratingStats={ratingStats}
             />
-
             {/* Product Info */}
             <ProductInfo
               product={foodItem}
@@ -114,9 +103,11 @@ const ProductDetail = () => {
               handleBuyNow={handleBuyNow}
               handleAddToCart={handleAddToCart}
               ratingStats={ratingStats}
+              suggestedDrinks={suggestedDrinks}
+              isLoadingSuggestedDrinks={isLoadingSuggestedDrinks}
+              relatedRatings={relatedRatings}
             />
           </div>
-
           {/* Product Tabs */}
           <ProductTabs
             activeTab={activeTab}
@@ -141,19 +132,17 @@ const ProductDetail = () => {
             url={url}
           />
         </div>
-
         {/* Related Products */}
         <RelatedProducts
           relatedProducts={relatedProducts}
           url={url}
           relatedRatings={relatedRatings}
-          navigate={useParams}
+          navigate={navigate}
           addToCart={handleAddToCart}
         />
       </div>
-      <ToastContainer />
+      <ToastContainer />\
     </div>
   )
 }
-
 export default ProductDetail

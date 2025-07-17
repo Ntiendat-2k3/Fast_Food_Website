@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Star, Check, Minus, Plus, CreditCard, ShoppingCart, Truck, ShieldCheck, RefreshCw } from "lucide-react"
+import SuggestedDrinks from "./SuggestedDrinks"
 
 const ProductInfo = ({
   product,
@@ -11,6 +12,9 @@ const ProductInfo = ({
   handleBuyNow,
   handleAddToCart,
   ratingStats,
+  suggestedDrinks,
+  isLoadingSuggestedDrinks,
+  relatedRatings,
 }) => {
   return (
     <div className="space-y-6">
@@ -134,11 +138,27 @@ const ProductInfo = ({
         </motion.button>
       </motion.div>
 
+      {product.category !== "Đồ uống" && suggestedDrinks && suggestedDrinks.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.75 }}
+          className="mt-6 pt-6 border-t border-slate-700"
+        >
+          <SuggestedDrinks
+            drinks={suggestedDrinks}
+            isLoading={isLoadingSuggestedDrinks}
+            ratings={relatedRatings}
+            isCompact={true}
+          />
+        </motion.div>
+      )}
+
       {/* Features */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.8 }} // Adjusted delay
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         <div className="flex items-center bg-slate-700/30 p-3 rounded-xl">
