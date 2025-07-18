@@ -20,7 +20,23 @@ export const useProductDetail = (slug) => {
   const [suggestedDrinks, setSuggestedDrinks] = useState([])
   const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
 
-  const foodItem = food_list.find((item) => compareNameWithSlug(item.name, slug))
+  // Debug logs
+  console.log("useProductDetail - received slug:", slug)
+  console.log("useProductDetail - slug type:", typeof slug)
+  console.log("useProductDetail - food_list length:", food_list?.length)
+
+  // Find food item by slug - with better error handling
+  const foodItem = food_list?.find((item) => {
+    if (!slug || slug === "undefined" || !item?.name) {
+      return false
+    }
+
+    const match = compareNameWithSlug(item.name, slug)
+    console.log(`Comparing "${item.name}" with slug "${slug}":`, match)
+    return match
+  })
+
+  console.log("useProductDetail - foodItem found:", foodItem)
 
   const fetchRatingsForProducts = useCallback(
     async (productIds) => {
@@ -50,7 +66,20 @@ export const useProductDetail = (slug) => {
   useEffect(() => {
     window.scrollTo(0, 0)
 
+    // Check if we have valid slug and food_list
+    if (!slug || slug === "undefined") {
+      console.log("Invalid slug:", slug)
+      return
+    }
+
+    if (!food_list || food_list.length === 0) {
+      console.log("Food list not loaded yet, waiting...")
+      return
+    }
+
     if (foodItem) {
+      console.log("Processing foodItem:", foodItem)
+
       // Set rating stats for the current food item
       if (relatedRatings[foodItem._id]) {
         setRatingStats(relatedRatings[foodItem._id])
@@ -71,10 +100,11 @@ export const useProductDetail = (slug) => {
       if (foodItem.category !== "Đồ uống") {
         setIsLoadingSuggestedDrinks(true)
         axios
-          .get(`${url}/api/food/list?category=Đồ uống`)
+          .get(`${url}/api/food/suggested-drinks/${encodeURIComponent(foodItem.category)}`)
           .then((response) => {
+            console.log("Suggested drinks response:", response.data)
             if (response.data.success) {
-              const drinks = response.data.data.slice(0, 4) // Limit to 4 suggested drinks
+              const drinks = response.data.data.slice(0, 4)
               setSuggestedDrinks(drinks)
               // Fetch ratings for suggested drinks
               if (drinks.length > 0) {
@@ -100,6 +130,8 @@ export const useProductDetail = (slug) => {
       if (foodItem._id && token) {
         checkWishlistStatus(foodItem._id)
       }
+    } else {
+      console.log("No foodItem found for slug:", slug)
     }
   }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts, relatedRatings])
 

@@ -18,6 +18,12 @@ const ProductDetail = () => {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { url, user, token } = useContext(StoreContext)
+
+  // Debug URL params
+  console.log("ProductDetail - URL params:", useParams())
+  console.log("ProductDetail - slug from params:", slug)
+  console.log("ProductDetail - window.location:", window.location.pathname)
+
   const {
     foodItem,
     quantity,
@@ -35,6 +41,7 @@ const ProductDetail = () => {
     decreaseQuantity,
     toggleWishlist,
   } = useProductDetail(slug)
+
   const {
     showReviewForm,
     setShowReviewForm,
@@ -143,10 +150,10 @@ const ProductDetail = () => {
           />
         </div>
 
-        {/* Suggested Drinks Section - Thêm section này */}
-        {foodItem.category && foodItem.category !== "Đồ uống" && (
+        {/* Suggested Drinks Section - Only show if not a drink itself */}
+        {foodItem && foodItem.category && foodItem.category !== "Đồ uống" && (
           <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700 p-6">
-            <SuggestedDrinks productCategory={foodItem.category} isCompact={false} />
+            <SuggestedDrinks productCategory={foodItem.category} category={foodItem.category} isCompact={false} />
           </div>
         )}
 
