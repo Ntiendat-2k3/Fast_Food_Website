@@ -145,12 +145,7 @@ const ProductInfo = ({
           transition={{ delay: 0.75 }}
           className="mt-6 pt-6 border-t border-slate-700"
         >
-          <SuggestedDrinks
-            drinks={suggestedDrinks}
-            isLoading={isLoadingSuggestedDrinks}
-            ratings={relatedRatings}
-            isCompact={true}
-          />
+          <SuggestedDrinks productCategory={product.category} isCompact={true} />
         </motion.div>
       )}
 
