@@ -4,11 +4,14 @@ import {
   listFood,
   removeFood,
   updateFood,
+  searchFood,
   getFoodByCategory,
   getFoodById,
+  removeMultipleFood,
+  getSuggestedDrinks,
+  debugSuggestedDrinks,
 } from "../controllers/foodController.js"
 import multer from "multer"
-import { verifyAdmin } from "../middleware/auth.js"
 
 const foodRouter = express.Router()
 
@@ -22,12 +25,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage })
 
-// Routes
-foodRouter.post("/add", verifyAdmin, upload.single("image"), addFood)
+foodRouter.post("/add", upload.single("image"), addFood)
 foodRouter.get("/list", listFood)
-foodRouter.post("/remove", verifyAdmin, removeFood)
-foodRouter.post("/update", verifyAdmin, upload.single("image"), updateFood)
+foodRouter.post("/remove", removeFood)
+foodRouter.post("/remove-multiple", removeMultipleFood)
+foodRouter.put("/update", upload.single("image"), updateFood)
+foodRouter.get("/search", searchFood)
 foodRouter.get("/category/:category", getFoodByCategory)
+foodRouter.get("/suggested-drinks/:category", getSuggestedDrinks)
+foodRouter.get("/debug-suggested-drinks/:category", debugSuggestedDrinks)
 foodRouter.get("/:id", getFoodById)
 
 export default foodRouter

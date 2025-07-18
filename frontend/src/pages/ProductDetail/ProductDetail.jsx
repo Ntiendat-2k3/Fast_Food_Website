@@ -12,6 +12,8 @@ import ProductImageGallery from "../../components/product/ProductImageGallery"
 import ProductInfo from "../../components/product/ProductInfo"
 import ProductTabs from "../../components/product/ProductTabs"
 import RelatedProducts from "../../components/product/RelatedProducts"
+import SuggestedDrinks from "../../components/product/SuggestedDrinks"
+
 const ProductDetail = () => {
   const { slug } = useParams()
   const navigate = useNavigate()
@@ -47,15 +49,18 @@ const ProductDetail = () => {
     handleSaveEdit,
     handleCancelEdit,
   } = useReviews(foodItem)
+
   // Nếu không tìm thấy sản phẩm
   if (!foodItem) {
     return <ProductNotFound />
   }
+
   const productImages = [
     url + "/images/" + foodItem.image,
     "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
     "https://images.unsplash.com/photo-1565958011703-44f9829ba187?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
   ]
+
   // Thông tin chi tiết sản phẩm (giả lập)
   const productDetails = {
     weight: "300g",
@@ -72,17 +77,20 @@ const ProductDetail = () => {
       sodium: "380mg",
     },
   }
+
   // Breadcrumb items
   const breadcrumbItems = [
     { label: "Trang chủ", link: "/" },
     { label: "Thực đơn", link: "/foods" },
     { label: foodItem.name },
   ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20 pb-16">
       <div className="container mx-auto px-4">
         {/* Breadcrumb */}
         <Breadcrumb items={breadcrumbItems} />
+
         {/* Product Detail Section */}
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-8">
@@ -94,6 +102,7 @@ const ProductDetail = () => {
               toggleWishlist={toggleWishlist}
               ratingStats={ratingStats}
             />
+
             {/* Product Info */}
             <ProductInfo
               product={foodItem}
@@ -108,6 +117,7 @@ const ProductDetail = () => {
               relatedRatings={relatedRatings}
             />
           </div>
+
           {/* Product Tabs */}
           <ProductTabs
             activeTab={activeTab}
@@ -132,6 +142,14 @@ const ProductDetail = () => {
             url={url}
           />
         </div>
+
+        {/* Suggested Drinks Section - Thêm section này */}
+        {foodItem.category && foodItem.category !== "Đồ uống" && (
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700 p-6">
+            <SuggestedDrinks productCategory={foodItem.category} isCompact={false} />
+          </div>
+        )}
+
         {/* Related Products */}
         <RelatedProducts
           relatedProducts={relatedProducts}
@@ -141,8 +159,9 @@ const ProductDetail = () => {
           addToCart={handleAddToCart}
         />
       </div>
-      <ToastContainer />\
+      <ToastContainer />
     </div>
   )
 }
+
 export default ProductDetail
