@@ -1,61 +1,222 @@
+"use client"
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts"
+import { useState } from "react"
+import { BarChart3, PieChartIcon, TrendingUp } from "lucide-react"
+
 const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
-  // Get color for chart
-  const getColor = (index) => {
-    const colors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-red-500",
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-indigo-500",
-      "bg-teal-500",
-    ]
-    return colors[index % colors.length]
+  const [chartType, setChartType] = useState("pie")
+
+  // Get data based on active tab
+  const getData = () => {
+    const data = activeTab === "category" ? categoryRevenue : productRevenue
+
+    if (!data || Object.keys(data).length === 0) {
+      return []
+    }
+
+    // Convert to array and sort by revenue
+    const sortedData = Object.entries(data)
+      .map(([name, revenue]) => ({
+        name: name.length > 15 ? `${name.substring(0, 15)}...` : name,
+        fullName: name,
+        value: revenue,
+        revenue: revenue,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8) // Top 8 items
+
+    return sortedData
   }
 
-  // Get percentage of total revenue
-  const getPercentage = (revenue, totalRevenue) => {
-    return ((revenue / totalRevenue) * 100).toFixed(0)
+  const chartData = getData()
+
+  // Enhanced color palette
+  const COLORS = [
+    "#FF6B6B", // Coral Red
+    "#4ECDC4", // Turquoise
+    "#45B7D1", // Sky Blue
+    "#96CEB4", // Mint Green
+    "#FFEAA7", // Warm Yellow
+    "#DDA0DD", // Plum
+    "#98D8C8", // Seafoam
+    "#F7DC6F", // Light Gold
+  ]
+
+  // Custom tooltip for pie chart
+  const CustomPieTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]
+      const total = chartData.reduce((sum, item) => sum + item.value, 0)
+      const percentage = ((data.value / total) * 100).toFixed(1)
+
+      return (
+        <div className="bg-white dark:bg-dark-light p-4 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-800 dark:text-white mb-2">{data.payload.fullName}</p>
+          <div className="space-y-1">
+            <p className="text-primary font-bold text-lg">{data.value.toLocaleString("vi-VN")} đ</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{percentage}% tổng doanh thu</p>
+          </div>
+        </div>
+      )
+    }
+    return null
   }
 
-  // Calculate total revenue
-  const totalRevenue = Object.values(activeTab === "category" ? categoryRevenue : productRevenue).reduce(
-    (sum, revenue) => sum + revenue,
-    0,
-  )
+  // Custom tooltip for bar chart
+  const CustomBarTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-dark-light p-4 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+          <p className="font-semibold text-gray-800 dark:text-white mb-2">{label}</p>
+          <p className="text-primary font-bold text-lg">{payload[0].value.toLocaleString("vi-VN")} đ</p>
+        </div>
+      )
+    }
+    return null
+  }
 
-  return (
-    <div className="bg-white dark:bg-dark rounded-xl p-4 md:p-6 shadow-md border border-gray-100 dark:border-dark-lighter">
-      <h2 className="text-base md:text-lg font-semibold text-gray-800 dark:text-white mb-4">
-        Biểu đồ doanh thu {activeTab === "category" ? "theo danh mục" : "theo sản phẩm"}
-      </h2>
-      <div className="flex flex-wrap gap-2 mb-4 max-h-24 overflow-y-auto scrollbar-thin">
-        {Object.entries(activeTab === "category" ? categoryRevenue : productRevenue).map(([name, revenue], index) => (
-          <div key={name} className="flex items-center">
-            <div className={`w-3 h-3 rounded-full ${getColor(index)} mr-1`}></div>
-            <span className="text-xs text-gray-600 dark:text-gray-300">{name}</span>
+  // Custom legend
+  const CustomLegend = ({ payload }) => {
+    return (
+      <div className="flex flex-wrap justify-center gap-3 mt-6">
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{entry.value}</span>
           </div>
         ))}
       </div>
-      <div className="relative h-48 md:h-64">
-        <div className="absolute inset-0 flex items-end overflow-x-auto pb-1 scrollbar-thin">
-          {Object.entries(activeTab === "category" ? categoryRevenue : productRevenue).map(([name, revenue], index) => {
-            const percentage = getPercentage(revenue, totalRevenue)
-            return (
-              <div
-                key={name}
-                className={`${getColor(index)} rounded-t-lg mx-0.5 sm:mx-1 min-w-[20px]`}
-                style={{
-                  height: `${percentage}%`,
-                  width: `${
-                    100 / Math.min(Object.keys(activeTab === "category" ? categoryRevenue : productRevenue).length, 10)
-                  }%`,
-                }}
-                title={`${name}: ${percentage}%`}
-              ></div>
-            )
-          })}
+    )
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-white dark:bg-dark-light rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
+          <TrendingUp className="mr-3 text-primary" size={24} />
+          Biểu đồ doanh thu theo {activeTab === "category" ? "danh mục" : "sản phẩm"}
+        </h3>
+        <div className="flex items-center justify-center h-80">
+          <div className="text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+              <PieChartIcon className="w-12 h-12 text-gray-400" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">Không có dữ liệu để hiển thị</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+              Dữ liệu sẽ xuất hiện khi có đơn hàng hoàn thành
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white dark:bg-dark-light rounded-2xl p-8 shadow-lg border border-gray-200 dark:border-gray-700">
+      {/* Header with Chart Type Toggle */}
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
+          <TrendingUp className="mr-3 text-primary" size={24} />
+          Biểu đồ doanh thu theo {activeTab === "category" ? "danh mục" : "sản phẩm"}
+        </h3>
+
+        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+          <button
+            onClick={() => setChartType("pie")}
+            className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
+              chartType === "pie"
+                ? "bg-white dark:bg-dark text-primary shadow-md"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
+          >
+            <PieChartIcon size={16} className="mr-2" />
+            Tròn
+          </button>
+          <button
+            onClick={() => setChartType("bar")}
+            className={`flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${
+              chartType === "bar"
+                ? "bg-white dark:bg-dark text-primary shadow-md"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+            }`}
+          >
+            <BarChart3 size={16} className="mr-2" />
+            Cột
+          </button>
+        </div>
+      </div>
+
+      {/* Chart Container */}
+      <div className="h-96">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "pie" ? (
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={80}
+                outerRadius={140}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#fff" strokeWidth={2} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomPieTooltip />} />
+              <Legend content={<CustomLegend />} />
+            </PieChart>
+          ) : (
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#666" />
+              <YAxis tick={{ fontSize: 12 }} stroke="#666" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
+              <Tooltip content={<CustomBarTooltip />} />
+              <Bar dataKey="revenue" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+
+      {/* Chart Statistics */}
+      <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-3 gap-6">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-800 dark:text-white">{chartData.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {activeTab === "category" ? "Danh mục" : "Sản phẩm"}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-800 dark:text-white">
+              {chartData.length > 0 ? chartData[0].value.toLocaleString("vi-VN") : 0}đ
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cao nhất</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-800 dark:text-white">
+              {chartData.reduce((sum, item) => sum + item.value, 0).toLocaleString("vi-VN")}đ
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Tổng cộng</p>
+          </div>
         </div>
       </div>
     </div>

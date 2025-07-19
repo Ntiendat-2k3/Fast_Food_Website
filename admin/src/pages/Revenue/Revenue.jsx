@@ -13,9 +13,14 @@ import LoadingState from "../../components/revenue/LoadingState"
 
 const Revenue = ({ url }) => {
   const [orders, setOrders] = useState([])
+  const [completedOrders, setCompletedOrders] = useState([])
+  const [categories, setCategories] = useState([])
+  const [vouchers, setVouchers] = useState([])
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [categoryRevenue, setCategoryRevenue] = useState({})
   const [productRevenue, setProductRevenue] = useState({})
+  const [totalVoucherDiscount, setTotalVoucherDiscount] = useState(0)
+  const [totalShippingFee, setTotalShippingFee] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("category")
 
@@ -26,38 +31,143 @@ const Revenue = ({ url }) => {
   const [timeStats, setTimeStats] = useState([])
   const [chartType, setChartType] = useState("bar")
 
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      const response = await axios.get(url + "/api/category/list")
+      if (response.data.success) {
+        setCategories(response.data.data)
+        console.log("Categories loaded:", response.data.data)
+      } else {
+        console.error("Failed to fetch categories")
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+    }
+  }
+
+  // Fetch vouchers from API
+  const fetchVouchers = async () => {
+    try {
+      const response = await axios.get(url + "/api/voucher/list")
+      if (response.data.success) {
+        setVouchers(response.data.data)
+        console.log("Vouchers loaded:", response.data.data)
+      } else {
+        console.error("Failed to fetch vouchers")
+      }
+    } catch (error) {
+      console.error("Error fetching vouchers:", error)
+    }
+  }
+
+  // Function to find category name by ID
+  const getCategoryNameById = (categoryId) => {
+    if (!categoryId || !categories.length) return "Khác"
+
+    const category = categories.find((cat) => cat._id === categoryId)
+    return category ? category.name : "Khác"
+  }
+
+  // Function to calculate voucher discount amount
+  const calculateVoucherDiscount = (voucherCode, orderAmount) => {
+    if (!voucherCode || !vouchers.length) return 0
+
+    const voucher = vouchers.find((v) => v.code === voucherCode)
+    if (!voucher) return 0
+
+    console.log("Found voucher:", voucher)
+
+    // Calculate discount based on voucher type
+    if (voucher.discountType === "percentage") {
+      const discount = (orderAmount * voucher.discountValue) / 100
+      // Apply max discount limit if exists
+      return voucher.maxDiscount ? Math.min(discount, voucher.maxDiscount) : discount
+    } else if (voucher.discountType === "fixed") {
+      return voucher.discountValue
+    }
+
+    return 0
+  }
+
   // Fetch all orders from API
   const fetchAllOrders = async () => {
     setLoading(true)
     try {
       const response = await axios.get(url + "/api/order/list")
       if (response.data.success) {
-        const orders = response.data.data
-        setOrders(orders)
+        const allOrders = response.data.data
+        setOrders(allOrders)
 
-        // Calculate total revenue from orders
-        const total = orders.reduce((sum, order) => sum + order.amount, 0)
+        // Filter only completed orders for revenue calculation
+        const completed = allOrders.filter((order) => order.status === "Đã giao")
+        setCompletedOrders(completed)
+
+        // Calculate total revenue from completed orders only
+        const total = completed.reduce((sum, order) => sum + order.amount, 0)
         setTotalRevenue(total)
 
-        // Calculate revenue by category and product
+        // Calculate total voucher discount from completed orders using voucher data
+        const voucherDiscount = completed.reduce((sum, order) => {
+          // First try to get from order data
+          let discount = order.voucherDiscount || order.discountAmount || 0
+
+          // If not available, calculate from voucher code and order amount
+          if (discount === 0 && order.voucherCode) {
+            discount = calculateVoucherDiscount(order.voucherCode, order.amount)
+            console.log(`Calculated discount for order ${order._id}: ${discount}đ (voucher: ${order.voucherCode})`)
+          }
+
+          return sum + discount
+        }, 0)
+        setTotalVoucherDiscount(voucherDiscount)
+
+        // Calculate total shipping fee from completed orders
+        const shippingFee = completed.reduce((sum, order) => {
+          const fee = order.shippingFee || order.deliveryFee || 14000
+          return sum + fee
+        }, 0)
+        setTotalShippingFee(shippingFee)
+
+        // Calculate revenue by category and product from completed orders only
         const categoryRev = {}
         const productRev = {}
 
-        orders.forEach((order) => {
-          order.items.forEach((item) => {
-            // Revenue by category
-            if (!categoryRev[item.category]) {
-              categoryRev[item.category] = 0
-            }
-            categoryRev[item.category] += item.price * item.quantity
+        completed.forEach((order) => {
+          console.log("Processing order:", order._id, "Items:", order.items)
 
-            // Revenue by product
-            if (!productRev[item.name]) {
-              productRev[item.name] = 0
-            }
-            productRev[item.name] += item.price * item.quantity
-          })
+          if (order.items && Array.isArray(order.items)) {
+            order.items.forEach((item) => {
+              console.log("Processing item:", item)
+
+              // Ensure item has required properties
+              if (item.name && item.price && item.quantity) {
+                const itemRevenue = item.price * item.quantity
+
+                // Get category name using the mapping function
+                const categoryName = getCategoryNameById(item.category)
+                console.log("Item category ID:", item.category, "Category name:", categoryName)
+
+                // Revenue by category
+                if (!categoryRev[categoryName]) {
+                  categoryRev[categoryName] = 0
+                }
+                categoryRev[categoryName] += itemRevenue
+
+                // Revenue by product
+                if (!productRev[item.name]) {
+                  productRev[item.name] = 0
+                }
+                productRev[item.name] += itemRevenue
+              }
+            })
+          }
         })
+
+        console.log("Final Category Revenue:", categoryRev)
+        console.log("Final Product Revenue:", productRev)
+        console.log("Total Voucher Discount:", voucherDiscount)
+        console.log("Total Shipping Fee:", shippingFee)
 
         setCategoryRevenue(categoryRev)
         setProductRevenue(productRev)
@@ -65,22 +175,22 @@ const Revenue = ({ url }) => {
         toast.error("Error fetching orders")
       }
     } catch (error) {
+      console.error("Error fetching orders:", error)
       toast.error("Error connecting to server")
     } finally {
       setLoading(false)
     }
   }
 
-  // Generate time-based stats from existing orders
+  // Generate time-based stats from completed orders only
   const generateTimeStats = () => {
     const stats = []
-    const now = new Date()
 
     if (period === "day") {
       // Generate stats for each day of the month
       const daysInMonth = new Date(year, month, 0).getDate()
       for (let day = 1; day <= daysInMonth; day++) {
-        const dayOrders = orders.filter((order) => {
+        const dayOrders = completedOrders.filter((order) => {
           const orderDate = new Date(order.date)
           return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === month && orderDate.getDate() === day
         })
@@ -95,7 +205,7 @@ const Revenue = ({ url }) => {
     } else if (period === "month") {
       // Generate stats for each month of the year
       for (let monthNum = 1; monthNum <= 12; monthNum++) {
-        const monthOrders = orders.filter((order) => {
+        const monthOrders = completedOrders.filter((order) => {
           const orderDate = new Date(order.date)
           return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === monthNum
         })
@@ -112,7 +222,7 @@ const Revenue = ({ url }) => {
       // Generate stats for recent years
       const currentYear = new Date().getFullYear()
       for (let yearNum = currentYear - 4; yearNum <= currentYear; yearNum++) {
-        const yearOrders = orders.filter((order) => {
+        const yearOrders = completedOrders.filter((order) => {
           const orderDate = new Date(order.date)
           return orderDate.getFullYear() === yearNum
         })
@@ -129,15 +239,28 @@ const Revenue = ({ url }) => {
     setTimeStats(stats)
   }
 
+  // Load categories and vouchers first, then orders
   useEffect(() => {
-    fetchAllOrders()
+    const loadData = async () => {
+      await Promise.all([fetchCategories(), fetchVouchers()])
+    }
+    loadData()
   }, [])
 
+  // Fetch orders after categories and vouchers are loaded
   useEffect(() => {
-    if (orders.length > 0) {
-      generateTimeStats()
+    if (categories.length > 0 && vouchers.length >= 0) {
+      fetchAllOrders()
     }
-  }, [orders, period, year, month])
+  }, [categories, vouchers])
+
+  useEffect(() => {
+    if (completedOrders.length > 0) {
+      generateTimeStats()
+    } else {
+      setTimeStats([])
+    }
+  }, [completedOrders, period, year, month])
 
   // Simple Time Filter Component
   const TimeFilter = () => (
@@ -190,6 +313,7 @@ const Revenue = ({ url }) => {
     if (timeStats.length === 0) return null
 
     const maxRevenue = Math.max(...timeStats.map((stat) => stat.revenue))
+    if (maxRevenue === 0) return null
 
     return (
       <div className="bg-white dark:bg-dark-light p-6 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -267,8 +391,13 @@ const Revenue = ({ url }) => {
           <LoadingState />
         ) : (
           <>
-            {/* Revenue Summary Cards */}
-            <RevenueSummaryCards totalRevenue={totalRevenue} orders={orders} />
+            {/* Revenue Summary Cards - using completed orders only */}
+            <RevenueSummaryCards
+              totalRevenue={totalRevenue}
+              orders={completedOrders}
+              totalVoucherDiscount={totalVoucherDiscount}
+              totalShippingFee={totalShippingFee}
+            />
 
             {/* Time-based Revenue Chart */}
             <div className="mb-6">
@@ -289,7 +418,9 @@ const Revenue = ({ url }) => {
                 categoryRevenue={categoryRevenue}
                 productRevenue={productRevenue}
                 totalRevenue={totalRevenue}
-                orders={orders}
+                orders={completedOrders}
+                totalVoucherDiscount={totalVoucherDiscount}
+                totalShippingFee={totalShippingFee}
               />
             </div>
           </>

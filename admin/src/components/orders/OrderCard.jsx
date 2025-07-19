@@ -24,7 +24,7 @@ import {
 import OrderItemsList from "./OrderItemsList"
 import OrderSummary from "./OrderSummary"
 
-const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency, onExportInvoice }) => {
+const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCurrency, onExportInvoice }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -128,6 +128,14 @@ const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency, onExport
     setIsUpdating(false)
   }
 
+  const handleCancelOrder = async () => {
+    if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
+      setIsUpdating(true)
+      await onCancelOrder(order._id)
+      setIsUpdating(false)
+    }
+  }
+
   const statusConfig = getStatusColor(order.status)
   const StatusIcon = statusConfig.icon
   const paymentInfo = getPaymentMethodInfo(order.paymentMethod)
@@ -208,12 +216,24 @@ const OrderCard = ({ order, onStatusChange, formatDate, formatCurrency, onExport
         <div className="p-2.5 bg-gray-800/30 rounded-lg border border-gray-700/50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">Tiến trình đơn hàng</span>
-            {isUpdating && (
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-xs text-amber-400">Đang cập nhật...</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Nút hủy đơn hàng */}
+              {order.status === "Đang xử lý" && (
+                <button
+                  onClick={handleCancelOrder}
+                  disabled={isUpdating}
+                  className="px-2 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50"
+                >
+                  Hủy đơn
+                </button>
+              )}
+              {isUpdating && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs text-amber-400">Đang cập nhật...</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="relative">

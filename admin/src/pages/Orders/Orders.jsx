@@ -28,9 +28,11 @@ const Orders = ({ url }) => {
       const response = await axios.get(url + "/api/order/list")
       if (response.data.success) {
         const ordersData = response.data.data
-        setOrders(ordersData)
-        setFilteredOrders(ordersData)
-        calculateStats(ordersData)
+        // Sắp xếp theo thời gian mới nhất lên đầu
+        const sortedOrders = ordersData.sort((a, b) => new Date(b.date) - new Date(a.date))
+        setOrders(sortedOrders)
+        setFilteredOrders(sortedOrders)
+        calculateStats(sortedOrders)
       } else {
         toast.error("Lỗi khi tải danh sách đơn hàng")
       }
@@ -48,7 +50,8 @@ const Orders = ({ url }) => {
       pending: ordersData.filter((order) => order.status === "Đang xử lý").length,
       processing: ordersData.filter((order) => order.status === "Đang giao hàng").length,
       delivered: ordersData.filter((order) => order.status === "Đã giao").length,
-      revenue: ordersData.reduce((sum, order) => sum + order.amount, 0),
+      // Chỉ tính doanh thu từ đơn hàng đã giao
+      revenue: ordersData.filter((order) => order.status === "Đã giao").reduce((sum, order) => sum + order.amount, 0),
     }
     setStats(stats)
   }
@@ -66,6 +69,22 @@ const Orders = ({ url }) => {
     } catch (error) {
       console.error("Error updating status:", error)
       toast.error("Lỗi khi cập nhật trạng thái")
+    }
+  }
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const response = await axios.post(url + "/api/order/status", {
+        orderId,
+        status: "Đã hủy",
+      })
+      if (response.data.success) {
+        await fetchAllOrders()
+        toast.success("Hủy đơn hàng thành công")
+      }
+    } catch (error) {
+      console.error("Error canceling order:", error)
+      toast.error("Lỗi khi hủy đơn hàng")
     }
   }
 
@@ -274,9 +293,10 @@ const Orders = ({ url }) => {
                 key={order._id}
                 order={order}
                 onStatusChange={statusHandler}
+                onCancelOrder={handleCancelOrder}
                 formatDate={formatDate}
                 formatCurrency={formatCurrency}
-                onExportInvoice={handleExportInvoice} // Pass the new handler
+                onExportInvoice={handleExportInvoice}
                 url={url}
               />
             ))
