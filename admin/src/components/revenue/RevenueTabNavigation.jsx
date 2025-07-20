@@ -1,29 +1,43 @@
 "use client"
 
-import { PieChart, BarChart } from "lucide-react"
+import { Package, Tag } from "lucide-react"
 
 const RevenueTabNavigation = ({ activeTab, setActiveTab }) => {
+  const tabs = [
+    {
+      id: "category",
+      label: "Theo danh mục",
+      icon: Tag,
+      description: "Doanh thu theo từng danh mục sản phẩm",
+    },
+    {
+      id: "product",
+      label: "Theo sản phẩm",
+      icon: Package,
+      description: "Doanh thu theo từng sản phẩm cụ thể",
+    },
+  ]
+
   return (
-    <div className="mb-4 md:mb-6 overflow-x-auto">
-      <div className="flex border-b border-gray-200 dark:border-dark-lighter min-w-[300px]">
-        <button
-          onClick={() => setActiveTab("category")}
-          className={`py-2.5 px-4 sm:px-6 font-medium text-sm whitespace-nowrap ${
-            activeTab === "category" ? "border-b-2 border-primary text-primary" : "text-gray-600 dark:text-gray-300"
-          }`}
-        >
-          <PieChart size={16} className="inline mr-2" />
-          Theo danh mục
-        </button>
-        <button
-          onClick={() => setActiveTab("product")}
-          className={`py-2.5 px-4 sm:px-6 font-medium text-sm whitespace-nowrap ${
-            activeTab === "product" ? "border-b-2 border-primary text-primary" : "text-gray-600 dark:text-gray-300"
-          }`}
-        >
-          <BarChart size={16} className="inline mr-2" />
-          Theo sản phẩm
-        </button>
+    <div className="mb-4">
+      <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                activeTab === tab.id
+                  ? "bg-white dark:bg-dark text-primary shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              <Icon size={16} className="mr-2" />
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

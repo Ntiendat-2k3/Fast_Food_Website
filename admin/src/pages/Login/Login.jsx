@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { toast } from "react-toastify"
 import axios from "axios"
-import { User, Shield, Eye, EyeOff, LogIn, Lock, Mail, Sparkles } from "lucide-react"
+import { User, Shield, Eye, EyeOff, LogIn, Lock, Mail, Sparkles, AlertCircle, Key } from "lucide-react"
 
 const Login = ({ url, onLogin, isAuthenticated }) => {
   const [data, setData] = useState({
@@ -14,12 +14,27 @@ const Login = ({ url, onLogin, isAuthenticated }) => {
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordData, setForgotPasswordData] = useState({
+    email: "",
+    code: "",
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [forgotPasswordStep, setForgotPasswordStep] = useState(1) // 1: email, 2: code + new password
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
 
   const onChangeHandler = (event) => {
     const name = event.target.name
     const value = event.target.value
     setData((data) => ({ ...data, [name]: value }))
     if (error) setError("")
+  }
+
+  const onForgotPasswordChangeHandler = (event) => {
+    const name = event.target.name
+    const value = event.target.value
+    setForgotPasswordData((data) => ({ ...data, [name]: value }))
   }
 
   const handleSubmit = async (event) => {
@@ -56,8 +71,233 @@ const Login = ({ url, onLogin, isAuthenticated }) => {
     }
   }
 
+  const handleForgotPasswordSubmit = async (event) => {
+    event.preventDefault()
+    setForgotPasswordLoading(true)
+
+    try {
+      if (forgotPasswordStep === 1) {
+        // Send reset code
+        const response = await axios.post(`${url}/api/user/forgot-password`, {
+          email: forgotPasswordData.email,
+        })
+
+        if (response.data.success) {
+          toast.success("Mã đặt lại mật khẩu đã được gửi đến email của bạn!")
+          setForgotPasswordStep(2)
+        } else {
+          toast.error(response.data.message || "Có lỗi xảy ra")
+        }
+      } else {
+        // Reset password with code
+        if (forgotPasswordData.newPassword !== forgotPasswordData.confirmPassword) {
+          toast.error("Mật khẩu xác nhận không khớp!")
+          return
+        }
+
+        if (forgotPasswordData.newPassword.length < 8) {
+          toast.error("Mật khẩu mới phải có ít nhất 8 ký tự!")
+          return
+        }
+
+        const response = await axios.post(`${url}/api/user/reset-password`, {
+          email: forgotPasswordData.email,
+          code: forgotPasswordData.code,
+          newPassword: forgotPasswordData.newPassword,
+        })
+
+        if (response.data.success) {
+          toast.success("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.")
+          setShowForgotPassword(false)
+          setForgotPasswordStep(1)
+          setForgotPasswordData({
+            email: "",
+            code: "",
+            newPassword: "",
+            confirmPassword: "",
+          })
+        } else {
+          toast.error(response.data.message || "Có lỗi xảy ra")
+        }
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Lỗi kết nối đến máy chủ"
+      toast.error(errorMessage)
+    } finally {
+      setForgotPasswordLoading(false)
+    }
+  }
+
   if (isAuthenticated) {
     return null
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-amber-400/20 to-yellow-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+
+        <div className="w-full max-w-md relative z-10">
+          <div className="bg-black/40 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-yellow-500/20 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-transparent to-amber-500/5 rounded-3xl"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 rounded-3xl blur opacity-30"></div>
+
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="relative inline-block mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-500/25 mx-auto">
+                    <Key className="w-10 h-10 text-black" />
+                  </div>
+                  <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 rounded-3xl blur-xl animate-pulse"></div>
+                </div>
+
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 bg-clip-text text-transparent mb-2">
+                  Đặt lại mật khẩu
+                </h1>
+                <p className="text-gray-300 text-sm">
+                  {forgotPasswordStep === 1
+                    ? "Nhập email để nhận mã đặt lại mật khẩu"
+                    : "Nhập mã xác minh và mật khẩu mới"}
+                </p>
+              </div>
+
+              {/* Forgot Password Form */}
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
+                {forgotPasswordStep === 1 ? (
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="block text-sm font-semibold text-yellow-400 flex items-center">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Email Address
+                    </label>
+                    <div className="relative group">
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={forgotPasswordData.email}
+                        onChange={onForgotPasswordChangeHandler}
+                        disabled={forgotPasswordLoading}
+                        className="w-full px-4 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300"
+                        placeholder="admin@example.com"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-400 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Mã xác minh
+                      </label>
+                      <input
+                        name="code"
+                        type="text"
+                        required
+                        value={forgotPasswordData.code}
+                        onChange={onForgotPasswordChangeHandler}
+                        disabled={forgotPasswordLoading}
+                        className="w-full px-4 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300"
+                        placeholder="Nhập mã 6 số"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-400 flex items-center">
+                        <Lock className="w-4 h-4 mr-2" />
+                        Mật khẩu mới
+                      </label>
+                      <input
+                        name="newPassword"
+                        type="password"
+                        required
+                        value={forgotPasswordData.newPassword}
+                        onChange={onForgotPasswordChangeHandler}
+                        disabled={forgotPasswordLoading}
+                        className="w-full px-4 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300"
+                        placeholder="Ít nhất 8 ký tự"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-semibold text-yellow-400 flex items-center">
+                        <Lock className="w-4 h-4 mr-2" />
+                        Xác nhận mật khẩu
+                      </label>
+                      <input
+                        name="confirmPassword"
+                        type="password"
+                        required
+                        value={forgotPasswordData.confirmPassword}
+                        onChange={onForgotPasswordChangeHandler}
+                        disabled={forgotPasswordLoading}
+                        className="w-full px-4 py-4 bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300"
+                        placeholder="Nhập lại mật khẩu mới"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgotPassword(false)
+                      setForgotPasswordStep(1)
+                      setForgotPasswordData({
+                        email: "",
+                        code: "",
+                        newPassword: "",
+                        confirmPassword: "",
+                      })
+                    }}
+                    className="flex-1 py-4 px-4 border border-gray-600 rounded-xl text-gray-300 font-medium hover:bg-gray-700/50 transition-all duration-300"
+                    disabled={forgotPasswordLoading}
+                  >
+                    Quay lại
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading}
+                    className="flex-1 py-4 px-4 bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-600 hover:from-yellow-500 hover:via-amber-600 hover:to-yellow-700 text-black font-bold rounded-xl transition-all duration-300 disabled:opacity-70"
+                  >
+                    {forgotPasswordLoading ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Đang xử lý...
+                      </span>
+                    ) : forgotPasswordStep === 1 ? (
+                      "Gửi mã"
+                    ) : (
+                      "Đặt lại mật khẩu"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -210,6 +450,7 @@ const Login = ({ url, onLogin, isAuthenticated }) => {
 
                 <button
                   type="button"
+                  onClick={() => setShowForgotPassword(true)}
                   className="text-sm text-yellow-400 hover:text-amber-400 transition-colors duration-200 font-medium"
                   disabled={loading}
                 >

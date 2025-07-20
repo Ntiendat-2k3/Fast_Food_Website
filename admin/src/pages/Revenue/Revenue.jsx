@@ -262,16 +262,16 @@ const Revenue = ({ url }) => {
     }
   }, [completedOrders, period, year, month])
 
-  // Simple Time Filter Component
+  // Compact Time Filter Component
   const TimeFilter = () => (
-    <div className="flex items-center space-x-3 bg-white dark:bg-dark-light p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-      <Calendar size={16} className="text-gray-500" />
+    <div className="flex items-center space-x-2 bg-white dark:bg-dark-light p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+      <Calendar size={14} className="text-gray-500" />
 
       {/* Period Selector */}
       <select
         value={period}
         onChange={(e) => setPeriod(e.target.value)}
-        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-xs focus:outline-none focus:ring-1 focus:ring-primary"
       >
         <option value="day">Theo ngày</option>
         <option value="month">Theo tháng</option>
@@ -282,7 +282,7 @@ const Revenue = ({ url }) => {
       <select
         value={year}
         onChange={(e) => setYear(Number.parseInt(e.target.value))}
-        className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-xs focus:outline-none focus:ring-1 focus:ring-primary"
       >
         {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
           <option key={y} value={y}>
@@ -296,11 +296,11 @@ const Revenue = ({ url }) => {
         <select
           value={month}
           onChange={(e) => setMonth(Number.parseInt(e.target.value))}
-          className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-dark text-xs focus:outline-none focus:ring-1 focus:ring-primary"
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
             <option key={m} value={m}>
-              Tháng {m}
+              T{m}
             </option>
           ))}
         </select>
@@ -308,7 +308,7 @@ const Revenue = ({ url }) => {
     </div>
   )
 
-  // Simple Time Chart Component
+  // Compact Time Chart Component
   const TimeChart = () => {
     if (timeStats.length === 0) return null
 
@@ -316,19 +316,19 @@ const Revenue = ({ url }) => {
     if (maxRevenue === 0) return null
 
     return (
-      <div className="bg-white dark:bg-dark-light p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+      <div className="bg-white dark:bg-dark-light p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+        <h3 className="text-base font-semibold text-gray-800 dark:text-white mb-3">
           Doanh thu theo {period === "day" ? "ngày" : period === "month" ? "tháng" : "năm"}
         </h3>
 
-        <div className="space-y-3">
-          {timeStats.map((stat, index) => (
+        <div className="space-y-2">
+          {timeStats.slice(0, 8).map((stat, index) => (
             <div key={index} className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400 w-16">{stat.period}</span>
-              <div className="flex-1 mx-3">
-                <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <span className="text-xs text-gray-600 dark:text-gray-400 w-12">{stat.period}</span>
+              <div className="flex-1 mx-2">
+                <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
                   <div
-                    className="bg-primary rounded-full h-2 transition-all duration-300"
+                    className="bg-primary rounded-full h-1.5 transition-all duration-300"
                     style={{
                       width: maxRevenue > 0 ? `${(stat.revenue / maxRevenue) * 100}%` : "0%",
                     }}
@@ -336,10 +336,10 @@ const Revenue = ({ url }) => {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-gray-800 dark:text-white">
+                <div className="text-xs font-medium text-gray-800 dark:text-white">
                   {stat.revenue.toLocaleString("vi-VN")}đ
                 </div>
-                <div className="text-xs text-gray-500">{stat.orders} đơn</div>
+                <div className="text-xs text-gray-500">{stat.orders}</div>
               </div>
             </div>
           ))}
@@ -350,35 +350,35 @@ const Revenue = ({ url }) => {
 
   return (
     <div className="w-full">
-      <div className="bg-white dark:bg-dark-light md:rounded-2xl md:shadow-custom p-3 md:p-6 mb-4 md:mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0 flex items-center">
-            <TrendingUp className="mr-2" size={24} />
+      <div className="bg-white dark:bg-dark-light md:rounded-xl md:shadow-custom p-2 md:p-4 mb-3 md:mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+          <h1 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white mb-3 md:mb-0 flex items-center">
+            <TrendingUp className="mr-2" size={20} />
             Thống kê doanh thu
           </h1>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {/* Chart Type Toggle */}
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
               <button
                 onClick={() => setChartType("bar")}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-1.5 rounded-md transition-colors ${
                   chartType === "bar"
                     ? "bg-white dark:bg-dark text-primary shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
-                <BarChart3 size={16} />
+                <BarChart3 size={14} />
               </button>
               <button
                 onClick={() => setChartType("line")}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-1.5 rounded-md transition-colors ${
                   chartType === "line"
                     ? "bg-white dark:bg-dark text-primary shadow-sm"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
               >
-                <LineChart size={16} />
+                <LineChart size={14} />
               </button>
             </div>
 
@@ -400,7 +400,7 @@ const Revenue = ({ url }) => {
             />
 
             {/* Time-based Revenue Chart */}
-            <div className="mb-6">
+            <div className="mb-4">
               <TimeChart />
             </div>
 
@@ -408,7 +408,7 @@ const Revenue = ({ url }) => {
             <RevenueTabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
             {/* Revenue Charts and Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
               {/* Chart */}
               <RevenueChart activeTab={activeTab} categoryRevenue={categoryRevenue} productRevenue={productRevenue} />
 

@@ -17,17 +17,6 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
       </button>
       <button
         className={`py-3 px-3 md:px-4 font-medium text-sm flex items-center whitespace-nowrap ${
-          activeTab === "notifications"
-            ? "text-primary border-b-2 border-primary"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-        }`}
-        onClick={() => setActiveTab("notifications")}
-      >
-        <Bell className="mr-2" size={16} />
-        Thông báo
-      </button>
-      <button
-        className={`py-3 px-3 md:px-4 font-medium text-sm flex items-center whitespace-nowrap ${
           activeTab === "blacklist"
             ? "text-primary border-b-2 border-primary"
             : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"

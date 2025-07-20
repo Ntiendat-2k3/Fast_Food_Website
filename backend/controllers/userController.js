@@ -146,19 +146,22 @@ const adminLogin = async (req, res) => {
       return res.json({ success: false, message: "Bạn không có quyền truy cập admin panel" })
     }
 
-    // Check if admin/staff account is verified (if using email verification for them)
-    if (!user.isVerified) {
-      return res.json({
-        success: false,
-        message: "Tài khoản admin/staff chưa được xác minh. Vui lòng liên hệ quản trị viên.",
-      })
-    }
+    // For admin/staff accounts, skip email verification requirement
+    // This allows admins to login even if they haven't verified their email
+    // You can remove this if you want to enforce email verification for admins too
 
     const isMatch = await bcrypt.compare(password, user.password)
     console.log("Password match:", isMatch)
 
     if (!isMatch) {
       return res.json({ success: false, message: "Mật khẩu không đúng" })
+    }
+
+    // Auto-verify admin/staff accounts on successful login if not already verified
+    if (!user.isVerified) {
+      user.isVerified = true
+      await user.save()
+      console.log("Auto-verified admin/staff account")
     }
 
     const token = createToken(user._id, user.role)
@@ -231,26 +234,33 @@ const registerUser = async (req, res) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString() // 6-digit code
     const verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
 
+    // For admin/staff accounts, auto-verify them
+    const isAdminOrStaff = ["admin", "staff"].includes(role)
+
     const newUser = new userModel({
       name: name,
       email: email,
       password: hashedPassword,
       role: role,
-      isVerified: false, // User is not verified initially
-      verificationCode: verificationCode,
-      verificationCodeExpires: verificationCodeExpires,
+      isVerified: isAdminOrStaff, // Auto-verify admin/staff accounts
+      verificationCode: isAdminOrStaff ? undefined : verificationCode,
+      verificationCodeExpires: isAdminOrStaff ? undefined : verificationCodeExpires,
       authProvider: "local", // Set auth provider
     })
 
     const user = await newUser.save()
 
-    // Send verification email
-    await sendVerificationEmail(email, verificationCode)
+    // Send verification email only for regular users
+    if (!isAdminOrStaff) {
+      await sendVerificationEmail(email, verificationCode)
+    }
 
     res.json({
       success: true,
-      message: "Mã xác minh đã được gửi đến email của bạn. Vui lòng kiểm tra email để xác minh tài khoản.",
-      verificationRequired: true, // Indicate that verification is required
+      message: isAdminOrStaff
+        ? "Tài khoản admin/staff đã được tạo thành công và tự động xác minh."
+        : "Mã xác minh đã được gửi đến email của bạn. Vui lòng kiểm tra email để xác minh tài khoản.",
+      verificationRequired: !isAdminOrStaff,
     })
   } catch (error) {
     console.log(error)
@@ -345,6 +355,12 @@ const resetPassword = async (req, res) => {
     user.password = await bcrypt.hash(newPassword, salt)
     user.verificationCode = undefined // Clear code after reset
     user.verificationCodeExpires = undefined // Clear expiry after reset
+
+    // Auto-verify the user if they successfully reset password
+    if (!user.isVerified) {
+      user.isVerified = true
+    }
+
     await user.save()
 
     res.json({ success: true, message: "Mật khẩu của bạn đã được đặt lại thành công." })

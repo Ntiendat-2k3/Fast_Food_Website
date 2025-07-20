@@ -3,288 +3,281 @@
 import { useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import {
-  Home,
+  LayoutDashboard,
   Package,
   ShoppingCart,
   Users,
-  MessageCircle,
-  BarChart3,
+  MessageSquare,
+  PlusCircle,
+  List,
+  UserCheck,
+  Gift,
+  LogOut,
   ChevronDown,
   ChevronRight,
+  Utensils,
+  Star,
+  Bell,
+  DollarSign,
+  Shield,
   Menu,
   X,
-  Plus,
-  List,
-  Grid3X3,
-  UserCheck,
-  MessageSquare,
-  Gift,
-  Bell,
-  User,
-  LogOut,
-  ChevronLeft,
 } from "lucide-react"
 
-const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [expandedMenus, setExpandedMenus] = useState({})
+const Sidebar = ({ onLogout, user }) => {
   const location = useLocation()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedMenus, setExpandedMenus] = useState({})
+
+  const toggleMenu = (menuKey) => {
+    setExpandedMenus((prev) => ({
+      ...prev,
+      [menuKey]: !prev[menuKey],
+    }))
+  }
 
   const menuItems = [
     {
-      id: "dashboard",
-      title: "Tổng quan",
-      icon: Home,
+      key: "dashboard",
+      title: "Dashboard",
+      icon: LayoutDashboard,
       path: "/",
       color: "from-blue-500 to-blue-600",
     },
     {
-      id: "products",
+      key: "products",
       title: "Sản phẩm",
       icon: Package,
       color: "from-green-500 to-green-600",
       submenu: [
-        { title: "Thêm sản phẩm", path: "/add", icon: Plus },
+        { title: "Thêm sản phẩm", path: "/add", icon: PlusCircle },
         { title: "Danh sách", path: "/list", icon: List },
-        { title: "Danh mục", path: "/categories", icon: Grid3X3 },
+        { title: "Danh mục", path: "/categories", icon: Utensils },
       ],
     },
     {
-      id: "orders",
+      key: "orders",
       title: "Đơn hàng",
       icon: ShoppingCart,
       path: "/orders",
-      color: "from-amber-500 to-yellow-500",
-      badge: "12",
+      color: "from-orange-500 to-orange-600",
     },
     {
-      id: "customers",
+      key: "customers",
       title: "Khách hàng",
       icon: Users,
+      path: "/customers",
       color: "from-purple-500 to-purple-600",
-      submenu: [
-        { title: "Danh sách KH", path: "/customers", icon: Users }, // New: Customer List
-        { title: "Nhân viên", path: "/staff", icon: UserCheck },
-      ],
     },
     {
-      id: "communication",
-      title: "Giao tiếp",
-      icon: MessageCircle,
-      color: "from-pink-500 to-pink-600",
-      submenu: [
-        { title: "Tin nhắn", path: "/chat", icon: MessageSquare },
-        { title: "Bình luận", path: "/comments", icon: MessageCircle },
-      ],
-    },
-    {
-      id: "marketing",
-      title: "Marketing",
-      icon: Gift,
-      color: "from-indigo-500 to-indigo-600",
-      submenu: [
-        { title: "Voucher", path: "/vouchers", icon: Gift },
-        { title: "Thông báo", path: "/notifications", icon: Bell }, // Moved: Notifications
-      ],
-    },
-    {
-      id: "reports",
-      title: "Báo cáo",
-      icon: BarChart3,
+      key: "revenue",
+      title: "Doanh thu",
+      icon: DollarSign,
       path: "/revenue",
-      color: "from-red-500 to-red-600",
+      color: "from-emerald-500 to-emerald-600",
     },
     {
-      id: "profile",
-      title: "Hồ sơ",
-      icon: User,
-      path: "/profile",
-      color: "from-gray-500 to-gray-600",
+      key: "vouchers",
+      title: "Voucher",
+      icon: Gift,
+      path: "/vouchers",
+      color: "from-pink-500 to-pink-600",
+    },
+    {
+      key: "staff",
+      title: "Nhân viên",
+      icon: UserCheck,
+      path: "/staff",
+      color: "from-indigo-500 to-indigo-600",
+      adminOnly: true,
+    },
+    {
+      key: "communication",
+      title: "Giao tiếp",
+      icon: MessageSquare,
+      color: "from-cyan-500 to-cyan-600",
+      submenu: [
+        { title: "Chat", path: "/chat", icon: MessageSquare },
+        { title: "Bình luận", path: "/comments", icon: Star },
+        { title: "Thông báo", path: "/notifications", icon: Bell },
+      ],
     },
   ]
 
-  const toggleMenu = (menuId) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [menuId]: !prev[menuId],
-    }))
-  }
-
-  const isActiveMenu = (item) => {
-    if (item.path) {
-      return location.pathname === item.path
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (item.adminOnly && user?.role !== "admin") {
+      return false
     }
-    if (item.submenu) {
-      return item.submenu.some((sub) => location.pathname === sub.path)
+    return true
+  })
+
+  const isActive = (path) => {
+    if (path === "/") {
+      return location.pathname === "/"
     }
-    return false
+    return location.pathname.startsWith(path)
   }
 
-  const isActiveSubmenu = (path) => {
-    return location.pathname === path
+  const handleLogout = () => {
+    if (window.confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+      onLogout()
+    }
   }
-
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700/50">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center">
-                <Package className="w-6 h-6 text-black" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">FastFood</h2>
-                <p className="text-xs text-gray-400">Admin Panel</p>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg bg-gray-800/50 border border-gray-600 text-gray-400 hover:text-amber-400 hover:border-amber-400/50 transition-all duration-300"
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => (
-          <div key={item.id}>
-            {item.submenu ? (
-              <div>
-                <button
-                  onClick={() => toggleMenu(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group ${
-                    isActiveMenu(item)
-                      ? "bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-amber-400/30 text-amber-400"
-                      : "text-gray-300 hover:bg-gray-800/50 hover:text-white"
-                  }`}
-                >
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color} ${
-                      isCollapsed ? "w-6 h-6" : ""
-                    }`}
-                  >
-                    <item.icon className={`text-white ${isCollapsed ? "w-4 h-4" : "w-5 h-5"}`} />
-                  </div>
-                  {!isCollapsed && (
-                    <>
-                      <span className="flex-1 text-left font-medium">{item.title}</span>
-                      {item.badge && (
-                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-                      )}
-                      <ChevronDown
-                        className={`w-4 h-4 transition-transform duration-300 ${
-                          expandedMenus[item.id] ? "rotate-180" : ""
-                        }`}
-                      />
-                    </>
-                  )}
-                </button>
-                {!isCollapsed && expandedMenus[item.id] && (
-                  <div className="ml-6 mt-2 space-y-1">
-                    {item.submenu.map((subItem) => (
-                      <NavLink
-                        key={subItem.path}
-                        to={subItem.path}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
-                          isActiveSubmenu(subItem.path)
-                            ? "bg-amber-400/10 text-amber-400 border-l-2 border-amber-400"
-                            : "text-gray-400 hover:bg-gray-800/30 hover:text-white"
-                        }`}
-                      >
-                        <subItem.icon className="w-4 h-4" />
-                        <span className="text-sm">{subItem.title}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <NavLink
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 group ${
-                  isActiveMenu(item)
-                    ? "bg-gradient-to-r from-amber-400/20 to-yellow-500/20 border border-amber-400/30 text-amber-400"
-                    : "text-gray-300 hover:bg-gray-800/50 hover:text-white"
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color} ${
-                    isCollapsed ? "w-6 h-6" : ""
-                  }`}
-                >
-                  <item.icon className={`text-white ${isCollapsed ? "w-4 h-4" : "w-5 h-5"}`} />
-                </div>
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 font-medium">{item.title}</span>
-                    {item.badge && (
-                      <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">{item.badge}</span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            )}
-          </div>
-        ))}
-      </nav>
-
-      {/* Footer */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-700/50">
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600">
-              <LogOut className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-medium">Đăng xuất</span>
-          </button>
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <>
       {/* Mobile Overlay */}
-      {isMobileOpen && (
+      {!isCollapsed && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          onClick={() => setIsCollapsed(true)}
         />
       )}
 
+      {/* Sidebar */}
+      <div
+        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 border-r border-gray-700/50 transition-all duration-300 z-50 ${
+          isCollapsed ? "-translate-x-full lg:translate-x-0 lg:w-20" : "w-80 lg:w-64"
+        }`}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-gray-700/50">
+          <div className="flex items-center justify-between">
+            {!isCollapsed && (
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center shadow-lg">
+                  <Shield className="w-6 h-6 text-black" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                    Admin Panel
+                  </h1>
+                  <p className="text-xs text-gray-400">Quản lý hệ thống</p>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-white transition-colors lg:hidden"
+            >
+              {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+            </button>
+          </div>
+
+          {/* User Info */}
+          {!isCollapsed && user && (
+            <div className="mt-4 p-3 rounded-xl bg-gray-800/50 border border-gray-700/30">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">{user.name?.charAt(0).toUpperCase() || "A"}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{user.name || "Admin"}</p>
+                  <p className="text-xs text-gray-400 capitalize">{user.role || "admin"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-4 px-3">
+          <nav className="space-y-2">
+            {filteredMenuItems.map((item) => (
+              <div key={item.key}>
+                {item.submenu ? (
+                  <div>
+                    <button
+                      onClick={() => toggleMenu(item.key)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all duration-300 ${
+                        isCollapsed ? "justify-center" : ""
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color}`}
+                      >
+                        <item.icon className="w-5 h-5 text-white" />
+                      </div>
+                      {!isCollapsed && (
+                        <>
+                          <span className="font-medium flex-1 text-left">{item.title}</span>
+                          {expandedMenus[item.key] ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </>
+                      )}
+                    </button>
+
+                    {!isCollapsed && expandedMenus[item.key] && (
+                      <div className="ml-6 mt-2 space-y-1">
+                        {item.submenu.map((subItem) => (
+                          <NavLink
+                            key={subItem.path}
+                            to={subItem.path}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                                isActive
+                                  ? "bg-yellow-500/20 text-yellow-400 border-l-2 border-yellow-400"
+                                  : "text-gray-400 hover:bg-gray-700/30 hover:text-white"
+                              }`
+                            }
+                          >
+                            <subItem.icon className="w-4 h-4" />
+                            <span>{subItem.title}</span>
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 ${
+                        isActive
+                          ? "bg-yellow-500/20 text-yellow-400 shadow-lg shadow-yellow-500/10"
+                          : "text-gray-300 hover:bg-gray-700/50 hover:text-white"
+                      } ${isCollapsed ? "justify-center" : ""}`
+                    }
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${item.color}`}
+                    >
+                      <item.icon className="w-5 h-5 text-white" />
+                    </div>
+                    {!isCollapsed && <span className="font-medium">{item.title}</span>}
+                  </NavLink>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-700/50">
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-gray-300 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300 ${
+              isCollapsed ? "justify-center" : ""
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-red-500 to-red-600">
+              <LogOut className="w-5 h-5 text-white" />
+            </div>
+            {!isCollapsed && <span className="font-medium">Đăng xuất</span>}
+          </button>
+        </div>
+      </div>
+
       {/* Mobile Toggle Button */}
       <button
-        onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 bg-gray-800 border border-gray-600 rounded-lg text-white"
+        onClick={() => setIsCollapsed(false)}
+        className="fixed top-4 left-4 z-40 p-2 rounded-lg bg-gray-900 text-white shadow-lg lg:hidden"
       >
         <Menu className="w-5 h-5" />
       </button>
-
-      {/* Sidebar */}
-      <div
-        className={`fixed left-0 top-0 h-full bg-gradient-to-b from-gray-900 via-black to-gray-900 border-r border-gray-700/50 backdrop-blur-xl z-50 transition-all duration-300 ${
-          isCollapsed ? "w-20" : "w-64"
-        } ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
-      >
-        {/* Mobile Close Button */}
-        <button
-          onClick={() => setIsMobileOpen(false)}
-          className="absolute top-4 right-4 lg:hidden p-2 text-gray-400 hover:text-white"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <SidebarContent />
-      </div>
-
-      {/* Main Content Spacer */}
-      <div className={`${isCollapsed ? "lg:ml-20" : "lg:ml-64"} transition-all duration-300`} />
     </>
   )
 }

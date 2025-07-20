@@ -592,7 +592,6 @@ const Comments = ({ url }) => {
           </div>
         )}
 
-        {/* Removed Notifications Tab */}
 
         {/* Blacklist Tab */}
         {activeTab === "blacklist" && (
