@@ -443,9 +443,19 @@ const userOrders = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   try {
-    await orderModel.findByIdAndUpdate(req.body.orderId, {
-      status: req.body.status,
-    })
+    const { orderId, status } = req.body
+
+    // Tạo object update với status mới
+    const updateData = { status: status }
+
+    // Nếu status là "Đã giao", tự động cập nhật paymentStatus thành "Đã thanh toán"
+    if (status === "Đã giao") {
+      updateData.paymentStatus = "Đã thanh toán"
+    }
+
+    // Cập nhật đơn hàng
+    await orderModel.findByIdAndUpdate(orderId, updateData)
+
     res.json({ success: true, message: "Cập nhật trạng thái thành công" })
   } catch (error) {
     console.log(error)

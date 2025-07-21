@@ -36,7 +36,7 @@ const CustomerTable = ({ customers, loading, onDelete, url }) => {
           {customers.map((customer) => (
             <tr
               key={customer._id}
-              className="border-b border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-hover"
+              className="border-b border-gray-200 dark:border-dark-border hover:bg-gray-500 dark:hover:bg-dark-hover"
             >
               <td className="py-3 px-6 text-left whitespace-nowrap">
                 <div className="flex items-center">

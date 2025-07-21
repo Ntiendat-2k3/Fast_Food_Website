@@ -114,6 +114,28 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
     }
   }
 
+  // Tự động hiển thị trạng thái thanh toán dựa trên trạng thái đơn hàng
+  const getDisplayPaymentStatus = () => {
+    if (order.status === "Đã giao") {
+      return "Đã thanh toán"
+    }
+    return order.paymentStatus || "Chưa thanh toán"
+  }
+
+  const getPaymentStatusColor = () => {
+    const status = getDisplayPaymentStatus()
+    switch (status) {
+      case "Đã thanh toán":
+        return "bg-green-500/20 text-green-400 border-green-500/30"
+      case "Đang xử lý":
+        return "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      case "Thanh toán thất bại":
+        return "bg-red-500/20 text-red-400 border-red-500/30"
+      default:
+        return "bg-orange-500/20 text-orange-400 border-orange-500/30"
+    }
+  }
+
   const handleStatusChange = async (newStatus) => {
     const currentIndex = getCurrentStepIndex()
     const newIndex = statusSteps.findIndex((step) => step.key === newStatus)
@@ -199,9 +221,7 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
 
       {/* Payment Status */}
       <div className="flex items-center justify-between text-xs mb-3">
-        <div className={`px-2 py-1 rounded-full ${paymentInfo.bg} ${paymentInfo.color} border border-current/30`}>
-          {order.paymentStatus || "Chưa thanh toán"}
-        </div>
+        <div className={`px-2 py-1 rounded-full border ${getPaymentStatusColor()}`}>{getDisplayPaymentStatus()}</div>
         <div className="text-gray-400">
           {order.voucherCode && (
             <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
@@ -392,8 +412,8 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
               </div>
               <div>
                 <span className="text-gray-400">Trạng thái:</span>
-                <div className={`mt-1 px-2 py-1 rounded ${paymentInfo.bg} ${paymentInfo.color} inline-block`}>
-                  {order.paymentStatus || "Chưa thanh toán"}
+                <div className={`mt-1 px-2 py-1 rounded border ${getPaymentStatusColor()} inline-block`}>
+                  {getDisplayPaymentStatus()}
                 </div>
               </div>
             </div>

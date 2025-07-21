@@ -184,7 +184,7 @@ const Staff = ({ url }) => {
         </div>
 
         {/* Stats */}
-        <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} />
+        {/* <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} /> */}
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
