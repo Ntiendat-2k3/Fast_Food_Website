@@ -35,7 +35,7 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
   ]
 
   const getCurrentStepIndex = () => {
-    if (order.status === "Đã hủy") return -1
+    if (order.status === "Đã hủy" || order.status === "Đã hoàn thành") return -1
     return statusSteps.findIndex((step) => step.key === order.status)
   }
 
@@ -60,6 +60,13 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
           bg: "from-green-500/20 to-green-600/20",
           border: "border-green-500/30",
           text: "text-green-400",
+          icon: CheckCircle,
+        }
+      case "Đã hoàn thành":
+        return {
+          bg: "from-emerald-500/20 to-emerald-600/20",
+          border: "border-emerald-500/30",
+          text: "text-emerald-400",
           icon: CheckCircle,
         }
       case "Đã hủy":
@@ -116,7 +123,7 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
 
   // Tự động hiển thị trạng thái thanh toán dựa trên trạng thái đơn hàng
   const getDisplayPaymentStatus = () => {
-    if (order.status === "Đã giao") {
+    if (order.status === "Đã giao" || order.status === "Đã hoàn thành") {
       return "Đã thanh toán"
     }
     return order.paymentStatus || "Chưa thanh toán"
@@ -140,8 +147,8 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
     const currentIndex = getCurrentStepIndex()
     const newIndex = statusSteps.findIndex((step) => step.key === newStatus)
 
-    // Không cho phép lùi lại hoặc nhảy cách
-    if (newIndex <= currentIndex || newIndex > currentIndex + 1) {
+    // Không cho phép lùi lại hoặc nhảy cách (trừ khi đã hoàn thành)
+    if (order.status !== "Đã hoàn thành" && (newIndex <= currentIndex || newIndex > currentIndex + 1)) {
       return
     }
 
@@ -231,29 +238,45 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
         </div>
       </div>
 
-      {/* Shopee-style Progress Bar (Hidden if status is "Đã giao" or "Đã hủy") */}
-      {order.status !== "Đã giao" && order.status !== "Đã hủy" && (
-        <div className="p-2.5 bg-gray-800/30 rounded-lg border border-gray-700/50">
+      {/* Action Buttons Row - Always visible for admin */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {/* Nút hủy đơn hàng - chỉ hiện khi đang xử lý */}
+          {order.status === "Đang xử lý" && (
+            <button
+              onClick={handleCancelOrder}
+              disabled={isUpdating}
+              className="px-3 py-1.5 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50 flex items-center gap-1"
+            >
+              <XCircle className="w-3 h-3" />
+              Hủy đơn
+            </button>
+          )}
+
+          {/* Loading indicator */}
+          {isUpdating && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs text-amber-400">Đang cập nhật...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Export Invoice Button */}
+        <button
+          onClick={() => onExportInvoice(order._id)}
+          className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1 text-xs"
+        >
+          <FileText className="w-3 h-3" />
+          Xuất hóa đơn
+        </button>
+      </div>
+
+      {/* Shopee-style Progress Bar - Only show for orders in progress */}
+      {order.status !== "Đã hoàn thành" && order.status !== "Đã hủy" && (
+        <div className="p-2.5 bg-gray-800/30 rounded-lg border border-gray-700/50 mb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-gray-400">Tiến trình đơn hàng</span>
-            <div className="flex items-center gap-2">
-              {/* Nút hủy đơn hàng */}
-              {order.status === "Đang xử lý" && (
-                <button
-                  onClick={handleCancelOrder}
-                  disabled={isUpdating}
-                  className="px-2 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-all duration-300 disabled:opacity-50"
-                >
-                  Hủy đơn
-                </button>
-              )}
-              {isUpdating && (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs text-amber-400">Đang cập nhật...</span>
-                </div>
-              )}
-            </div>
           </div>
 
           <div className="relative">
@@ -272,7 +295,8 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
                 const StepIcon = step.icon
                 const isCompleted = index < currentStepIndex
                 const isActive = index === currentStepIndex
-                const isClickable = index === currentStepIndex + 1 && order.status !== "Đã giao"
+                const isClickable =
+                  index === currentStepIndex + 1 && order.status !== "Đã giao" && order.status !== "Đã hoàn thành"
 
                 return (
                   <div key={step.key} className="flex flex-col items-center">
@@ -344,17 +368,30 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
         </div>
       )}
 
-      {/* Display "Đơn hàng đã hoàn thành" if status is "Đã giao" */}
+      {/* Special status displays */}
       {order.status === "Đã giao" && (
-        <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30 flex items-center justify-center">
-          <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-          <span className="text-sm font-medium text-green-400">Đơn hàng đã hoàn thành</span>
+        <div className="p-3 bg-green-500/10 rounded-lg border border-green-500/30 flex items-center justify-between mb-3">
+          <div className="flex items-center">
+            <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+            <span className="text-sm font-medium text-green-400">Đơn hàng đã được giao</span>
+          </div>
+          <div className="text-xs text-orange-400 bg-orange-500/20 px-2 py-1 rounded-full border border-orange-500/30">
+            Chờ khách hàng xác nhận
+          </div>
+        </div>
+      )}
+
+      {/* Display "Đơn hàng đã hoàn thành" only when status is actually "Đã hoàn thành" */}
+      {order.status === "Đã hoàn thành" && (
+        <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30 flex items-center justify-center mb-3">
+          <CheckCircle className="w-4 h-4 text-emerald-400 mr-2" />
+          <span className="text-sm font-medium text-emerald-400">Đơn hàng đã hoàn thành</span>
         </div>
       )}
 
       {/* Display "Đơn hàng đã bị hủy" if status is "Đã hủy" */}
       {order.status === "Đã hủy" && (
-        <div className="flex items-center justify-center p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <div className="flex items-center justify-center p-3 bg-red-500/10 border border-red-500/30 rounded-lg mb-3">
           <XCircle className="w-4 h-4 text-red-400 mr-2" />
           <span className="text-sm font-medium text-red-400">Đơn hàng đã bị hủy</span>
         </div>
@@ -430,17 +467,6 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
 
           {/* Order Summary */}
           <OrderSummary order={order} formatCurrency={formatCurrency} />
-
-          {/* Export Invoice Button */}
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={() => onExportInvoice(order._id)}
-              className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-semibold rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              Xuất hóa đơn
-            </button>
-          </div>
         </div>
       )}
     </div>

@@ -7,22 +7,36 @@ import EmptyOrdersState from "../../components/orders/EmptyOrdersState"
 import OrdersLoadingState from "../../components/orders/OrdersLoadingState"
 import AnimatedBackground from "../../components/common/AnimatedBackground"
 import { StoreContext } from "../../context/StoreContext"
-import { useContext } from "react"
+import { useContext, useEffect } from "react"
+import { Toaster } from "react-hot-toast"
 
 const MyOrders = () => {
-  const { url } = useContext(StoreContext)
-  const { data, loading, searchTerm, setSearchTerm, filteredOrders, formatDate } = useOrders()
+  const { url, token } = useContext(StoreContext)
+  const { data, loading, searchTerm, setSearchTerm, filteredOrders, formatDate, refetch, confirmDelivery } = useOrders()
+
+  // Debug logging
+  useEffect(() => {
+    console.log("MyOrders - Token:", token)
+    console.log("MyOrders - Data:", data)
+    console.log("MyOrders - Loading:", loading)
+  }, [token, data, loading])
+
+  const handleOrderUpdate = () => {
+    // Refetch orders khi có cập nhật
+    refetch()
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 pt-20 pb-16">
       <AnimatedBackground />
+      <Toaster position="top-right" />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-700"
+          className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-yellow-500/30"
         >
           <OrdersHeader searchTerm={searchTerm} setSearchTerm={setSearchTerm} hasOrders={data.length > 0} />
 
@@ -32,7 +46,13 @@ const MyOrders = () => {
             ) : data.length === 0 ? (
               <EmptyOrdersState />
             ) : (
-              <OrdersList orders={filteredOrders} url={url} formatDate={formatDate} />
+              <OrdersList
+                orders={filteredOrders}
+                url={url}
+                formatDate={formatDate}
+                onOrderUpdate={handleOrderUpdate}
+                confirmDelivery={confirmDelivery}
+              />
             )}
           </div>
         </motion.div>

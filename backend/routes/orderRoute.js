@@ -7,7 +7,8 @@ import {
   updateStatus,
   updatePaymentStatus,
   getRevenueStats,
-  exportInvoice, // Import the new function
+  exportInvoice,
+  confirmDelivery,
 } from "../controllers/orderController.js"
 import { getUserPurchaseHistory } from "../controllers/purchaseHistoryController.js"
 import requireSignIn, { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
@@ -19,6 +20,7 @@ orderRouter.post("/place", authMiddleware, placeOrder)
 orderRouter.post("/verify", verifyOrder)
 orderRouter.post("/userorders", authMiddleware, userOrders)
 orderRouter.post("/purchase-history", requireSignIn, getUserPurchaseHistory)
+orderRouter.post("/confirm-delivery", authMiddleware, confirmDelivery)
 
 // Staff/Admin routes
 orderRouter.get("/list", verifyStaffOrAdmin, listOrders)

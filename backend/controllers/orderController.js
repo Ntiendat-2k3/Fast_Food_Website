@@ -56,6 +56,7 @@ const placeOrder = async (req, res) => {
       distance: distance || null,
       subtotal: subtotal || itemsTotal || 0,
       itemsTotal: itemsTotal || subtotal || 0,
+      customerConfirmed: false,
     })
 
     console.log("New order to be saved:", {
@@ -409,6 +410,81 @@ const exportInvoice = async (req, res) => {
   }
 }
 
+// Khách hàng xác nhận đã nhận hàng
+const confirmDelivery = async (req, res) => {
+  try {
+    const { orderId } = req.body
+    const userId = req.body.userId
+
+    console.log("Confirm delivery request:", { orderId, userId })
+
+    // Tìm đơn hàng và kiểm tra quyền
+    const order = await orderModel.findById(orderId)
+
+    if (!order) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
+    }
+
+    if (order.userId !== userId) {
+      return res.json({ success: false, message: "Không có quyền thực hiện thao tác này" })
+    }
+
+    if (order.status !== "Đã giao") {
+      return res.json({ success: false, message: "Đơn hàng chưa được giao" })
+    }
+
+    if (order.customerConfirmed) {
+      return res.json({ success: false, message: "Đơn hàng đã được xác nhận trước đó" })
+    }
+
+    // Cập nhật trạng thái đơn hàng
+    await orderModel.findByIdAndUpdate(orderId, {
+      status: "Đã hoàn thành",
+      customerConfirmed: true,
+      customerConfirmedAt: new Date(),
+      paymentStatus: "Đã thanh toán",
+    })
+
+    console.log("Order confirmed successfully:", orderId)
+
+    res.json({ success: true, message: "Xác nhận nhận hàng thành công" })
+  } catch (error) {
+    console.log("Error confirming delivery:", error)
+    res.json({ success: false, message: "Lỗi khi xác nhận nhận hàng" })
+  }
+}
+
+// Tự động hoàn thành đơn hàng sau 1 ngày
+const autoCompleteOrders = async () => {
+  try {
+    const oneDayAgo = new Date()
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1)
+
+    // Tìm các đơn hàng đã giao hơn 1 ngày và chưa được khách hàng xác nhận
+    const ordersToComplete = await orderModel.find({
+      status: "Đã giao",
+      deliveredAt: { $lte: oneDayAgo },
+      customerConfirmed: false,
+    })
+
+    console.log(`Found ${ordersToComplete.length} orders to auto-complete`)
+
+    // Cập nhật trạng thái thành "Đã hoàn thành"
+    for (const order of ordersToComplete) {
+      await orderModel.findByIdAndUpdate(order._id, {
+        status: "Đã hoàn thành",
+        paymentStatus: "Đã thanh toán",
+      })
+      console.log(`Auto-completed order: ${order._id}`)
+    }
+
+    return ordersToComplete.length
+  } catch (error) {
+    console.error("Error auto-completing orders:", error)
+    return 0
+  }
+}
+
 // Các hàm khác giữ nguyên
 const verifyOrder = async (req, res) => {
   const { orderId, success, paymentMethod } = req.body
@@ -433,10 +509,19 @@ const verifyOrder = async (req, res) => {
 
 const userOrders = async (req, res) => {
   try {
-    const orders = await orderModel.find({ userId: req.body.userId })
+    const userId = req.body.userId
+    console.log("Fetching orders for user:", userId)
+
+    if (!userId) {
+      return res.json({ success: false, message: "Không tìm thấy ID người dùng" })
+    }
+
+    const orders = await orderModel.find({ userId: userId }).sort({ date: -1 })
+    console.log(`Found ${orders.length} orders for user ${userId}`)
+
     res.json({ success: true, data: orders })
   } catch (error) {
-    console.log(error)
+    console.log("Error in userOrders:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
   }
 }
@@ -448,8 +533,13 @@ const updateStatus = async (req, res) => {
     // Tạo object update với status mới
     const updateData = { status: status }
 
-    // Nếu status là "Đã giao", tự động cập nhật paymentStatus thành "Đã thanh toán"
+    // Nếu status là "Đã giao", lưu thời gian giao hàng
     if (status === "Đã giao") {
+      updateData.deliveredAt = new Date()
+    }
+
+    // Nếu status là "Đã hoàn thành", tự động cập nhật paymentStatus thành "Đã thanh toán"
+    if (status === "Đã hoàn thành") {
       updateData.paymentStatus = "Đã thanh toán"
     }
 
@@ -492,7 +582,7 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const query = {
       userId,
-      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }],
+      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }, { status: "Đã hoàn thành" }],
     }
 
     if (search) {
@@ -569,7 +659,7 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const allCompletedOrders = await orderModel.find({
       userId,
-      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }],
+      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }, { status: "Đã hoàn thành" }],
     })
 
     const totalSpent = allCompletedOrders.reduce((sum, order) => sum + order.amount, 0)
@@ -617,4 +707,6 @@ export {
   getUserPurchaseHistory,
   getRevenueStats,
   exportInvoice,
+  confirmDelivery,
+  autoCompleteOrders,
 }

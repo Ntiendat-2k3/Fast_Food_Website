@@ -4,7 +4,7 @@ const PaymentMethodIcon = ({ method }) => {
   const getPaymentMethodIcon = (method) => {
     switch (method) {
       case "COD":
-        return <Truck size={16} className="text-gray-300" />
+        return <Truck size={16} className="text-yellow-400" />
       case "VNPay":
         return <CreditCard size={16} className="text-blue-400" />
       case "MoMo":
@@ -12,31 +12,11 @@ const PaymentMethodIcon = ({ method }) => {
       case "BankTransfer":
         return <Landmark size={16} className="text-green-400" />
       default:
-        return <CreditCard size={16} className="text-gray-400" />
+        return <CreditCard size={16} className="text-slate-400" />
     }
   }
 
-  const getPaymentMethodLabel = (method) => {
-    switch (method) {
-      case "COD":
-        return "COD"
-      case "VNPay":
-        return "VNPay"
-      case "MoMo":
-        return "MoMo"
-      case "BankTransfer":
-        return "Bank"
-      default:
-        return "Unknown"
-    }
-  }
-
-  return (
-    <div className="flex items-center">
-      {getPaymentMethodIcon(method)}
-      <span className="ml-2 text-xs text-gray-400">{getPaymentMethodLabel(method)}</span>
-    </div>
-  )
+  return <div className="flex items-center">{getPaymentMethodIcon(method)}</div>
 }
 
 export default PaymentMethodIcon
