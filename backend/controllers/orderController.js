@@ -530,6 +530,22 @@ const updateStatus = async (req, res) => {
   try {
     const { orderId, status } = req.body
 
+    // Lấy thông tin đơn hàng hiện tại
+    const currentOrder = await orderModel.findById(orderId)
+    if (!currentOrder) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
+    }
+
+    // Kiểm tra logic hủy đơn hàng
+    if (status === "Đã hủy") {
+      if (currentOrder.status !== "Đang xử lý" && currentOrder.status !== "Đang giao hàng") {
+        return res.json({
+          success: false,
+          message: "Chỉ có thể hủy đơn hàng khi đang xử lý hoặc đang giao hàng",
+        })
+      }
+    }
+
     // Tạo object update với status mới
     const updateData = { status: status }
 

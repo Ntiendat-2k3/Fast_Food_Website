@@ -530,14 +530,6 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                         <History size={16} className="mr-3" />
                         Lịch sử mua hàng
                       </Link>
-                      <Link
-                        to="/address" // Assuming you have an address page/route
-                        className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        <MapPin size={16} className="mr-3" />
-                        Địa chỉ của tôi
-                      </Link>
                       {/* New: Change Password option */}
                       <button
                         onClick={() => {
@@ -652,20 +644,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                           Lịch sử mua hàng
                         </Link>
                       </motion.div>
-                      <motion.div variants={menuItemVariants} custom={navItems.length + 3}>
-                        <Link
-                          to="/address" // Assuming you have an address page/route
-                          className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] ${
-                            location.pathname === "/address"
-                              ? "text-primary bg-slate-700/50"
-                              : "text-white hover:text-primary hover:bg-slate-700/30"
-                          }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <MapPin size={16} className="mr-3" />
-                          Địa chỉ của tôi
-                        </Link>
-                      </motion.div>
+                     
                       {/* New: Change Password option in mobile menu */}
                       <motion.div variants={menuItemVariants} custom={navItems.length + 4}>
                         <button

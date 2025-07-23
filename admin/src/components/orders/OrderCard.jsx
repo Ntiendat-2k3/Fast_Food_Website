@@ -158,6 +158,12 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
   }
 
   const handleCancelOrder = async () => {
+    // Kiểm tra trạng thái trước khi hủy
+    if (order.status !== "Đang xử lý" && order.status !== "Đang giao hàng") {
+      alert("Chỉ có thể hủy đơn hàng khi đang xử lý hoặc đang giao hàng!")
+      return
+    }
+
     if (window.confirm("Bạn có chắc chắn muốn hủy đơn hàng này?")) {
       setIsUpdating(true)
       await onCancelOrder(order._id)
@@ -242,7 +248,7 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {/* Nút hủy đơn hàng - chỉ hiện khi đang xử lý */}
-          {order.status === "Đang xử lý" && (
+          {(order.status === "Đang xử lý" || order.status === "Đang giao hàng") && (
             <button
               onClick={handleCancelOrder}
               disabled={isUpdating}
