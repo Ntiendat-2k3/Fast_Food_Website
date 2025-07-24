@@ -1,259 +1,133 @@
 "use client"
 
-import { useState, useContext, useEffect } from "react"
-import { Star } from "lucide-react"
-import { toast } from "react-toastify"
-import axios from "axios"
+import { useState, useContext } from "react"
+import { motion } from "framer-motion"
+import { Star, X } from "lucide-react"
 import { StoreContext } from "../context/StoreContext"
-import ReviewEligibilityNotice from "./ReviewEligibilityNotice"
+import axios from "axios"
+import { toast } from "react-toastify"
 
 const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
   const { url, token, user } = useContext(StoreContext)
-  const [rating, setRating] = useState(5)
-  const [hoverRating, setHoverRating] = useState(0)
+  const [rating, setRating] = useState(0)
+  const [hoveredRating, setHoveredRating] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [reviewEligibility, setReviewEligibility] = useState(null)
-  const [isCheckingEligibility, setIsCheckingEligibility] = useState(true)
-
-  // Kiểm tra quyền đánh giá khi component mount
-  useEffect(() => {
-    const checkReviewEligibility = async () => {
-      if (!user || !user._id || !foodId || !token) {
-        console.log("Missing requirements for review check:", { user: !!user, foodId: !!foodId, token: !!token })
-        setReviewEligibility({
-          canRate: false,
-          hasPurchased: false,
-          hasRated: false,
-          reason: "Cần đăng nhập để đánh giá",
-        })
-        setIsCheckingEligibility(false)
-        return
-      }
-
-      try {
-        console.log(`Checking review eligibility for user ${user._id} and food ${foodId}`)
-
-        // Sử dụng endpoint chính thức để kiểm tra
-        const response = await axios.get(`${url}/api/comment/can-rate/${user._id}/${foodId}`, {
-          headers: { token },
-        })
-
-        console.log("Review eligibility response:", response.data)
-
-        if (response.data.success) {
-          setReviewEligibility(response.data.data)
-        } else {
-          setReviewEligibility({
-            canRate: false,
-            hasPurchased: false,
-            hasRated: false,
-            reason: response.data.message || "Không thể kiểm tra quyền đánh giá",
-          })
-        }
-      } catch (error) {
-        console.error("Error checking review eligibility:", error)
-        setReviewEligibility({
-          canRate: false,
-          hasPurchased: false,
-          hasRated: false,
-          reason: "Lỗi khi kiểm tra quyền đánh giá",
-        })
-      } finally {
-        setIsCheckingEligibility(false)
-      }
-    }
-
-    checkReviewEligibility()
-  }, [user, foodId, token, url])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    // Validate inputs
-    if (!user || !user._id) {
+    if (!rating) {
+      toast.error("Vui lòng chọn số sao đánh giá")
+      return
+    }
+
+    if (!token || !user) {
       toast.error("Vui lòng đăng nhập để đánh giá")
-      return
-    }
-
-    if (!foodId) {
-      toast.error("Không thể xác định sản phẩm để đánh giá")
-      return
-    }
-
-    if (rating < 1 || rating > 5) {
-      toast.error("Vui lòng chọn số sao từ 1 đến 5")
       return
     }
 
     try {
       setIsSubmitting(true)
-      console.log("Submitting rating with data:", {
-        userId: user._id,
-        foodId,
-        rating,
-      })
 
       const response = await axios.post(
         `${url}/api/comment/add`,
         {
           userId: user._id,
           foodId,
-          rating: Number(rating),
+          rating,
         },
         {
-          headers: {
-            token,
-            "Content-Type": "application/json",
-          },
+          headers: { token },
         },
       )
 
-      console.log("Rating submission response:", response.data)
-
       if (response.data.success) {
-        toast.success("Đánh giá của bạn đã được gửi thành công!")
-        setRating(5)
-
-        if (onReviewSubmitted && response.data.data) {
-          onReviewSubmitted(response.data.data)
-        }
-
-        if (onCancel) {
-          onCancel()
-        }
+        toast.success("Đánh giá thành công!")
+        onReviewSubmitted()
       } else {
-        toast.error(response.data.message || "Có lỗi xảy ra khi gửi đánh giá")
+        toast.error(response.data.message || "Có lỗi xảy ra")
       }
     } catch (error) {
       console.error("Error submitting rating:", error)
-
-      if (error.response?.status === 401) {
-        toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại")
-      } else {
-        toast.error(error.response?.data?.message || "Có lỗi xảy ra khi gửi đánh giá")
-      }
+      toast.error("Có lỗi xảy ra khi gửi đánh giá")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Loading state
-  if (isCheckingEligibility) {
-    return (
-      <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg p-6 mb-6 border border-slate-700">
-        <div className="flex items-center justify-center py-8">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <span className="ml-3 text-gray-300">Đang kiểm tra quyền đánh giá...</span>
-        </div>
-      </div>
-    )
-  }
-
-  // Not logged in
-  if (!user) {
-    return <ReviewEligibilityNotice type="not-logged-in" />
-  }
-
-  // Already rated
-  if (reviewEligibility?.hasRated) {
-    return <ReviewEligibilityNotice type="already-reviewed" />
-  }
-
-  // Haven't purchased or order not completed
-  if (reviewEligibility && !reviewEligibility.hasPurchased) {
-    return <ReviewEligibilityNotice type="not-purchased" />
-  }
-
-  // Can rate - show form
   return (
-    <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg p-6 mb-6 border border-slate-700">
-      <h3 className="text-lg font-medium text-white mb-4">Đánh giá sản phẩm</h3>
-
-      <div className="mb-6 p-4 bg-emerald-900/30 rounded-lg border border-emerald-700">
-        <p className="text-sm text-emerald-400 flex items-center">
-          <span className="bg-emerald-800/50 p-1 rounded-full mr-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </span>
-          Bạn đã mua và hoàn thành đơn hàng chứa sản phẩm này, có thể đánh giá
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-white">Đánh giá sản phẩm</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-white transition-colors">
+          <X size={24} />
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-5">
-          <label className="block text-gray-300 mb-2">Đánh giá của bạn</label>
-          <div className="flex items-center bg-slate-700/50 p-3 rounded-lg border border-slate-600">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="text-center">
+          <p className="text-gray-300 mb-4">Bạn cảm thấy sản phẩm này như thế nào?</p>
+
+          <div className="flex justify-center items-center gap-2 mb-4">
             {[1, 2, 3, 4, 5].map((star) => (
-              <button
+              <motion.button
                 key={star}
                 type="button"
                 onClick={() => setRating(star)}
-                onMouseEnter={() => setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                className="p-1 focus:outline-none transition-transform hover:scale-110"
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-1"
               >
                 <Star
-                  size={28}
-                  className={`${
-                    (hoverRating || rating) >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-500"
-                  } transition-colors`}
+                  size={40}
+                  className={`transition-colors ${
+                    star <= (hoveredRating || rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-500"
+                  }`}
                 />
-              </button>
+              </motion.button>
             ))}
-            <span className="ml-3 text-gray-300 bg-slate-800/50 px-3 py-1 rounded-full text-sm">
-              {rating === 1 && "Rất tệ"}
-              {rating === 2 && "Tệ"}
-              {rating === 3 && "Bình thường"}
-              {rating === 4 && "Tốt"}
-              {rating === 5 && "Rất tốt"}
-            </span>
           </div>
+
+          {rating > 0 && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-yellow-400 font-medium">
+              {rating === 1 && "Rất không hài lòng"}
+              {rating === 2 && "Không hài lòng"}
+              {rating === 3 && "Bình thường"}
+              {rating === 4 && "Hài lòng"}
+              {rating === 5 && "Rất hài lòng"}
+            </motion.p>
+          )}
         </div>
 
-        <div className="flex justify-end space-x-3 mt-6">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-5 py-2.5 border border-slate-600 rounded-lg text-gray-300 hover:bg-slate-700 transition-colors"
-            >
-              Hủy
-            </button>
-          )}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
+        <div className="flex gap-3 justify-center">
+          <motion.button
+            type="button"
+            onClick={onCancel}
+            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {isSubmitting ? (
-              <span className="flex items-center">
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-900"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Đang gửi...
-              </span>
-            ) : (
-              "Gửi đánh giá"
-            )}
-          </button>
+            Hủy
+          </motion.button>
+
+          <motion.button
+            type="submit"
+            disabled={!rating || isSubmitting}
+            className="px-6 py-2 bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            whileHover={{ scale: rating ? 1.05 : 1 }}
+            whileTap={{ scale: rating ? 0.95 : 1 }}
+          >
+            {isSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+          </motion.button>
         </div>
       </form>
-    </div>
+    </motion.div>
   )
 }
 

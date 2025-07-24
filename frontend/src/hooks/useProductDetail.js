@@ -21,38 +21,57 @@ export const useProductDetail = (slug) => {
   const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
 
   // Debug logs
-  console.log("useProductDetail - received slug:", slug)
-  console.log("useProductDetail - slug type:", typeof slug)
-  console.log("useProductDetail - food_list length:", food_list?.length)
+  console.log("=== useProductDetail DEBUG ===")
+  console.log("Received slug:", slug)
+  console.log("Food list length:", food_list?.length)
+  console.log("Food list sample:", food_list?.slice(0, 3))
 
-  // Find food item by slug - with better error handling
+  // Find food item by slug with EXACT matching
   const foodItem = food_list?.find((item) => {
-    if (!slug || slug === "undefined" || !item?.name) {
+    if (!slug || !item?.name) {
       return false
     }
 
     const match = compareNameWithSlug(item.name, slug)
-    console.log(`Comparing "${item.name}" with slug "${slug}":`, match)
+    if (match) {
+      console.log(`🎯 FOUND MATCH: "${item.name}" matches slug "${slug}"`)
+    }
     return match
   })
 
-  console.log("useProductDetail - foodItem found:", foodItem)
+  console.log("Final foodItem found:", foodItem?.name || "NONE")
 
   const fetchRatingsForProducts = useCallback(
     async (productIds) => {
-      if (productIds.length === 0) return
+      if (!productIds || productIds.length === 0) return
 
       try {
+        console.log("Fetching ratings for products:", productIds)
         const response = await axios.post(`${url}/api/comment/get-ratings`, { foodIds: productIds })
+
         if (response.data.success) {
           const newRatingsMap = {}
-          response.data.ratings.forEach((r) => {
-            newRatingsMap[r.foodId] = {
-              rating: r.averageRating,
-              totalReviews: r.totalReviews,
-            }
-          })
+
+          // Handle both data and ratings format
+          if (response.data.data) {
+            Object.keys(response.data.data).forEach((foodId) => {
+              newRatingsMap[foodId] = response.data.data[foodId]
+            })
+          }
+
+          if (response.data.ratings) {
+            response.data.ratings.forEach((r) => {
+              newRatingsMap[r.foodId] = {
+                rating: r.averageRating,
+                totalReviews: r.totalReviews,
+                averageRating: r.averageRating,
+                ratingDistribution: r.ratingDistribution,
+              }
+            })
+          }
+
           setRelatedRatings((prev) => ({ ...prev, ...newRatingsMap }))
+          console.log("Ratings fetched successfully:", newRatingsMap)
         } else {
           console.error("Failed to fetch ratings:", response.data.message)
         }
@@ -78,7 +97,7 @@ export const useProductDetail = (slug) => {
     }
 
     if (foodItem) {
-      console.log("Processing foodItem:", foodItem)
+      console.log("Processing foodItem:", foodItem.name)
 
       // Set rating stats for the current food item
       if (relatedRatings[foodItem._id]) {
@@ -116,7 +135,6 @@ export const useProductDetail = (slug) => {
           })
           .catch((error) => {
             console.error("Error fetching suggested drinks:", error)
-            toast.error("Không thể tải gợi ý đồ uống.")
           })
           .finally(() => {
             setIsLoadingSuggestedDrinks(false)
@@ -131,9 +149,30 @@ export const useProductDetail = (slug) => {
         checkWishlistStatus(foodItem._id)
       }
     } else {
-      console.log("No foodItem found for slug:", slug)
+      console.log("❌ No foodItem found for slug:", slug)
+      console.log("Available products:")
+      food_list?.forEach((item, index) => {
+        console.log(
+          `${index + 1}. "${item.name}" -> slug would be: "${item.name
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[đĐ]/g, "d")
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "")}"`,
+        )
+      })
     }
-  }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts, relatedRatings])
+  }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts])
+
+  // Update rating stats when relatedRatings changes
+  useEffect(() => {
+    if (foodItem && relatedRatings[foodItem._id]) {
+      setRatingStats(relatedRatings[foodItem._id])
+    }
+  }, [relatedRatings, foodItem])
 
   const checkWishlistStatus = async (foodId) => {
     if (!token) return

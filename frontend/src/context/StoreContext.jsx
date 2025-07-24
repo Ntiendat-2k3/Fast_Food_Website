@@ -220,11 +220,12 @@ const StoreContextProvider = (props) => {
         headers: { token: userToken },
       })
 
-      if (response.data.success && response.data.user) {
-        console.log("User data fetched successfully:", response.data.user)
-        setUser(response.data.user)
-        localStorage.setItem("user", JSON.stringify(response.data.user))
-        return response.data.user
+      // Check if the request was successful and the user data is in response.data.data
+      if (response.data.success && response.data.data) {
+        console.log("User data fetched successfully:", response.data.data)
+        setUser(response.data.data) // Use response.data.data
+        localStorage.setItem("user", JSON.stringify(response.data.data)) // Use response.data.data
+        return response.data.data // Use response.data.data
       } else {
         console.error("Failed to fetch user data:", response.data)
         return null

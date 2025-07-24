@@ -4,8 +4,6 @@ import { useParams, useNavigate } from "react-router-dom"
 import { StoreContext } from "../../context/StoreContext"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { useProductDetail } from "../../hooks/useProductDetail"
-import { useReviews } from "../../hooks/useReviews"
 import Breadcrumb from "../../components/product/Breadcrumb"
 import ProductNotFound from "../../components/product/ProductNotFound"
 import ProductImageGallery from "../../components/product/ProductImageGallery"
@@ -13,6 +11,8 @@ import ProductInfo from "../../components/product/ProductInfo"
 import ProductTabs from "../../components/product/ProductTabs"
 import RelatedProducts from "../../components/product/RelatedProducts"
 import SuggestedDrinks from "../../components/product/SuggestedDrinks"
+import { useProductDetail } from "../../hooks/useProductDetail"
+import { useReviews } from "../../hooks/useReviews"
 
 const ProductDetail = () => {
   const { slug } = useParams()
@@ -20,9 +20,9 @@ const ProductDetail = () => {
   const { url, user, token } = useContext(StoreContext)
 
   // Debug URL params
-  console.log("ProductDetail - URL params:", useParams())
-  console.log("ProductDetail - slug from params:", slug)
-  console.log("ProductDetail - window.location:", window.location.pathname)
+  // console.log("ProductDetail - URL params:", useParams())
+  // console.log("ProductDetail - slug from params:", slug)
+  // console.log("ProductDetail - window.location:", window.location.pathname)
 
   const {
     foodItem,

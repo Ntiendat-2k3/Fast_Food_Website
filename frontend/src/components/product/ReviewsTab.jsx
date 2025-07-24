@@ -12,14 +12,12 @@ const ReviewsTab = ({
   isCheckingEligibility,
   reviewEligibility,
   handleWriteReview,
-  isLoadingReviews,
+  ratingStats,
+  isLoadingStats,
   reviews,
+  isLoadingReviews,
   token,
   user,
-  editingRatingId,
-  handleEditRating,
-  handleSaveEdit,
-  handleCancelEdit,
   url,
 }) => {
   return (
@@ -32,42 +30,34 @@ const ReviewsTab = ({
         />
       ) : (
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold text-white">Đánh giá từ khách hàng</h3>
-
-          {/* Debug info */}
-          <div className="text-xs text-gray-500 mr-4">
-            {isCheckingEligibility && "Đang kiểm tra..."}
-            {reviewEligibility && (
-              <span>
-                Can: {reviewEligibility.canRate ? "✅" : "❌"} | Purchased:{" "}
-                {reviewEligibility.hasPurchased ? "✅" : "❌"} | Rated: {reviewEligibility.hasRated ? "✅" : "❌"}
-              </span>
-            )}
+          <div>
+            <h3 className="text-2xl font-bold text-white mb-2">Đánh giá sản phẩm</h3>
+            <p className="text-gray-400">Chia sẻ trải nghiệm của bạn với sản phẩm này</p>
           </div>
 
-          {/* Luôn hiển thị nút Viết đánh giá */}
-          <motion.button
-            onClick={handleWriteReview}
-            className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-2 px-4 rounded-lg font-semibold transition-all duration-300"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Đánh giá sản phẩm
-          </motion.button>
+          {/* Nút đánh giá */}
+          {token && (
+            <motion.button
+              onClick={handleWriteReview}
+              className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-3 px-6 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-primary/20"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {reviewEligibility?.hasReviewed ? "Đã đánh giá" : "Viết đánh giá"}
+            </motion.button>
+          )}
         </div>
       )}
 
       <ReviewsList
         reviews={reviews}
+        ratingStats={ratingStats}
         isLoadingReviews={isLoadingReviews}
+        isLoadingStats={isLoadingStats}
         showReviewForm={showReviewForm}
         handleWriteReview={handleWriteReview}
         token={token}
         user={user}
-        editingRatingId={editingRatingId}
-        handleEditRating={handleEditRating}
-        handleSaveEdit={handleSaveEdit}
-        handleCancelEdit={handleCancelEdit}
         url={url}
       />
     </div>
