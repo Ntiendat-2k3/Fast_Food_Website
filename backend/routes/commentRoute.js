@@ -1,46 +1,42 @@
 import express from "express"
 import {
-  addComment,
-  updateComment,
-  getCommentsByFood,
-  getAllComments,
-  updateCommentStatus,
-  deleteComment,
-  replyToComment,
+  addRating,
+  updateRating,
+  getRatingsByFood,
+  getAllRatings,
+  updateRatingStatus,
+  deleteRating,
   getFoodRatingStats,
-  checkCanReview,
+  checkCanRate,
   debugUserOrders,
 } from "../controllers/commentController.js"
 import auth from "../middleware/auth.js"
 
 const router = express.Router()
 
-// Add a new comment (requires authentication)
-router.post("/add", auth, addComment)
+// Add a new rating (requires authentication)
+router.post("/add", auth, addRating)
 
-// Update a comment (requires authentication)
-router.put("/update", auth, updateComment)
+// Update a rating (requires authentication)
+router.put("/update", auth, updateRating)
 
-// Get comments by food ID (public)
-router.get("/food/:foodId", getCommentsByFood)
+// Get ratings by food ID (public)
+router.get("/food/:foodId", getRatingsByFood)
 
 // Get food rating stats (public)
 router.get("/food/:foodId/stats", getFoodRatingStats)
 
-// Get all comments (admin only, requires authentication)
-router.get("/all", auth, getAllComments)
+// Get all ratings (admin only, requires authentication)
+router.get("/all", auth, getAllRatings)
 
-// Update comment status (admin only, requires authentication)
-router.post("/status", auth, updateCommentStatus)
+// Update rating status (admin only, requires authentication)
+router.post("/status", auth, updateRatingStatus)
 
-// Delete a comment (admin only, requires authentication)
-router.post("/delete", auth, deleteComment)
+// Delete a rating (admin only, requires authentication)
+router.post("/delete", auth, deleteRating)
 
-// Reply to a comment (admin only, requires authentication)
-router.post("/reply", auth, replyToComment)
-
-// Check if user can review a product (requires authentication)
-router.get("/can-review/:userId/:foodId", auth, checkCanReview)
+// Check if user can rate a product (requires authentication)
+router.get("/can-rate/:userId/:foodId", auth, checkCanRate)
 
 // Debug endpoint to see user orders and purchase data
 router.get("/debug/:userId/:foodId", auth, debugUserOrders)

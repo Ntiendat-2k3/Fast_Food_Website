@@ -16,8 +16,8 @@ const ReviewsTab = ({
   reviews,
   token,
   user,
-  editingCommentId,
-  handleEditComment,
+  editingRatingId,
+  handleEditRating,
   handleSaveEdit,
   handleCancelEdit,
   url,
@@ -39,8 +39,8 @@ const ReviewsTab = ({
             {isCheckingEligibility && "Đang kiểm tra..."}
             {reviewEligibility && (
               <span>
-                Can: {reviewEligibility.canReview ? "✅" : "❌"} | Purchased:{" "}
-                {reviewEligibility.hasPurchased ? "✅" : "❌"} | Reviewed: {reviewEligibility.hasReviewed ? "✅" : "❌"}
+                Can: {reviewEligibility.canRate ? "✅" : "❌"} | Purchased:{" "}
+                {reviewEligibility.hasPurchased ? "✅" : "❌"} | Rated: {reviewEligibility.hasRated ? "✅" : "❌"}
               </span>
             )}
           </div>
@@ -52,7 +52,7 @@ const ReviewsTab = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Viết đánh giá
+            Đánh giá sản phẩm
           </motion.button>
         </div>
       )}
@@ -64,8 +64,8 @@ const ReviewsTab = ({
         handleWriteReview={handleWriteReview}
         token={token}
         user={user}
-        editingCommentId={editingCommentId}
-        handleEditComment={handleEditComment}
+        editingRatingId={editingRatingId}
+        handleEditRating={handleEditRating}
         handleSaveEdit={handleSaveEdit}
         handleCancelEdit={handleCancelEdit}
         url={url}

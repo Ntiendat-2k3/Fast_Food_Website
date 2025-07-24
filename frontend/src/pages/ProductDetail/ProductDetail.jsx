@@ -47,12 +47,12 @@ const ProductDetail = () => {
     setShowReviewForm,
     reviews,
     isLoadingReviews,
-    editingCommentId,
+    editingRatingId,
     reviewEligibility,
     isCheckingEligibility,
     handleReviewSubmitted,
     handleWriteReview,
-    handleEditComment,
+    handleEditRating,
     handleSaveEdit,
     handleCancelEdit,
   } = useReviews(foodItem)
@@ -142,8 +142,8 @@ const ProductDetail = () => {
             reviews={reviews}
             token={token}
             user={user}
-            editingCommentId={editingCommentId}
-            handleEditComment={handleEditComment}
+            editingRatingId={editingRatingId}
+            handleEditRating={handleEditRating}
             handleSaveEdit={handleSaveEdit}
             handleCancelEdit={handleCancelEdit}
             url={url}

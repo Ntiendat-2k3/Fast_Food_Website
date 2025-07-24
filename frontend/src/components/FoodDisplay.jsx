@@ -1,10 +1,10 @@
 "use client"
 
-import { useContext, useState, useEffect } from "react"
+import { useContext, useState, useEffect, useRef } from "react"
 import { StoreContext } from "../context/StoreContext"
 import FoodItem from "./FoodItem"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, Grid3X3, List, ChevronDown } from "lucide-react"
+import { Search, Filter, Grid3X3, List, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 
 const FoodDisplay = ({ category }) => {
   const { food_list, url } = useContext(StoreContext)
@@ -16,12 +16,24 @@ const FoodDisplay = ({ category }) => {
   const [ratings, setRatings] = useState({}) // Assuming ratings are fetched or calculated elsewhere
   const [loading, setLoading] = useState(true)
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 12
+
+  // Ref for scrolling to food display section
+  const foodDisplayRef = useRef(null)
+
   // Simulate loading
   useEffect(() => {
     setLoading(true)
     const timer = setTimeout(() => setLoading(false), 500)
     return () => clearTimeout(timer)
   }, [category])
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [category, searchTerm, sortBy, priceRange])
 
   // Filter and sort food items
   const filteredAndSortedFood = food_list
@@ -45,27 +57,88 @@ const FoodDisplay = ({ category }) => {
       }
     })
 
+  // Calculate pagination
+  const totalItems = filteredAndSortedFood.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentItems = filteredAndSortedFood.slice(startIndex, endIndex)
+
+  // Pagination handlers
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page)
+      // Scroll to food display section instead of top
+      if (foodDisplayRef.current) {
+        foodDisplayRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest",
+        })
+      }
+    }
+  }
+
+  const goToPrevious = () => goToPage(currentPage - 1)
+  const goToNext = () => goToPage(currentPage + 1)
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      }
+    }
+
+    return pages
+  }
+
   // Animation variants for smoother entrance
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08, // Slightly reduced stagger for a quicker, cohesive feel
+        staggerChildren: 0.08,
       },
     },
   }
 
   const itemVariants = {
-    hidden: { y: 40, opacity: 0 }, // Increased initial y for more noticeable slide-up
+    hidden: { y: 40, opacity: 0 },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
         type: "spring",
-        stiffness: 70, // Softer spring
-        damping: 18, // More damping for a smoother stop
-        mass: 0.8, // Adjust mass for overall feel
+        stiffness: 70,
+        damping: 18,
+        mass: 0.8,
       },
     },
   }
@@ -86,8 +159,62 @@ const FoodDisplay = ({ category }) => {
     </div>
   )
 
+  // Pagination Component
+  const PaginationComponent = () => {
+    if (totalPages <= 1) return null
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="flex items-center justify-center gap-2 mt-8 mb-4"
+      >
+        {/* Previous Button */}
+        <button
+          onClick={goToPrevious}
+          disabled={currentPage === 1}
+          className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white hover:bg-slate-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={16} />
+          <span className="hidden sm:inline">Trước</span>
+        </button>
+
+        {/* Page Numbers */}
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((page, index) => (
+            <button
+              key={index}
+              onClick={() => typeof page === "number" && goToPage(page)}
+              disabled={page === "..."}
+              className={`px-3 py-2 rounded-lg transition-all duration-300 ${
+                page === currentPage
+                  ? "bg-primary text-slate-900 font-semibold"
+                  : page === "..."
+                    ? "text-gray-400 cursor-default"
+                    : "bg-slate-800/50 border border-slate-700 text-white hover:bg-slate-700/50"
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        {/* Next Button */}
+        <button
+          onClick={goToNext}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white hover:bg-slate-700/50 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span className="hidden sm:inline">Sau</span>
+          <ChevronRight size={16} />
+        </button>
+      </motion.div>
+    )
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={foodDisplayRef}>
       {/* Search and Filter Bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -218,7 +345,7 @@ const FoodDisplay = ({ category }) => {
         </AnimatePresence>
       </motion.div>
 
-      {/* Results Count */}
+      {/* Results Count and Pagination Info */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -226,7 +353,11 @@ const FoodDisplay = ({ category }) => {
         className="flex items-center justify-between text-gray-300"
       >
         <p className="text-sm">
-          Hiển thị <span className="text-primary font-medium">{filteredAndSortedFood.length}</span> món ăn
+          Hiển thị{" "}
+          <span className="text-primary font-medium">
+            {startIndex + 1}-{Math.min(endIndex, totalItems)}
+          </span>{" "}
+          trong tổng số <span className="text-primary font-medium">{totalItems}</span> món ăn
           {category !== "All" && (
             <>
               {" "}
@@ -234,6 +365,12 @@ const FoodDisplay = ({ category }) => {
             </>
           )}
         </p>
+        {totalPages > 1 && (
+          <p className="text-sm">
+            Trang <span className="text-primary font-medium">{currentPage}</span> /{" "}
+            <span className="text-primary font-medium">{totalPages}</span>
+          </p>
+        )}
       </motion.div>
 
       {/* Food Grid/List */}
@@ -249,13 +386,13 @@ const FoodDisplay = ({ category }) => {
               viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
             }`}
           >
-            {Array.from({ length: 8 }).map((_, index) => (
+            {Array.from({ length: itemsPerPage }).map((_, index) => (
               <SkeletonCard key={index} />
             ))}
           </motion.div>
-        ) : filteredAndSortedFood.length > 0 ? (
+        ) : currentItems.length > 0 ? (
           <motion.div
-            key="content"
+            key={`content-${currentPage}`}
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -265,17 +402,17 @@ const FoodDisplay = ({ category }) => {
                 : "grid-cols-1 max-w-4xl mx-auto"
             }`}
           >
-            {filteredAndSortedFood.map((item, index) => (
-              <motion.div key={item._id} variants={itemVariants}>
+            {currentItems.map((item, index) => (
+              <motion.div key={`${item._id}-${currentPage}`} variants={itemVariants}>
                 <FoodItem
                   _id={item._id}
                   name={item.name}
                   description={item.description}
                   price={item.price}
                   image={item.image}
-                  index={index}
-                  rating={ratings[item._id] || 0} // Use actual rating if available
-                  totalReviews={0} // Use actual totalReviews if available
+                  index={startIndex + index}
+                  rating={ratings[item._id] || 0}
+                  totalReviews={0}
                   viewMode={viewMode}
                 />
               </motion.div>
@@ -300,6 +437,7 @@ const FoodDisplay = ({ category }) => {
                 onClick={() => {
                   setSearchTerm("")
                   setPriceRange([0, 200000])
+                  setCurrentPage(1)
                 }}
                 className="bg-primary hover:bg-primary-dark text-slate-900 px-4 py-2 rounded-lg font-medium transition-colors"
               >
@@ -309,6 +447,9 @@ const FoodDisplay = ({ category }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Pagination */}
+      <PaginationComponent />
     </div>
   )
 }

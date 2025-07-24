@@ -4,7 +4,7 @@ import mongoose from "mongoose"
 import orderModel from "../models/orderModel.js"
 import foodModel from "../models/foodModel.js"
 
-// Kiểm tra xem user đã mua sản phẩm này chưa
+// Kiểm tra xem user đã mua sản phẩm này và đơn hàng đã hoàn thành chưa
 const checkUserPurchase = async (userId, foodId) => {
   try {
     console.log(`=== CHECKING PURCHASE HISTORY ===`)
@@ -19,47 +19,24 @@ const checkUserPurchase = async (userId, foodId) => {
     }
     console.log(`Food name: ${food.name}`)
 
-    // Tìm TẤT CẢ đơn hàng của user
-    const allOrders = await orderModel.find({ userId: userId })
-    console.log(`\n=== ALL ORDERS FOR USER ===`)
-    console.log(`Total orders found: ${allOrders.length}`)
-
-    if (allOrders.length === 0) {
-      console.log("❌ No orders found for user")
-      return false
-    }
-
-    // Sửa logic filter đơn hàng hợp lệ
-    const validOrders = allOrders.filter((order) => {
-      // Điều kiện thanh toán: payment = true HOẶC paymentStatus = "Đã thanh toán"
-      const isPaid = order.payment === true || order.paymentStatus === "Đã thanh toán"
-
-      // Điều kiện trạng thái: không phải "Hủy" hoặc "Cancelled"
-      const validStatus = order.status && !["Hủy", "Cancelled"].includes(order.status)
-
-      console.log(`\nOrder ${order._id} validation:`)
-      console.log(`- payment: ${order.payment}`)
-      console.log(`- paymentStatus: ${order.paymentStatus}`)
-      console.log(`- status: ${order.status}`)
-      console.log(`- isPaid: ${isPaid}`)
-      console.log(`- validStatus: ${validStatus}`)
-      console.log(`- final result: ${isPaid && validStatus}`)
-
-      return isPaid && validStatus
+    // Tìm các đơn hàng đã hoàn thành của user
+    const completedOrders = await orderModel.find({
+      userId: userId,
+      status: "Đã hoàn thành", // Chỉ cho phép đánh giá khi đơn hàng đã hoàn thành
     })
 
-    console.log(`\n=== VALID ORDERS ===`)
-    console.log(`Valid orders count: ${validOrders.length}`)
+    console.log(`\n=== COMPLETED ORDERS FOR USER ===`)
+    console.log(`Total completed orders found: ${completedOrders.length}`)
 
-    if (validOrders.length === 0) {
-      console.log("❌ No valid orders found")
+    if (completedOrders.length === 0) {
+      console.log("❌ No completed orders found for user")
       return false
     }
 
-    // Kiểm tra từng đơn hàng hợp lệ
-    for (let i = 0; i < validOrders.length; i++) {
-      const order = validOrders[i]
-      console.log(`\n--- Checking Valid Order ${i + 1} ---`)
+    // Kiểm tra từng đơn hàng đã hoàn thành
+    for (let i = 0; i < completedOrders.length; i++) {
+      const order = completedOrders[i]
+      console.log(`\n--- Checking Completed Order ${i + 1} ---`)
       console.log(`Order ID: ${order._id}`)
 
       if (!order.items || order.items.length === 0) {
@@ -128,7 +105,7 @@ const checkUserPurchase = async (userId, foodId) => {
       }
     }
 
-    console.log("❌ No matching product found in any valid order")
+    console.log("❌ No matching product found in any completed order")
     return false
   } catch (error) {
     console.error("Error checking user purchase:", error)
@@ -167,8 +144,8 @@ const debugUserOrders = async (req, res) => {
     // Kiểm tra purchase
     const hasPurchased = await checkUserPurchase(userId, foodId)
 
-    // Kiểm tra existing comment
-    const existingComment = await commentModel.findOne({ userId, foodId })
+    // Kiểm tra existing rating
+    const existingRating = await commentModel.findOne({ userId, foodId })
 
     res.json({
       success: true,
@@ -194,8 +171,8 @@ const debugUserOrders = async (req, res) => {
           items: order.items || [],
         })),
         hasPurchased,
-        hasReviewed: !!existingComment,
-        canReview: hasPurchased && !existingComment,
+        hasRated: !!existingRating,
+        canRate: hasPurchased && !existingRating,
       },
     })
   } catch (error) {
@@ -204,15 +181,15 @@ const debugUserOrders = async (req, res) => {
   }
 }
 
-// Thêm bình luận mới
-const addComment = async (req, res) => {
+// Thêm đánh giá mới
+const addRating = async (req, res) => {
   try {
-    const { userId, foodId, rating, comment } = req.body
+    const { userId, foodId, rating } = req.body
 
-    console.log("Adding comment:", { userId, foodId, rating, comment })
+    console.log("Adding rating:", { userId, foodId, rating })
 
     // Validate required fields
-    if (!userId || !foodId || !rating || !comment) {
+    if (!userId || !foodId || !rating) {
       return res.json({
         success: false,
         message: "Thiếu thông tin bắt buộc",
@@ -231,6 +208,11 @@ const addComment = async (req, res) => {
       return res.json({ success: false, message: "ID người dùng không hợp lệ" })
     }
 
+    // Validate rating
+    if (rating < 1 || rating > 5) {
+      return res.json({ success: false, message: "Đánh giá phải từ 1 đến 5 sao" })
+    }
+
     // Lấy thông tin người dùng
     const user = await userModel.findById(userId)
     if (!user) {
@@ -239,62 +221,49 @@ const addComment = async (req, res) => {
     }
 
     // Kiểm tra xem user đã đánh giá sản phẩm này chưa
-    const existingComment = await commentModel.findOne({ userId, foodId })
-    if (existingComment) {
+    const existingRating = await commentModel.findOne({ userId, foodId })
+    if (existingRating) {
       return res.json({
         success: false,
         message: "Bạn đã đánh giá sản phẩm này rồi. Bạn có thể chỉnh sửa đánh giá hiện có.",
       })
     }
 
-    // KIỂM TRA XEM USER ĐÃ MUA SẢN PHẨM NÀY CHƯA - BẮT BUỘC
+    // KIỂM TRA XEM USER ĐÃ MUA SẢN PHẨM NÀY VÀ ĐƠN HÀNG ĐÃ HOÀN THÀNH CHƯA - BẮT BUỘC
     const hasPurchased = await checkUserPurchase(userId, foodId)
     if (!hasPurchased) {
       return res.json({
         success: false,
-        message: "Bạn cần mua và nhận được sản phẩm này trước khi có thể đánh giá",
+        message: "Bạn cần mua và hoàn thành đơn hàng chứa sản phẩm này trước khi có thể đánh giá",
       })
     }
 
-    // Tạo comment mới
-    const newComment = new commentModel({
+    // Tạo rating mới
+    const newRating = new commentModel({
       userId,
       foodId,
       rating: Number(rating),
-      comment: comment.trim(),
       userName: user.name,
       isApproved: true,
     })
 
-    const savedComment = await newComment.save()
-    console.log("Comment saved successfully:", savedComment._id)
-
-    // Tự động phản hồi
-    const autoResponse = {
-      adminReply: {
-        message: `Cảm ơn bạn ${user.name} đã đánh giá! Chúng tôi rất vui khi bạn hài lòng với dịch vụ và mong bạn sẽ quay lại ủng hộ chúng tôi.`,
-        createdAt: new Date(),
-      },
-    }
-
-    await commentModel.findByIdAndUpdate(savedComment._id, autoResponse)
+    const savedRating = await newRating.save()
+    console.log("Rating saved successfully:", savedRating._id)
 
     res.json({
       success: true,
       message: "Thêm đánh giá thành công",
       data: {
-        _id: savedComment._id,
-        userId: savedComment.userId,
+        _id: savedRating._id,
+        userId: savedRating.userId,
         userName: user.name,
-        foodId: savedComment.foodId,
-        rating: savedComment.rating,
-        comment: savedComment.comment,
-        createdAt: savedComment.createdAt,
-        adminReply: autoResponse.adminReply,
+        foodId: savedRating.foodId,
+        rating: savedRating.rating,
+        createdAt: savedRating.createdAt,
       },
     })
   } catch (error) {
-    console.error("Error adding comment:", error)
+    console.error("Error adding rating:", error)
     res.json({
       success: false,
       message: "Lỗi khi thêm đánh giá: " + error.message,
@@ -302,23 +271,23 @@ const addComment = async (req, res) => {
   }
 }
 
-// Cập nhật bình luận
-const updateComment = async (req, res) => {
+// Cập nhật đánh giá
+const updateRating = async (req, res) => {
   try {
-    const { commentId, rating, comment, userId } = req.body
+    const { ratingId, rating, userId } = req.body
 
-    console.log("Updating comment:", { commentId, rating, comment, userId })
+    console.log("Updating rating:", { ratingId, rating, userId })
 
     // Validate required fields
-    if (!commentId || !rating || !comment || !userId) {
+    if (!ratingId || !rating || !userId) {
       return res.json({
         success: false,
         message: "Thiếu thông tin bắt buộc",
       })
     }
 
-    // Validate commentId
-    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+    // Validate ratingId
+    if (!mongoose.Types.ObjectId.isValid(ratingId)) {
       return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
     }
 
@@ -327,47 +296,49 @@ const updateComment = async (req, res) => {
       return res.json({ success: false, message: "ID người dùng không hợp lệ" })
     }
 
-    // Tìm comment
-    const existingComment = await commentModel.findById(commentId)
-    if (!existingComment) {
+    // Validate rating
+    if (rating < 1 || rating > 5) {
+      return res.json({ success: false, message: "Đánh giá phải từ 1 đến 5 sao" })
+    }
+
+    // Tìm rating
+    const existingRating = await commentModel.findById(ratingId)
+    if (!existingRating) {
       return res.json({ success: false, message: "Không tìm thấy đánh giá" })
     }
 
     // Kiểm tra quyền sở hữu
-    if (existingComment.userId.toString() !== userId) {
+    if (existingRating.userId.toString() !== userId) {
       return res.json({ success: false, message: "Bạn chỉ có thể sửa đánh giá của chính mình" })
     }
 
-    // Cập nhật comment
-    const updatedComment = await commentModel.findByIdAndUpdate(
-      commentId,
+    // Cập nhật rating
+    const updatedRating = await commentModel.findByIdAndUpdate(
+      ratingId,
       {
         rating: Number(rating),
-        comment: comment.trim(),
         updatedAt: new Date(),
       },
       { new: true },
     )
 
-    console.log("Comment updated successfully:", updatedComment._id)
+    console.log("Rating updated successfully:", updatedRating._id)
 
     res.json({
       success: true,
       message: "Cập nhật đánh giá thành công",
       data: {
-        _id: updatedComment._id,
-        userId: updatedComment.userId,
-        userName: updatedComment.userName,
-        foodId: updatedComment.foodId,
-        rating: updatedComment.rating,
-        comment: updatedComment.comment,
-        createdAt: updatedComment.createdAt,
-        updatedAt: updatedComment.updatedAt,
-        adminReply: updatedComment.adminReply,
+        _id: updatedRating._id,
+        userId: updatedRating.userId,
+        userName: updatedRating.userName,
+        foodId: updatedRating.foodId,
+        rating: updatedRating.rating,
+        createdAt: updatedRating.createdAt,
+        updatedAt: updatedRating.updatedAt,
       },
     })
   } catch (error) {
-    console.error("Error updating comment:", error)
+    console.error("Error updating rating:", error)
     res.json({
       success: false,
       message: "Lỗi khi cập nhật đánh giá: " + error.message,
@@ -375,70 +346,39 @@ const updateComment = async (req, res) => {
   }
 }
 
-// Lấy danh sách bình luận theo sản phẩm
-const getCommentsByFood = async (req, res) => {
+// Lấy danh sách đánh giá theo sản phẩm
+const getRatingsByFood = async (req, res) => {
   try {
     const { foodId } = req.params
-    console.log("Getting comments for food:", foodId)
+    console.log("Getting ratings for food:", foodId)
 
     if (!mongoose.Types.ObjectId.isValid(foodId)) {
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
     }
 
-    const comments = await commentModel.find({ foodId, isApproved: true }).sort({ createdAt: -1 })
+    const ratings = await commentModel.find({ foodId, isApproved: true }).sort({ createdAt: -1 })
 
-    console.log(`Found ${comments.length} comments for food ${foodId}`)
-    res.json({ success: true, data: comments })
+    console.log(`Found ${ratings.length} ratings for food ${foodId}`)
+    res.json({ success: true, data: ratings })
   } catch (error) {
-    console.error("Error getting comments:", error)
+    console.error("Error getting ratings:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
   }
 }
 
-// Lấy tất cả bình luận (cho admin)
-const getAllComments = async (req, res) => {
+// Lấy tất cả đánh giá (cho admin)
+const getAllRatings = async (req, res) => {
   try {
-    const comments = await commentModel.find({}).sort({ createdAt: -1 })
-    res.json({ success: true, data: comments })
+    const ratings = await commentModel.find({}).sort({ createdAt: -1 })
+    res.json({ success: true, data: ratings })
   } catch (error) {
-    console.error("Error getting all comments:", error)
+    console.error("Error getting all ratings:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
   }
 }
 
-// Phản hồi bình luận
-const replyToComment = async (req, res) => {
-  try {
-    const { id, message } = req.body
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
-    }
-
-    const updatedComment = await commentModel.findByIdAndUpdate(
-      id,
-      {
-        adminReply: {
-          message,
-          createdAt: new Date(),
-        },
-      },
-      { new: true },
-    )
-
-    if (!updatedComment) {
-      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
-    }
-
-    res.json({ success: true, message: "Thêm phản hồi thành công" })
-  } catch (error) {
-    console.error("Error replying to comment:", error)
-    res.json({ success: false, message: "Lỗi khi thêm phản hồi" })
-  }
-}
-
-// Xóa bình luận
-const deleteComment = async (req, res) => {
+// Xóa đánh giá
+const deleteRating = async (req, res) => {
   try {
     const { id } = req.body
 
@@ -446,15 +386,15 @@ const deleteComment = async (req, res) => {
       return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
     }
 
-    const deletedComment = await commentModel.findByIdAndDelete(id)
+    const deletedRating = await commentModel.findByIdAndDelete(id)
 
-    if (!deletedComment) {
+    if (!deletedRating) {
       return res.json({ success: false, message: "Không tìm thấy đánh giá" })
     }
 
     res.json({ success: true, message: "Xóa đánh giá thành công" })
   } catch (error) {
-    console.error("Error deleting comment:", error)
+    console.error("Error deleting rating:", error)
     res.json({ success: false, message: "Lỗi khi xóa đánh giá" })
   }
 }
@@ -468,9 +408,9 @@ const getFoodRatingStats = async (req, res) => {
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
     }
 
-    const comments = await commentModel.find({ foodId, isApproved: true })
+    const ratings = await commentModel.find({ foodId, isApproved: true })
 
-    if (comments.length === 0) {
+    if (ratings.length === 0) {
       return res.json({
         success: true,
         data: {
@@ -481,19 +421,19 @@ const getFoodRatingStats = async (req, res) => {
       })
     }
 
-    const totalRating = comments.reduce((sum, comment) => sum + comment.rating, 0)
-    const averageRating = totalRating / comments.length
+    const totalRating = ratings.reduce((sum, rating) => sum + rating.rating, 0)
+    const averageRating = totalRating / ratings.length
 
     const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-    comments.forEach((comment) => {
-      ratingDistribution[comment.rating]++
+    ratings.forEach((rating) => {
+      ratingDistribution[rating.rating]++
     })
 
     res.json({
       success: true,
       data: {
         averageRating: Math.round(averageRating * 10) / 10,
-        totalReviews: comments.length,
+        totalReviews: ratings.length,
         ratingDistribution,
       },
     })
@@ -503,8 +443,8 @@ const getFoodRatingStats = async (req, res) => {
   }
 }
 
-// Cập nhật trạng thái bình luận
-const updateCommentStatus = async (req, res) => {
+// Cập nhật trạng thái đánh giá
+const updateRatingStatus = async (req, res) => {
   try {
     const { id, isApproved } = req.body
 
@@ -512,24 +452,24 @@ const updateCommentStatus = async (req, res) => {
       return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
     }
 
-    const updatedComment = await commentModel.findByIdAndUpdate(id, { isApproved }, { new: true })
+    const updatedRating = await commentModel.findByIdAndUpdate(id, { isApproved }, { new: true })
 
-    if (!updatedComment) {
+    if (!updatedRating) {
       return res.json({ success: false, message: "Không tìm thấy đánh giá" })
     }
 
     res.json({ success: true, message: "Cập nhật trạng thái đánh giá thành công" })
   } catch (error) {
-    console.error("Error updating comment status:", error)
+    console.error("Error updating rating status:", error)
     res.json({ success: false, message: "Lỗi khi cập nhật trạng thái đánh giá" })
   }
 }
 
 // Kiểm tra xem user có thể đánh giá sản phẩm không
-const checkCanReview = async (req, res) => {
+const checkCanRate = async (req, res) => {
   try {
     const { userId, foodId } = req.params
-    console.log(`\n=== CHECK CAN REVIEW API ===`)
+    console.log(`\n=== CHECK CAN RATE API ===`)
     console.log(`User ID: ${userId}`)
     console.log(`Food ID: ${foodId}`)
 
@@ -550,15 +490,15 @@ const checkCanReview = async (req, res) => {
     }
 
     // Kiểm tra xem đã đánh giá chưa
-    const existingComment = await commentModel.findOne({ userId, foodId })
-    console.log(`Has existing review: ${!!existingComment}`)
+    const existingRating = await commentModel.findOne({ userId, foodId })
+    console.log(`Has existing rating: ${!!existingRating}`)
 
-    // Kiểm tra xem đã mua sản phẩm chưa
+    // Kiểm tra xem đã mua sản phẩm và đơn hàng đã hoàn thành chưa
     const hasPurchased = await checkUserPurchase(userId, foodId)
-    console.log(`Has purchased: ${hasPurchased}`)
+    console.log(`Has purchased and completed: ${hasPurchased}`)
 
-    const canReview = hasPurchased && !existingComment
-    console.log(`Can review: ${canReview}`)
+    const canRate = hasPurchased && !existingRating
+    console.log(`Can rate: ${canRate}`)
 
     // Thêm thông tin debug về đơn hàng
     const userOrders = await orderModel.find({ userId }).select("status payment paymentStatus items date")
@@ -567,15 +507,15 @@ const checkCanReview = async (req, res) => {
     res.json({
       success: true,
       data: {
-        canReview,
+        canRate,
         hasPurchased,
-        hasReviewed: !!existingComment,
-        existingReview: existingComment,
+        hasRated: !!existingRating,
+        existingRating: existingRating,
         debug: {
           userName: user.name,
           foodName: food.name,
           totalOrders: userOrders.length,
-          paidOrders: userOrders.filter((o) => o.payment === true || o.paymentStatus === "Đã thanh toán").length,
+          completedOrders: userOrders.filter((o) => o.status === "Đã hoàn thành").length,
           orderStatuses: userOrders.map((o) => ({
             status: o.status,
             payment: o.payment,
@@ -585,20 +525,19 @@ const checkCanReview = async (req, res) => {
       },
     })
   } catch (error) {
-    console.error("Error checking review eligibility:", error)
+    console.error("Error checking rating eligibility:", error)
     res.json({ success: false, message: "Lỗi khi kiểm tra quyền đánh giá" })
   }
 }
 
 export {
-  addComment,
-  updateComment,
-  getCommentsByFood,
-  getAllComments,
-  updateCommentStatus,
-  deleteComment,
-  replyToComment,
+  addRating,
+  updateRating,
+  getRatingsByFood,
+  getAllRatings,
+  updateRatingStatus,
+  deleteRating,
   getFoodRatingStats,
-  checkCanReview,
+  checkCanRate,
   debugUserOrders,
 }

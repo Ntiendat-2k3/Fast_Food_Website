@@ -11,7 +11,6 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
   const { url, token, user } = useContext(StoreContext)
   const [rating, setRating] = useState(5)
   const [hoverRating, setHoverRating] = useState(0)
-  const [comment, setComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [reviewEligibility, setReviewEligibility] = useState(null)
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(true)
@@ -22,9 +21,9 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
       if (!user || !user._id || !foodId || !token) {
         console.log("Missing requirements for review check:", { user: !!user, foodId: !!foodId, token: !!token })
         setReviewEligibility({
-          canReview: false,
+          canRate: false,
           hasPurchased: false,
-          hasReviewed: false,
+          hasRated: false,
           reason: "Cần đăng nhập để đánh giá",
         })
         setIsCheckingEligibility(false)
@@ -35,7 +34,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
         console.log(`Checking review eligibility for user ${user._id} and food ${foodId}`)
 
         // Sử dụng endpoint chính thức để kiểm tra
-        const response = await axios.get(`${url}/api/comment/can-review/${user._id}/${foodId}`, {
+        const response = await axios.get(`${url}/api/comment/can-rate/${user._id}/${foodId}`, {
           headers: { token },
         })
 
@@ -45,18 +44,18 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
           setReviewEligibility(response.data.data)
         } else {
           setReviewEligibility({
-            canReview: false,
+            canRate: false,
             hasPurchased: false,
-            hasReviewed: false,
+            hasRated: false,
             reason: response.data.message || "Không thể kiểm tra quyền đánh giá",
           })
         }
       } catch (error) {
         console.error("Error checking review eligibility:", error)
         setReviewEligibility({
-          canReview: false,
+          canRate: false,
           hasPurchased: false,
-          hasReviewed: false,
+          hasRated: false,
           reason: "Lỗi khi kiểm tra quyền đánh giá",
         })
       } finally {
@@ -81,11 +80,6 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
       return
     }
 
-    if (comment.trim().length < 5) {
-      toast.error("Vui lòng nhập nội dung đánh giá (ít nhất 5 ký tự)")
-      return
-    }
-
     if (rating < 1 || rating > 5) {
       toast.error("Vui lòng chọn số sao từ 1 đến 5")
       return
@@ -93,11 +87,10 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
 
     try {
       setIsSubmitting(true)
-      console.log("Submitting review with data:", {
+      console.log("Submitting rating with data:", {
         userId: user._id,
         foodId,
         rating,
-        comment: comment.trim(),
       })
 
       const response = await axios.post(
@@ -106,7 +99,6 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
           userId: user._id,
           foodId,
           rating: Number(rating),
-          comment: comment.trim(),
         },
         {
           headers: {
@@ -116,11 +108,10 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
         },
       )
 
-      console.log("Review submission response:", response.data)
+      console.log("Rating submission response:", response.data)
 
       if (response.data.success) {
         toast.success("Đánh giá của bạn đã được gửi thành công!")
-        setComment("")
         setRating(5)
 
         if (onReviewSubmitted && response.data.data) {
@@ -134,7 +125,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
         toast.error(response.data.message || "Có lỗi xảy ra khi gửi đánh giá")
       }
     } catch (error) {
-      console.error("Error submitting review:", error)
+      console.error("Error submitting rating:", error)
 
       if (error.response?.status === 401) {
         toast.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại")
@@ -163,20 +154,20 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
     return <ReviewEligibilityNotice type="not-logged-in" />
   }
 
-  // Already reviewed
-  if (reviewEligibility?.hasReviewed) {
+  // Already rated
+  if (reviewEligibility?.hasRated) {
     return <ReviewEligibilityNotice type="already-reviewed" />
   }
 
-  // Haven't purchased
+  // Haven't purchased or order not completed
   if (reviewEligibility && !reviewEligibility.hasPurchased) {
     return <ReviewEligibilityNotice type="not-purchased" />
   }
 
-  // Can review - show form
+  // Can rate - show form
   return (
     <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg shadow-lg p-6 mb-6 border border-slate-700">
-      <h3 className="text-lg font-medium text-white mb-4">Viết đánh giá của bạn</h3>
+      <h3 className="text-lg font-medium text-white mb-4">Đánh giá sản phẩm</h3>
 
       <div className="mb-6 p-4 bg-emerald-900/30 rounded-lg border border-emerald-700">
         <p className="text-sm text-emerald-400 flex items-center">
@@ -189,7 +180,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
               />
             </svg>
           </span>
-          Bạn đã mua sản phẩm này và có thể viết đánh giá
+          Bạn đã mua và hoàn thành đơn hàng chứa sản phẩm này, có thể đánh giá
         </p>
       </div>
 
@@ -224,26 +215,6 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
           </div>
         </div>
 
-        <div className="mb-5">
-          <label htmlFor="comment" className="block text-gray-300 mb-2">
-            Nội dung đánh giá
-          </label>
-          <textarea
-            id="comment"
-            rows={4}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
-            className="w-full px-4 py-3 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-slate-700/50 text-white placeholder-gray-400"
-            required
-            minLength={5}
-          />
-          <div className="flex justify-between mt-2">
-            <p className="text-xs text-gray-400">Tối thiểu 5 ký tự</p>
-            <p className="text-xs text-gray-400">{comment.length} ký tự</p>
-          </div>
-        </div>
-
         <div className="flex justify-end space-x-3 mt-6">
           {onCancel && (
             <button
@@ -256,7 +227,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
           )}
           <button
             type="submit"
-            disabled={isSubmitting || comment.trim().length < 5}
+            disabled={isSubmitting}
             className="px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary/20"
           >
             {isSubmitting ? (

@@ -11,8 +11,8 @@ const ReviewsList = ({
   handleWriteReview,
   token,
   user,
-  editingCommentId,
-  handleEditComment,
+  editingRatingId,
+  handleEditRating,
   handleSaveEdit,
   handleCancelEdit,
   url,
@@ -53,8 +53,8 @@ const ReviewsList = ({
           index={index}
           token={token}
           user={user}
-          editingCommentId={editingCommentId}
-          handleEditComment={handleEditComment}
+          editingRatingId={editingRatingId}
+          handleEditRating={handleEditRating}
           handleSaveEdit={handleSaveEdit}
           handleCancelEdit={handleCancelEdit}
           url={url}

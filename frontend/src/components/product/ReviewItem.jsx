@@ -2,15 +2,17 @@
 
 import { motion } from "framer-motion"
 import { Star } from "lucide-react"
-import EditCommentForm from "../../components/EditCommentForm"
+import axios from "axios"
+import { toast } from "react-toastify"
+import { useState } from "react"
 
 const ReviewItem = ({
   review,
   index,
   token,
   user,
-  editingCommentId,
-  handleEditComment,
+  editingRatingId,
+  handleEditRating,
   handleSaveEdit,
   handleCancelEdit,
   url,
@@ -37,7 +39,7 @@ const ReviewItem = ({
               </span>
               {token && user && review.userId === user._id && (
                 <motion.button
-                  onClick={() => handleEditComment(review._id)}
+                  onClick={() => handleEditRating(review._id)}
                   className="text-xs text-primary hover:text-primary-dark transition-colors px-2 py-1 rounded border border-primary hover:bg-primary hover:text-slate-900"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -48,42 +50,111 @@ const ReviewItem = ({
             </div>
           </div>
 
-          {editingCommentId === review._id ? (
-            <EditCommentForm
-              comment={review}
+          {editingRatingId === review._id ? (
+            <EditRatingForm
+              rating={review}
               onSave={handleSaveEdit}
               onCancel={handleCancelEdit}
               url={url}
               token={token}
             />
           ) : (
-            <>
-              <div className="flex mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    className={i < review.rating ? "text-primary fill-primary" : "text-gray-500"}
-                  />
-                ))}
-              </div>
-              <p className="text-gray-300 leading-relaxed">{review.comment}</p>
-
-              {/* Admin Reply */}
-              {review.adminReply && review.adminReply.message && (
-                <div className="mt-4 bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-green-400 mb-1">Phản hồi từ quản trị viên:</p>
-                  <p className="text-green-300 text-sm">{review.adminReply.message}</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(review.adminReply.createdAt).toLocaleDateString("vi-VN")}
-                  </p>
-                </div>
-              )}
-            </>
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={16} className={i < review.rating ? "text-primary fill-primary" : "text-gray-500"} />
+              ))}
+            </div>
           )}
         </div>
       </div>
     </motion.div>
+  )
+}
+
+// Component để chỉnh sửa rating
+const EditRatingForm = ({ rating, onSave, onCancel, url, token }) => {
+  const [newRating, setNewRating] = useState(rating.rating)
+  const [hoverRating, setHoverRating] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (newRating < 1 || newRating > 5) {
+      toast.error("Vui lòng chọn số sao từ 1 đến 5")
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      const response = await axios.put(
+        `${url}/api/comment/update`,
+        {
+          ratingId: rating._id,
+          rating: newRating,
+          userId: rating.userId,
+        },
+        {
+          headers: { token },
+        },
+      )
+
+      if (response.data.success) {
+        toast.success("Cập nhật đánh giá thành công!")
+        onSave(response.data.data)
+      } else {
+        toast.error(response.data.message || "Có lỗi xảy ra")
+      }
+    } catch (error) {
+      console.error("Error updating rating:", error)
+      toast.error("Có lỗi xảy ra khi cập nhật đánh giá")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-gray-300 mb-2 text-sm">Đánh giá mới</label>
+        <div className="flex items-center space-x-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setNewRating(star)}
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              className="p-1 focus:outline-none transition-transform hover:scale-110"
+            >
+              <Star
+                size={20}
+                className={`${
+                  (hoverRating || newRating) >= star ? "text-yellow-400 fill-yellow-400" : "text-gray-500"
+                } transition-colors`}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex space-x-2">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-3 py-1 bg-primary text-slate-900 rounded text-sm hover:bg-primary-dark transition-colors disabled:opacity-50"
+        >
+          {isSubmitting ? "Đang lưu..." : "Lưu"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-1 border border-slate-600 text-gray-300 rounded text-sm hover:bg-slate-700 transition-colors"
+        >
+          Hủy
+        </button>
+      </div>
+    </form>
   )
 }
 

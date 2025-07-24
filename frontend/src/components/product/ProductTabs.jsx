@@ -21,8 +21,8 @@ const ProductTabs = ({
   reviews,
   token,
   user,
-  editingCommentId,
-  handleEditComment,
+  editingRatingId,
+  handleEditRating,
   handleSaveEdit,
   handleCancelEdit,
   url,
@@ -78,8 +78,8 @@ const ProductTabs = ({
               reviews={reviews}
               token={token}
               user={user}
-              editingCommentId={editingCommentId}
-              handleEditComment={handleEditComment}
+              editingRatingId={editingRatingId}
+              handleEditRating={handleEditRating}
               handleSaveEdit={handleSaveEdit}
               handleCancelEdit={handleCancelEdit}
               url={url}

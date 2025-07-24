@@ -12,7 +12,7 @@ export const useReviews = (foodItem) => {
   const [reviews, setReviews] = useState([])
   const [isLoadingReviews, setIsLoadingReviews] = useState(false)
   const [ratingStats, setRatingStats] = useState({ averageRating: 0, totalReviews: 0 })
-  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingRatingId, setEditingRatingId] = useState(null)
   const [reviewEligibility, setReviewEligibility] = useState(null)
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false)
 
@@ -32,9 +32,9 @@ export const useReviews = (foodItem) => {
     if (!user || !user._id || !foodItem?._id || !token) {
       console.log("Missing requirements for review check:", { user: !!user, foodItem: !!foodItem, token: !!token })
       setReviewEligibility({
-        canReview: false,
+        canRate: false,
         hasPurchased: false,
-        hasReviewed: false,
+        hasRated: false,
         reason: "Cần đăng nhập để đánh giá",
       })
       return
@@ -45,7 +45,7 @@ export const useReviews = (foodItem) => {
       console.log(`Checking review eligibility for user ${user._id} and food ${foodItem._id}`)
 
       // Sử dụng endpoint chính thức
-      const response = await axios.get(`${url}/api/comment/can-review/${user._id}/${foodItem._id}`, {
+      const response = await axios.get(`${url}/api/comment/can-rate/${user._id}/${foodItem._id}`, {
         headers: { token },
       })
 
@@ -60,9 +60,9 @@ export const useReviews = (foodItem) => {
         }
       } else {
         setReviewEligibility({
-          canReview: false,
+          canRate: false,
           hasPurchased: false,
-          hasReviewed: false,
+          hasRated: false,
           reason: response.data.message || "Không thể kiểm tra quyền đánh giá",
         })
       }
@@ -70,9 +70,9 @@ export const useReviews = (foodItem) => {
       console.error("Error checking review eligibility:", error)
       // Trong trường hợp lỗi, vẫn cho phép thử đánh giá
       setReviewEligibility({
-        canReview: true,
+        canRate: true,
         hasPurchased: true,
-        hasReviewed: false,
+        hasRated: false,
         reason: "Không thể kiểm tra, cho phép thử đánh giá",
       })
     } finally {
@@ -119,7 +119,7 @@ export const useReviews = (foodItem) => {
 
   const handleWriteReview = () => {
     if (!token) {
-      toast.info("Vui lòng đăng nhập để viết đánh giá")
+      toast.info("Vui lòng đăng nhập để đánh giá")
       return
     }
 
@@ -131,13 +131,13 @@ export const useReviews = (foodItem) => {
     setShowReviewForm(true)
   }
 
-  const handleEditComment = (commentId) => {
-    setEditingCommentId(commentId)
+  const handleEditRating = (ratingId) => {
+    setEditingRatingId(ratingId)
   }
 
-  const handleSaveEdit = (updatedComment) => {
-    setReviews(reviews.map((review) => (review._id === updatedComment._id ? updatedComment : review)))
-    setEditingCommentId(null)
+  const handleSaveEdit = (updatedRating) => {
+    setReviews(reviews.map((review) => (review._id === updatedRating._id ? updatedRating : review)))
+    setEditingRatingId(null)
     // Refresh rating stats
     if (foodItem._id) {
       fetchRatingStats(foodItem._id)
@@ -145,7 +145,7 @@ export const useReviews = (foodItem) => {
   }
 
   const handleCancelEdit = () => {
-    setEditingCommentId(null)
+    setEditingRatingId(null)
   }
 
   return {
@@ -154,12 +154,12 @@ export const useReviews = (foodItem) => {
     reviews,
     isLoadingReviews,
     ratingStats,
-    editingCommentId,
+    editingRatingId,
     reviewEligibility,
     isCheckingEligibility,
     handleReviewSubmitted,
     handleWriteReview,
-    handleEditComment,
+    handleEditRating,
     handleSaveEdit,
     handleCancelEdit,
   }

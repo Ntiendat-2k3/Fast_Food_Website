@@ -21,13 +21,18 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  MapPin,
+  Phone,
+  User,
+  Receipt,
+  Gift,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
-import { toast } from "react-toastify"
+import toast from "react-hot-toast"
 
 const PurchaseHistory = () => {
-  const { url, token, user } = useContext(StoreContext)
+  const { url, token, user, addToCart, food_list } = useContext(StoreContext)
   const navigate = useNavigate()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
@@ -42,7 +47,8 @@ const PurchaseHistory = () => {
   const [sortBy, setSortBy] = useState("newest")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [reorderingId, setReorderingId] = useState(null)
+  const itemsPerPage = 10
 
   // Redirect if not logged in
   useEffect(() => {
@@ -52,115 +58,137 @@ const PurchaseHistory = () => {
     }
   }, [token, navigate])
 
-  const fetchPurchaseHistory = async () => {
+  const fetchOrders = async () => {
     try {
       setLoading(true)
-
-      if (!user || !user._id) {
-        console.error("User ID not available")
-        setLoading(false)
-        return
-      }
-
-      console.log("Fetching purchase history for user:", user._id)
+      console.log("Fetching orders with token:", token)
 
       const response = await axios.post(
-        `${url}/api/purchase-history/user`,
-        { userId: user._id },
+        `${url}/api/order/userorders`,
+        {},
         {
-          headers: { token },
-          params: {
-            page: currentPage,
-            limit: 10,
-            sortBy: sortBy,
-            search: searchTerm,
-            timeRange: timeFilter,
+          headers: {
+            token: token,
+            "Content-Type": "application/json",
           },
         },
       )
 
-      console.log("Purchase history response:", response.data)
+      console.log("API Response:", response.data)
 
       if (response.data.success) {
-        const purchases = response.data.data || []
-        setData(purchases)
-        setFilteredOrders(purchases)
-        setTotalPages(response.data.pagination?.totalPages || 1)
+        // Chỉ lấy những đơn hàng đã hoàn thành (đã giao hàng hoặc đã xác nhận)
+        const completedOrders = response.data.data.filter(
+          (order) =>
+            order.status === "Đã giao" ||
+            order.status === "Đã giao hàng" ||
+            order.status === "Đã hoàn thành" ||
+            order.customerConfirmed === true,
+        )
 
-        // Set stats from response
-        const statsData = response.data.stats || {}
-        setStats({
-          totalSpent: statsData.totalSpent || 0,
-          totalOrders: statsData.totalOrders || 0,
-          totalItems: statsData.totalItems || 0,
-        })
-
-        console.log("Loaded purchases:", purchases.length)
-        console.log("Stats:", statsData)
+        console.log("Completed orders:", completedOrders)
+        setData(completedOrders)
+        calculateStats(completedOrders)
       } else {
         console.error("API Error:", response.data.message)
         toast.error(response.data.message || "Không thể tải lịch sử mua hàng")
       }
-
-      setLoading(false)
     } catch (error) {
-      console.error("Error fetching purchase history:", error)
+      console.error("Error fetching orders:", error)
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+        console.error("Error status:", error.response.status)
+      }
       toast.error("Lỗi khi tải lịch sử mua hàng")
+    } finally {
       setLoading(false)
     }
+  }
+
+  const calculateStats = (orders) => {
+    const totalSpent = orders.reduce((sum, order) => sum + order.amount, 0)
+    const totalItems = orders.reduce((sum, order) => {
+      return sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0)
+    }, 0)
+
+    setStats({
+      totalSpent,
+      totalOrders: orders.length,
+      totalItems,
+    })
   }
 
   useEffect(() => {
     if (token && user) {
-      fetchPurchaseHistory()
+      fetchOrders()
     }
-  }, [token, user, currentPage, sortBy, timeFilter])
+  }, [token, user])
 
   useEffect(() => {
-    // Filter orders based on search term
-    if (searchTerm.trim() === "") {
-      setFilteredOrders(data)
-    } else {
-      const filtered = data.filter(
+    let filtered = [...data]
+
+    // Apply search filter
+    if (searchTerm.trim() !== "") {
+      filtered = filtered.filter(
         (order) =>
           order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (order.deliveryAddress?.name &&
-            order.deliveryAddress.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (order.address?.name && order.address.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
           order.items.some((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase())),
       )
-      setFilteredOrders(filtered)
     }
-  }, [searchTerm, data])
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "Đang xử lý":
-      case "Đang chuẩn bị đồ":
-        return <Clock size={18} className="text-primary" />
-      case "Đang giao hàng":
-        return <Truck size={18} className="text-blue-400" />
-      case "Đã giao":
-      case "Đã giao hàng":
-        return <CheckCircle size={18} className="text-green-400" />
-      default:
-        return <Package size={18} className="text-gray-400" />
-    }
-  }
+    // Apply time filter
+    if (timeFilter !== "all") {
+      const now = new Date()
+      let startDate
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Đang xử lý":
-      case "Đang chuẩn bị đồ":
-        return "bg-primary/20 text-primary border border-primary/30"
-      case "Đang giao hàng":
-        return "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-      case "Đã giao":
-      case "Đã giao hàng":
-        return "bg-green-500/20 text-green-400 border border-green-500/30"
-      default:
-        return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+      switch (timeFilter) {
+        case "7days":
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          break
+        case "30days":
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+          break
+        case "3months":
+          startDate = new Date(now.getTime() - 3 * 30 * 24 * 60 * 60 * 1000)
+          break
+        case "6months":
+          startDate = new Date(now.getTime() - 6 * 30 * 24 * 60 * 60 * 1000)
+          break
+        case "1year":
+          startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
+          break
+      }
+
+      if (startDate) {
+        filtered = filtered.filter((order) => new Date(order.date) >= startDate)
+      }
     }
-  }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "newest":
+          return new Date(b.date) - new Date(a.date)
+        case "oldest":
+          return new Date(a.date) - new Date(b.date)
+        case "highest":
+          return b.amount - a.amount
+        case "lowest":
+          return a.amount - b.amount
+        default:
+          return new Date(b.date) - new Date(a.date)
+      }
+    })
+
+    // Apply pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const paginatedOrders = filtered.slice(startIndex, startIndex + itemsPerPage)
+
+    setFilteredOrders(paginatedOrders)
+    setTotalPages(totalPages)
+  }, [data, searchTerm, timeFilter, sortBy, currentPage])
 
   const getPaymentMethodIcon = (method) => {
     switch (method) {
@@ -188,7 +216,7 @@ const PurchaseHistory = () => {
       case "Chưa thanh toán":
         return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
       default:
-        return "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+        return "bg-green-500/20 text-green-400 border border-green-500/30"
     }
   }
 
@@ -224,25 +252,76 @@ const PurchaseHistory = () => {
   // Handle search
   const handleSearch = (e) => {
     e.preventDefault()
-    fetchPurchaseHistory()
+    setCurrentPage(1)
   }
 
   // Handle filter change
   const handleFilterChange = () => {
     setCurrentPage(1)
-    setIsFilterOpen(false)
-    fetchPurchaseHistory()
   }
 
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page)
-    window.scrollTo(0, 0)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
   // Handle buy again
-  const handleBuyAgain = (items) => {
-    toast.info("Tính năng mua lại đang được phát triển")
+  const handleBuyAgain = async (items, orderId) => {
+    try {
+      setReorderingId(orderId)
+      let addedItems = 0
+      const unavailableItems = []
+
+      for (const item of items) {
+        const foodItem = food_list.find((food) => food.name === item.name)
+
+        if (foodItem) {
+          await addToCart(item.name, item.quantity)
+          addedItems++
+        } else {
+          unavailableItems.push(item.name)
+        }
+      }
+
+      if (addedItems > 0) {
+        toast.success(`Đã thêm ${addedItems} sản phẩm vào giỏ hàng!`)
+      }
+
+      if (unavailableItems.length > 0) {
+        toast.error(`Một số sản phẩm không còn khả dụng: ${unavailableItems.join(", ")}`)
+      }
+
+      if (addedItems === 0) {
+        toast.error("Không có sản phẩm nào có thể thêm vào giỏ hàng")
+      }
+    } catch (error) {
+      console.error("Error reordering:", error)
+      toast.error("Lỗi khi mua lại đơn hàng")
+    } finally {
+      setReorderingId(null)
+    }
+  }
+
+  const handleProductClick = (productName) => {
+    // Tìm sản phẩm trong food_list
+    const product = food_list.find((item) => item.name === productName)
+    if (product) {
+      // Tạo slug từ tên sản phẩm
+      const slug = product.name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .trim()
+
+      // Navigate đến trang chi tiết sản phẩm
+      navigate(`/product/${slug}`)
+    } else {
+      toast.error("Sản phẩm không tồn tại!")
+    }
   }
 
   return (
@@ -260,10 +339,13 @@ const PurchaseHistory = () => {
           transition={{ duration: 0.6 }}
           className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-700"
         >
+          {/* Header */}
           <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-slate-800/80 to-slate-700/80">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
               <div className="flex items-center mb-4 md:mb-0">
-                <Sparkles className="text-primary mr-3" size={24} />
+                <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mr-4 border border-primary/30">
+                  <Sparkles className="text-primary" size={24} />
+                </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white">Lịch sử mua hàng</h1>
                   <p className="text-gray-400 text-sm mt-1">Xem lại các đơn hàng đã hoàn thành</p>
@@ -332,7 +414,7 @@ const PurchaseHistory = () => {
               </div>
 
               <button
-                onClick={() => fetchPurchaseHistory()}
+                onClick={() => fetchOrders()}
                 className="flex items-center justify-center gap-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg py-2 px-4 text-sm transition-colors"
               >
                 <RefreshCw size={14} />
@@ -427,114 +509,209 @@ const PurchaseHistory = () => {
                 </button>
               </motion.div>
             ) : (
-              <div className="space-y-4">
-                {filteredOrders.map((purchase, index) => (
+              <div className="space-y-6">
+                {filteredOrders.map((order, index) => (
                   <motion.div
-                    key={purchase._id}
+                    key={order._id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="bg-slate-700/30 backdrop-blur-sm rounded-xl border border-slate-600 overflow-hidden hover:border-primary/50 transition-all duration-300"
+                    className="bg-gradient-to-br from-slate-700/40 to-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-600/50 overflow-hidden hover:border-primary/50 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
-                    {/* Purchase Header */}
-                    <div className="bg-slate-800/50 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-600">
-                      <div className="flex items-center mb-2 sm:mb-0">
-                        <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center mr-3">
-                          <Package size={18} className="text-primary" />
+                    {/* Order Header */}
+                    <div className="bg-gradient-to-r from-slate-800/60 to-slate-700/60 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-600/50">
+                      <div className="flex items-center mb-3 sm:mb-0">
+                        <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center mr-4 border border-primary/30">
+                          <Receipt size={20} className="text-primary" />
                         </div>
                         <div>
-                          <p className="text-white font-medium text-sm">#{purchase._id.slice(-8).toUpperCase()}</p>
-                          <p className="text-gray-400 text-xs">{formatDate(purchase.purchaseDate)}</p>
+                          <p className="text-white font-semibold text-lg">#{order._id.slice(-8).toUpperCase()}</p>
+                          <p className="text-gray-400 text-sm flex items-center">
+                            <Clock size={14} className="mr-1" />
+                            {formatDate(order.date)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                        <span className="px-3 py-1 rounded-full text-xs font-medium flex items-center bg-green-500/20 text-green-400 border border-green-500/30">
+                        <span className="px-3 py-1.5 rounded-full text-xs font-medium flex items-center bg-green-500/20 text-green-400 border border-green-500/30">
                           <CheckCircle size={12} className="mr-1" />
                           <span className="ml-1">Đã hoàn thành</span>
                         </span>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(purchase.paymentStatus)}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium ${getPaymentStatusColor(order.paymentStatus || "Đã thanh toán")}`}
                         >
-                          {purchase.paymentStatus || "Đã thanh toán"}
+                          {order.paymentStatus || "Đã thanh toán"}
                         </span>
                       </div>
                     </div>
 
-                    {/* Purchase Content */}
-                    <div className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Purchase Items */}
-                        <div className="md:col-span-2">
-                          <h3 className="text-xs uppercase text-gray-400 mb-3 font-medium flex items-center">
-                            <Star className="mr-1" size={12} />
-                            Sản phẩm ({purchase.items.length} món)
+                    {/* Order Content */}
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Order Items */}
+                        <div className="lg:col-span-2">
+                          <h3 className="text-sm uppercase text-primary mb-4 font-semibold flex items-center">
+                            <ShoppingCart className="mr-2" size={16} />
+                            Sản phẩm ({order.items.length} món)
                           </h3>
-                          <div className="space-y-3 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
-                            {purchase.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between text-sm">
-                                <div className="flex items-center">
-                                  <div className="w-10 h-10 bg-slate-600/50 rounded-lg overflow-hidden mr-3 flex-shrink-0">
+                          <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800">
+                            {order.items.map((item, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg border border-slate-600/30 hover:border-primary/30 transition-colors cursor-pointer group"
+                                onClick={() => handleProductClick(item.name)}
+                              >
+                                <div className="flex items-center flex-1">
+                                  <div className="w-14 h-14 bg-slate-600/50 rounded-lg overflow-hidden mr-3 flex-shrink-0 border border-slate-500/30">
                                     <img
                                       src={url + "/images/" + item.image || "/placeholder.svg"}
                                       alt={item.name}
-                                      className="w-full h-full object-cover"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                      onError={(e) => {
+                                        e.target.src = "/placeholder.svg?height=56&width=56"
+                                      }}
                                     />
                                   </div>
-                                  <span className="text-white truncate max-w-[120px] sm:max-w-[150px]">
-                                    {item.name} <span className="text-gray-400">x{item.quantity}</span>
-                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white font-medium truncate group-hover:text-primary transition-colors">
+                                      {item.name}
+                                    </p>
+                                    <p className="text-gray-400 text-sm">
+                                      {item.price.toLocaleString("vi-VN")}đ × {item.quantity}
+                                    </p>
+                                  </div>
                                 </div>
-                                <span className="text-primary font-medium whitespace-nowrap">
-                                  {(item.price * item.quantity).toLocaleString("vi-VN")} đ
-                                </span>
+                                <div className="text-primary font-semibold whitespace-nowrap ml-3">
+                                  {(item.price * item.quantity).toLocaleString("vi-VN")}đ
+                                </div>
                               </div>
                             ))}
                           </div>
-                        </div>
 
-                        {/* Purchase Info */}
-                        <div className="border-t md:border-t-0 md:border-l border-slate-600 pt-4 md:pt-0 md:pl-4">
-                          <h3 className="text-xs uppercase text-gray-400 mb-3 font-medium">Thông tin giao hàng</h3>
-                          <div className="space-y-2 text-sm">
-                            <p className="flex justify-between">
-                              <span className="text-gray-400">Người nhận:</span>
-                              <span className="text-white font-medium">{purchase.deliveryAddress?.name || "N/A"}</span>
-                            </p>
-                            <p className="flex justify-between">
-                              <span className="text-gray-400">SĐT:</span>
-                              <span className="text-white">{purchase.deliveryAddress?.phone || "N/A"}</span>
-                            </p>
-                            <p className="flex flex-col">
-                              <span className="text-gray-400">Địa chỉ:</span>
-                              <span className="text-white text-right text-xs mt-1 break-words">
-                                {purchase.deliveryAddress?.street || "N/A"}
-                              </span>
-                            </p>
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-600">
-                              <div className="flex items-center">
-                                {getPaymentMethodIcon(purchase.paymentMethod)}
-                                <span className="ml-2 text-xs text-gray-400">
-                                  {purchase.paymentMethod === "COD"
-                                    ? "COD"
-                                    : purchase.paymentMethod === "VNPay"
-                                      ? "VNPay"
-                                      : purchase.paymentMethod === "MoMo"
-                                        ? "MoMo"
-                                        : "Bank"}
-                                </span>
-                              </div>
-                              <span className="text-lg font-bold text-primary">
-                                {purchase.totalAmount.toLocaleString("vi-VN")} đ
+                          {/* Order Summary */}
+                          <div className="mt-4 bg-gradient-to-br from-slate-800/60 to-slate-700/60 rounded-lg p-4 space-y-2 border border-slate-600/30">
+                            <div className="flex justify-between text-sm text-slate-300">
+                              <span>Tổng phụ:</span>
+                              <span>
+                                {order.items
+                                  .reduce((sum, item) => sum + item.price * item.quantity, 0)
+                                  .toLocaleString("vi-VN")}
+                                đ
                               </span>
                             </div>
+                            {order.discountAmount > 0 && (
+                              <div className="flex justify-between text-sm text-green-400">
+                                <span className="flex items-center">
+                                  <Gift size={14} className="mr-1" />
+                                  Giảm giá:
+                                </span>
+                                <span>-{order.discountAmount.toLocaleString("vi-VN")}đ</span>
+                              </div>
+                            )}
+                            <div className="border-t border-slate-600/50 pt-2 mt-2">
+                              <div className="flex justify-between text-lg font-bold text-white">
+                                <span>Tổng cộng:</span>
+                                <span className="text-primary">{order.amount.toLocaleString("vi-VN")}đ</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="mt-4">
+                        </div>
+
+                        {/* Customer Information */}
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-sm uppercase text-primary mb-4 font-semibold flex items-center">
+                              <User className="mr-2" size={16} />
+                              Thông tin giao hàng
+                            </h3>
+
+                            <div className="space-y-4">
+                              {/* Customer Details */}
+                              <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 rounded-lg p-4 space-y-3 border border-slate-600/30">
+                                <div className="flex items-center gap-3">
+                                  <div className="p-2 bg-primary/20 rounded-lg border border-primary/30">
+                                    <User className="w-4 h-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-white">{order.address?.name || "N/A"}</p>
+                                    <p className="text-sm text-slate-300 flex items-center">
+                                      <Phone size={12} className="mr-1" />
+                                      {order.address?.phone || "N/A"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-primary/20 rounded-lg mt-1 border border-primary/30">
+                                    <MapPin className="w-4 h-4 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                      {order.address?.street
+                                        ? `${order.address.street}, ${order.address.ward}, ${order.address.district}, ${order.address.province}`
+                                        : "N/A"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Payment Information */}
+                              <div className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 rounded-lg p-4 border border-slate-600/30">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="p-2 bg-primary/20 rounded-lg border border-primary/30">
+                                    <CreditCard className="w-4 h-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-white">Phương thức thanh toán</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      {getPaymentMethodIcon(order.paymentMethod)}
+                                      <span className="text-sm text-slate-300">
+                                        {order.paymentMethod === "COD"
+                                          ? "Thanh toán khi nhận hàng"
+                                          : order.paymentMethod === "VNPay"
+                                            ? "VNPay"
+                                            : order.paymentMethod === "MoMo"
+                                              ? "MoMo"
+                                              : "Chuyển khoản ngân hàng"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {order.voucherCode && (
+                                  <div className="mt-3 p-3 bg-green-500/20 rounded-lg border border-green-500/30">
+                                    <p className="text-sm text-green-400 flex items-center">
+                                      <Gift size={14} className="mr-2" />
+                                      <span className="font-medium">Mã giảm giá:</span>
+                                      <span className="ml-1">{order.voucherCode}</span>
+                                    </p>
+                                    <p className="text-sm text-green-300 mt-1">
+                                      Tiết kiệm: {order.discountAmount?.toLocaleString("vi-VN")}đ
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Buy Again Button */}
+                          <div className="mt-6">
                             <button
-                              onClick={() => handleBuyAgain(purchase.items)}
-                              className="w-full bg-primary hover:bg-primary-dark text-slate-900 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center"
+                              onClick={() => handleBuyAgain(order.items, order._id)}
+                              disabled={reorderingId === order._id}
+                              className="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary disabled:from-primary/50 disabled:to-primary-dark/50 text-slate-900 py-3 rounded-lg transition-all duration-300 text-sm font-semibold flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 disabled:scale-100"
                             >
-                              <RefreshCw size={14} className="mr-2" />
-                              Mua lại
+                              {reorderingId === order._id ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin mr-2" />
+                                  <span>Đang thêm...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw size={16} className="mr-2" />
+                                  Mua lại
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -550,8 +727,10 @@ const PurchaseHistory = () => {
                       <button
                         onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
-                        className={`p-2 rounded-lg ${
-                          currentPage === 1 ? "text-gray-500 cursor-not-allowed" : "text-white hover:bg-slate-700/50"
+                        className={`p-2 rounded-lg transition-colors ${
+                          currentPage === 1
+                            ? "text-gray-500 cursor-not-allowed"
+                            : "text-white hover:bg-slate-700/50 hover:text-primary"
                         }`}
                       >
                         <ChevronUp className="rotate-90" size={20} />
@@ -565,10 +744,10 @@ const PurchaseHistory = () => {
                             <button
                               key={page}
                               onClick={() => handlePageChange(page)}
-                              className={`w-10 h-10 rounded-lg ${
+                              className={`w-10 h-10 rounded-lg transition-all duration-200 ${
                                 currentPage === page
-                                  ? "bg-primary text-slate-900 font-bold"
-                                  : "text-white hover:bg-slate-700/50"
+                                  ? "bg-primary text-slate-900 font-bold shadow-lg"
+                                  : "text-white hover:bg-slate-700/50 hover:text-primary"
                               }`}
                             >
                               {page}
@@ -590,10 +769,10 @@ const PurchaseHistory = () => {
                       <button
                         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
-                        className={`p-2 rounded-lg ${
+                        className={`p-2 rounded-lg transition-colors ${
                           currentPage === totalPages
                             ? "text-gray-500 cursor-not-allowed"
-                            : "text-white hover:bg-slate-700/50"
+                            : "text-white hover:bg-slate-700/50 hover:text-primary"
                         }`}
                       >
                         <ChevronDown className="rotate-90" size={20} />
