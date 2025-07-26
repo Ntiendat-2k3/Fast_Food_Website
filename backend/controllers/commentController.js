@@ -85,7 +85,7 @@ const checkUserPurchase = async (userId, foodId) => {
 // Thêm rating mới
 const addComment = async (req, res) => {
   try {
-    const { userId, foodId, rating } = req.body
+    const { userId, foodId, rating, comment } = req.body
 
     if (!userId || !foodId || !rating) {
       return res.json({
@@ -131,7 +131,7 @@ const addComment = async (req, res) => {
       userId,
       foodId,
       rating: Number(rating),
-      comment: "Đánh giá sao",
+      comment: comment || "Đánh giá sao",
       userName: user.name,
       isApproved: true,
     })
@@ -147,6 +147,7 @@ const addComment = async (req, res) => {
         userName: user.name,
         foodId: savedComment.foodId,
         rating: savedComment.rating,
+        comment: savedComment.comment,
         createdAt: savedComment.createdAt,
       },
     })
@@ -168,9 +169,24 @@ const getCommentsByFood = async (req, res) => {
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
     }
 
-    const comments = await commentModel.find({ foodId, isApproved: true }).sort({ createdAt: -1 })
+    const comments = await commentModel
+      .find({ foodId, isApproved: true })
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 })
 
-    res.json({ success: true, data: comments })
+    const formattedComments = comments.map((comment) => ({
+      _id: comment._id,
+      userId: comment.userId?._id || comment.userId,
+      userName: comment.userId?.name || comment.userName,
+      userEmail: comment.userId?.email,
+      rating: comment.rating,
+      comment: comment.comment,
+      createdAt: comment.createdAt,
+      adminReply: comment.adminReply,
+      adminReplyAt: comment.adminReplyAt,
+    }))
+
+    res.json({ success: true, data: formattedComments })
   } catch (error) {
     console.error("Error getting comments:", error)
     res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
@@ -307,6 +323,7 @@ const checkCanReview = async (req, res) => {
         existingReview: existingComment
           ? {
               rating: existingComment.rating,
+              comment: existingComment.comment,
               createdAt: existingComment.createdAt,
             }
           : null,
@@ -318,4 +335,142 @@ const checkCanReview = async (req, res) => {
   }
 }
 
-export { addComment, getCommentsByFood, getFoodRatingStats, getBatchRatings, checkCanReview }
+// Admin: Lấy tất cả đánh giá
+const getAllComments = async (req, res) => {
+  try {
+    const comments = await commentModel
+      .find({})
+      .populate("userId", "name email")
+      .populate("foodId", "name image category")
+      .sort({ createdAt: -1 })
+
+    const formattedComments = comments.map((comment) => ({
+      _id: comment._id,
+      userId: comment.userId?._id || comment.userId,
+      userName: comment.userId?.name || comment.userName,
+      userEmail: comment.userId?.email,
+      foodId: comment.foodId?._id || comment.foodId,
+      foodName: comment.foodId?.name,
+      foodImage: comment.foodId?.image,
+      foodCategory: comment.foodId?.category,
+      rating: comment.rating,
+      comment: comment.comment,
+      isApproved: comment.isApproved,
+      createdAt: comment.createdAt,
+      adminReply: comment.adminReply
+        ? {
+            message: comment.adminReply,
+            createdAt: comment.adminReplyAt,
+          }
+        : null,
+    }))
+
+    res.json({
+      success: true,
+      data: formattedComments,
+    })
+  } catch (error) {
+    console.error("Error getting all comments:", error)
+    res.json({ success: false, message: "Lỗi khi lấy danh sách đánh giá" })
+  }
+}
+
+// Admin: Duyệt/hủy duyệt đánh giá
+const toggleApproveComment = async (req, res) => {
+  try {
+    const { id, isApproved } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    }
+
+    const comment = await commentModel.findByIdAndUpdate(id, { isApproved }, { new: true })
+
+    if (!comment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    res.json({
+      success: true,
+      message: isApproved ? "Đã duyệt đánh giá" : "Đã hủy duyệt đánh giá",
+      data: comment,
+    })
+  } catch (error) {
+    console.error("Error toggling comment approval:", error)
+    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái đánh giá" })
+  }
+}
+
+// Admin: Xóa đánh giá
+const deleteComment = async (req, res) => {
+  try {
+    const { id } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    }
+
+    const comment = await commentModel.findByIdAndDelete(id)
+
+    if (!comment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    res.json({
+      success: true,
+      message: "Đã xóa đánh giá thành công",
+    })
+  } catch (error) {
+    console.error("Error deleting comment:", error)
+    res.json({ success: false, message: "Lỗi khi xóa đánh giá" })
+  }
+}
+
+// Admin: Phản hồi đánh giá
+const replyToComment = async (req, res) => {
+  try {
+    const { id, message } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    }
+
+    if (!message || message.trim() === "") {
+      return res.json({ success: false, message: "Nội dung phản hồi không được để trống" })
+    }
+
+    const comment = await commentModel.findByIdAndUpdate(
+      id,
+      {
+        adminReply: message.trim(),
+        adminReplyAt: new Date(),
+      },
+      { new: true },
+    )
+
+    if (!comment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    res.json({
+      success: true,
+      message: "Đã phản hồi đánh giá thành công",
+      data: comment,
+    })
+  } catch (error) {
+    console.error("Error replying to comment:", error)
+    res.json({ success: false, message: "Lỗi khi phản hồi đánh giá" })
+  }
+}
+
+export {
+  addComment,
+  getCommentsByFood,
+  getFoodRatingStats,
+  getBatchRatings,
+  checkCanReview,
+  getAllComments,
+  toggleApproveComment,
+  deleteComment,
+  replyToComment,
+}

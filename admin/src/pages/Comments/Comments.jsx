@@ -3,27 +3,22 @@
 import { useEffect, useState, useRef } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Shield } from "lucide-react"
+import { MessageSquare, Shield, Star, Check, X, Trash2, Reply, Edit, Send } from "lucide-react"
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
 import Pagination from "../../components/Pagination"
 import TabNavigation from "../../components/comments/TabNavigation"
 import CommentFilters from "../../components/comments/CommentFilters"
-import CommentCard from "../../components/comments/CommentCard"
-import EmptyState from "../../components/comments/EmptyState"
-// Removed NotificationForm and NotificationCard imports
 import BlockUserForm from "../../components/comments/BlockUserForm"
 import BlacklistTable from "../../components/comments/BlacklistTable"
 
 const Comments = ({ url }) => {
   const [activeTab, setActiveTab] = useState("comments") // "comments" or "blacklist"
   const [comments, setComments] = useState([])
-  // Removed notifications state
   const [blacklist, setBlacklist] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  // Removed notificationsLoading state
   const [blacklistLoading, setBlacklistLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -33,8 +28,6 @@ const Comments = ({ url }) => {
   const [foodList, setFoodList] = useState([])
   const [categories, setCategories] = useState([])
   const selectedUserRef = useRef(null)
-
-  // Removed newNotification form
 
   // New blacklist form
   const [blockUserForm, setBlockUserForm] = useState({
@@ -50,7 +43,6 @@ const Comments = ({ url }) => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  // Removed notificationsPage state
   const [blacklistPage, setBlacklistPage] = useState(1)
   const itemsPerPage = 10
 
@@ -142,8 +134,6 @@ const Comments = ({ url }) => {
     }
   }
 
-  // Removed fetchNotifications
-
   const fetchBlacklist = async () => {
     setBlacklistLoading(true)
     try {
@@ -231,8 +221,6 @@ const Comments = ({ url }) => {
       message: "Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác.",
     })
   }
-
-  // Removed handleSendNotification
 
   const handleReplyToComment = async () => {
     if (!replyForm.message || !replyForm.commentId) {
@@ -362,9 +350,6 @@ const Comments = ({ url }) => {
     })
   }
 
-  // Removed handleMarkNotificationRead
-  // Removed handleDeleteNotification
-
   const handleConfirmAction = async () => {
     const { type, id } = confirmModal
     const token = localStorage.getItem("token")
@@ -424,7 +409,6 @@ const Comments = ({ url }) => {
         toast.error("Lỗi kết nối đến máy chủ khi bỏ chặn người dùng")
       }
     }
-    // Removed else if (type === "deleteNotification")
 
     setConfirmModal({ isOpen: false, type: null, id: null, message: "" })
   }
@@ -440,14 +424,6 @@ const Comments = ({ url }) => {
     })
   }
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
-
   const getFoodName = (foodId) => {
     const food = foodList.find((food) => food._id === foodId)
     return food ? food.name : "Sản phẩm không tồn tại"
@@ -458,6 +434,10 @@ const Comments = ({ url }) => {
     return food ? food.category : ""
   }
 
+  const getInitials = (name) => {
+    return name ? name.charAt(0).toUpperCase() : "U"
+  }
+
   const filteredComments = comments.filter((comment) => {
     // Filter by status
     if (statusFilter === "approved" && !comment.isApproved) return false
@@ -465,17 +445,17 @@ const Comments = ({ url }) => {
 
     // Filter by category
     if (categoryFilter !== "all") {
-      const foodCategory = getFoodCategory(comment.foodId)
+      const foodCategory = comment.foodCategory || getFoodCategory(comment.foodId)
       if (foodCategory !== categoryFilter) return false
     }
 
     // Filter by search term
     if (searchTerm) {
-      const foodName = getFoodName(comment.foodId).toLowerCase()
+      const foodName = comment.foodName || getFoodName(comment.foodId)
       return (
         comment.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        comment.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        foodName.includes(searchTerm.toLowerCase())
+        (comment.comment && comment.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        foodName.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -489,8 +469,6 @@ const Comments = ({ url }) => {
     return filteredComments.slice(indexOfFirstItem, indexOfLastItem)
   }
 
-  // Removed getCurrentNotifications
-
   // Get current page items for blacklist
   const getCurrentBlacklist = () => {
     const indexOfLastItem = blacklistPage * itemsPerPage
@@ -499,24 +477,18 @@ const Comments = ({ url }) => {
   }
 
   const totalCommentsPages = Math.ceil(filteredComments.length / itemsPerPage)
-  // Removed totalNotificationsPages
   const totalBlacklistPages = Math.ceil(blacklist.length / itemsPerPage)
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber)
   }
 
-  // Removed handleNotificationsPageChange
-
   const handleBlacklistPageChange = (pageNumber) => {
     setBlacklistPage(pageNumber)
   }
 
   const currentComments = getCurrentComments()
-  // Removed currentNotifications
   const currentBlacklist = getCurrentBlacklist()
-
-  // Removed getNotificationTypeStyle
 
   // Handle user selection for blacklist
   const handleUserSelect = (e) => {
@@ -527,11 +499,11 @@ const Comments = ({ url }) => {
   }
 
   return (
-    <div className="w-full">
-      <div className="bg-white dark:bg-dark-light md:rounded-2xl md:shadow-custom p-3 md:p-6 mb-4 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-6 flex items-center">
-          <MessageSquare className="mr-2" size={24} />
-          Quản lý người dùng
+    <div className="w-full min-h-screen bg-slate-900">
+      <div className="bg-slate-800 md:rounded-2xl md:shadow-2xl p-3 md:p-6 mb-4 md:mb-8 border border-slate-700">
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 flex items-center">
+          <Star className="mr-2 text-yellow-400" size={24} />
+          Quản lý đánh giá sản phẩm
         </h1>
 
         {/* Tab Navigation */}
@@ -555,30 +527,174 @@ const Comments = ({ url }) => {
             {/* Comments List */}
             {loading ? (
               <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-400"></div>
               </div>
             ) : error ? (
-              <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-4 rounded-lg">
+              <div className="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg">
                 <p className="font-medium">Lỗi:</p>
                 <p>{error}</p>
               </div>
             ) : currentComments.length === 0 ? (
-              <EmptyState type="comments" />
+              <div className="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
+                <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Không có đánh giá nào</h3>
+                <p className="text-slate-400">Chưa có đánh giá nào phù hợp với bộ lọc hiện tại</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {currentComments.map((comment) => (
-                  <CommentCard
+                  <div
                     key={comment._id}
-                    comment={comment}
-                    handleStatusChange={handleStatusChange}
-                    handleDeleteClick={handleDeleteClick}
-                    handleReplyToComment={handleReplyToComment}
-                    replyForm={replyForm}
-                    setReplyForm={setReplyForm}
-                    formatDate={formatDate}
-                    getFoodName={getFoodName}
-                    getFoodCategory={getFoodCategory}
-                  />
+                    className={`bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${
+                      comment.isApproved ? "border-green-600/30" : "border-yellow-600/30"
+                    } p-4`}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between mb-4">
+                      <div className="flex items-center mb-3 sm:mb-0">
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 font-bold text-lg ${
+                            comment.isApproved
+                              ? "bg-gradient-to-br from-green-400 to-green-500 text-slate-900"
+                              : "bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900"
+                          }`}
+                        >
+                          {getInitials(comment.userName)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-white text-sm">{comment.userName}</p>
+                          {comment.userEmail && <p className="text-xs text-slate-400">{comment.userEmail}</p>}
+                          <p className="text-xs text-slate-400">{formatDate(comment.createdAt)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {!comment.isApproved && (
+                          <button
+                            onClick={() => handleStatusChange(comment._id, true)}
+                            className="p-1.5 bg-green-600/20 text-green-400 rounded-full hover:bg-green-600/30 transition-colors"
+                            title="Duyệt đánh giá"
+                          >
+                            <Check size={16} />
+                          </button>
+                        )}
+                        {comment.isApproved && (
+                          <button
+                            onClick={() => handleStatusChange(comment._id, false)}
+                            className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-full hover:bg-yellow-600/30 transition-colors"
+                            title="Hủy duyệt"
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteClick(comment._id)}
+                          className="p-1.5 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
+                          title="Xóa đánh giá"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-700/30 rounded-lg p-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                        <div className="flex items-center mr-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={16}
+                              className={i < comment.rating ? "text-yellow-400 fill-yellow-400" : "text-slate-500"}
+                            />
+                          ))}
+                          <span className="ml-2 text-sm font-medium text-yellow-400">{comment.rating}/5 sao</span>
+                        </div>
+                        <span className="text-xs font-medium text-slate-300">
+                          Đánh giá cho: {comment.foodName || getFoodName(comment.foodId)}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded-full">
+                          {comment.foodCategory || getFoodCategory(comment.foodId)}
+                        </span>
+                      </div>
+
+                      {comment.comment && comment.comment !== "Đánh giá sao" && (
+                        <p className="text-slate-300 text-sm mb-3">{comment.comment}</p>
+                      )}
+
+                      {/* Admin Reply Section */}
+                      {comment.adminReply && comment.adminReply.message && replyForm.commentId !== comment._id ? (
+                        <div className="mt-3 bg-yellow-900/20 p-2.5 rounded-lg border border-yellow-600/30">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center text-xs font-medium text-yellow-300 mb-1">
+                              <Reply size={12} className="mr-1" />
+                              Phản hồi của quản trị viên:
+                            </div>
+                            <button
+                              onClick={() =>
+                                setReplyForm({ commentId: comment._id, message: comment.adminReply.message })
+                              }
+                              className="p-1 text-yellow-400 hover:text-yellow-300"
+                              title="Chỉnh sửa phản hồi"
+                            >
+                              <Edit size={12} />
+                            </button>
+                          </div>
+                          <p className="text-slate-300 text-xs whitespace-pre-line">{comment.adminReply.message}</p>
+                          {comment.adminReply.createdAt && (
+                            <p className="text-xs text-slate-400 mt-1">{formatDate(comment.adminReply.createdAt)}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-3">
+                          <div className="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+                            <Reply size={12} className="mr-1" />
+                            {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
+                              ? "Chỉnh sửa phản hồi:"
+                              : "Thêm phản hồi:"}
+                          </div>
+                          <textarea
+                            placeholder="Nhập phản hồi của bạn..."
+                            rows={2}
+                            value={replyForm.commentId === comment._id ? replyForm.message : ""}
+                            onChange={(e) => setReplyForm({ commentId: comment._id, message: e.target.value })}
+                            onClick={() => {
+                              if (replyForm.commentId !== comment._id) {
+                                setReplyForm({
+                                  commentId: comment._id,
+                                  message: comment.adminReply?.message || "",
+                                })
+                              }
+                            }}
+                            className="block w-full rounded-lg border border-slate-600 bg-slate-700 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 text-xs"
+                          />
+                          <div className="flex justify-end mt-2 gap-2">
+                            {replyForm.commentId === comment._id &&
+                              comment.adminReply &&
+                              comment.adminReply.message && (
+                                <button
+                                  onClick={() => setReplyForm({ commentId: null, message: "" })}
+                                  className="px-2.5 py-1 rounded-lg text-xs flex items-center bg-slate-600 text-slate-300 hover:bg-slate-500"
+                                >
+                                  Hủy
+                                </button>
+                              )}
+                            <button
+                              onClick={handleReplyToComment}
+                              disabled={!replyForm.message || replyForm.commentId !== comment._id}
+                              className={`px-2.5 py-1 rounded-lg text-xs flex items-center ${
+                                !replyForm.message || replyForm.commentId !== comment._id
+                                  ? "bg-slate-600 text-slate-400 cursor-not-allowed"
+                                  : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 hover:from-yellow-500 hover:to-yellow-600"
+                              }`}
+                            >
+                              <Send size={12} className="mr-1" />
+                              {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
+                                ? "Cập nhật"
+                                : "Gửi phản hồi"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -591,7 +707,6 @@ const Comments = ({ url }) => {
             )}
           </div>
         )}
-
 
         {/* Blacklist Tab */}
         {activeTab === "blacklist" && (
@@ -609,9 +724,9 @@ const Comments = ({ url }) => {
 
             {/* Blacklist Table */}
             <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-dark-lighter rounded-xl shadow-sm p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4 sm:mb-6 flex items-center">
-                  <Shield className="mr-2" size={20} />
+              <div className="bg-slate-800 rounded-xl shadow-lg p-4 sm:p-6 border border-slate-700">
+                <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center">
+                  <Shield className="mr-2 text-yellow-400" size={20} />
                   Danh sách người dùng bị chặn
                 </h2>
 
@@ -635,15 +750,13 @@ const Comments = ({ url }) => {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null, id: null, message: "" })}
         onConfirm={handleConfirmAction}
-        title={
-          confirmModal.type === "deleteComment" ? "Xóa đánh giá" : "Bỏ chặn người dùng" // Removed deleteNotification case
-        }
+        title={confirmModal.type === "deleteComment" ? "Xóa đánh giá" : "Bỏ chặn người dùng"}
         message={confirmModal.message}
-        confirmText={
-          confirmModal.type === "deleteComment" ? "Xóa" : "Bỏ chặn" // Removed deleteNotification case
-        }
+        confirmText={confirmModal.type === "deleteComment" ? "Xóa" : "Bỏ chặn"}
         confirmButtonClass={
-          confirmModal.type === "deleteComment" ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primary-dark"
+          confirmModal.type === "deleteComment"
+            ? "bg-red-600 hover:bg-red-700"
+            : "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900"
         }
       />
     </div>

@@ -60,7 +60,6 @@ export const createProductUrl = (name) => {
 // Hàm so sánh tên với slug - FIX CHÍNH XÁC
 export const compareNameWithSlug = (name, slug) => {
   if (!name || !slug) {
-    console.log("Missing name or slug:", { name, slug })
     return false
   }
 
@@ -68,20 +67,20 @@ export const compareNameWithSlug = (name, slug) => {
   const nameSlug = createSlug(name)
   const normalizedSlug = slug.toLowerCase().trim()
 
-  console.log(`=== SLUG COMPARISON ===`)
-  console.log(`Product name: "${name}"`)
-  console.log(`Generated slug from name: "${nameSlug}"`)
-  console.log(`URL slug: "${normalizedSlug}"`)
-  console.log(`Exact match: ${nameSlug === normalizedSlug}`)
+  // console.log(`=== SLUG COMPARISON ===`)
+  // console.log(`Product name: "${name}"`)
+  // console.log(`Generated slug from name: "${nameSlug}"`)
+  // console.log(`URL slug: "${normalizedSlug}"`)
+  // console.log(`Exact match: ${nameSlug === normalizedSlug}`)
 
   // So sánh chính xác
   const isExactMatch = nameSlug === normalizedSlug
 
   if (isExactMatch) {
-    console.log(`✅ EXACT MATCH FOUND for "${name}"`)
+    // console.log(`✅ EXACT MATCH FOUND for "${name}"`)
     return true
   }
 
-  console.log(`❌ NO MATCH for "${name}" with slug "${slug}"`)
+  // console.log(`❌ NO MATCH for "${name}" with slug "${slug}"`)
   return false
 }

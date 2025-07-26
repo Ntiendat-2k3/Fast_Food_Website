@@ -21,10 +21,10 @@ export const useProductDetail = (slug) => {
   const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
 
   // Debug logs
-  console.log("=== useProductDetail DEBUG ===")
-  console.log("Received slug:", slug)
-  console.log("Food list length:", food_list?.length)
-  console.log("Food list sample:", food_list?.slice(0, 3))
+  // console.log("=== useProductDetail DEBUG ===")
+  // console.log("Received slug:", slug)
+  // console.log("Food list length:", food_list?.length)
+  // console.log("Food list sample:", food_list?.slice(0, 3))
 
   // Find food item by slug with EXACT matching
   const foodItem = food_list?.find((item) => {
@@ -34,19 +34,19 @@ export const useProductDetail = (slug) => {
 
     const match = compareNameWithSlug(item.name, slug)
     if (match) {
-      console.log(`🎯 FOUND MATCH: "${item.name}" matches slug "${slug}"`)
+      // console.log(`🎯 FOUND MATCH: "${item.name}" matches slug "${slug}"`)
     }
     return match
   })
 
-  console.log("Final foodItem found:", foodItem?.name || "NONE")
+  // console.log("Final foodItem found:", foodItem?.name || "NONE")
 
   const fetchRatingsForProducts = useCallback(
     async (productIds) => {
       if (!productIds || productIds.length === 0) return
 
       try {
-        console.log("Fetching ratings for products:", productIds)
+        // console.log("Fetching ratings for products:", productIds)
         const response = await axios.post(`${url}/api/comment/get-ratings`, { foodIds: productIds })
 
         if (response.data.success) {
@@ -71,7 +71,7 @@ export const useProductDetail = (slug) => {
           }
 
           setRelatedRatings((prev) => ({ ...prev, ...newRatingsMap }))
-          console.log("Ratings fetched successfully:", newRatingsMap)
+          // console.log("Ratings fetched successfully:", newRatingsMap)
         } else {
           console.error("Failed to fetch ratings:", response.data.message)
         }
@@ -87,17 +87,17 @@ export const useProductDetail = (slug) => {
 
     // Check if we have valid slug and food_list
     if (!slug || slug === "undefined") {
-      console.log("Invalid slug:", slug)
+      // console.log("Invalid slug:", slug)
       return
     }
 
     if (!food_list || food_list.length === 0) {
-      console.log("Food list not loaded yet, waiting...")
+      // console.log("Food list not loaded yet, waiting...")
       return
     }
 
     if (foodItem) {
-      console.log("Processing foodItem:", foodItem.name)
+      // console.log("Processing foodItem:", foodItem.name)
 
       // Set rating stats for the current food item
       if (relatedRatings[foodItem._id]) {
@@ -121,7 +121,7 @@ export const useProductDetail = (slug) => {
         axios
           .get(`${url}/api/food/suggested-drinks/${encodeURIComponent(foodItem.category)}`)
           .then((response) => {
-            console.log("Suggested drinks response:", response.data)
+            // console.log("Suggested drinks response:", response.data)
             if (response.data.success) {
               const drinks = response.data.data.slice(0, 4)
               setSuggestedDrinks(drinks)
@@ -148,23 +148,24 @@ export const useProductDetail = (slug) => {
       if (foodItem._id && token) {
         checkWishlistStatus(foodItem._id)
       }
-    } else {
-      console.log("❌ No foodItem found for slug:", slug)
-      console.log("Available products:")
-      food_list?.forEach((item, index) => {
-        console.log(
-          `${index + 1}. "${item.name}" -> slug would be: "${item.name
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[đĐ]/g, "d")
-            .replace(/[^a-z0-9\s-]/g, "")
-            .replace(/\s+/g, "-")
-            .replace(/-+/g, "-")
-            .replace(/^-|-$/g, "")}"`,
-        )
-      })
-    }
+    } 
+    // else {
+    //   // console.log("❌ No foodItem found for slug:", slug)
+    //   // console.log("Available products:")
+    //   // food_list?.forEach((item, index) => {
+    //   //   console.log(
+    //   //     `${index + 1}. "${item.name}" -> slug would be: "${item.name
+    //   //       .toLowerCase()
+    //   //       .normalize("NFD")
+    //   //       .replace(/[\u0300-\u036f]/g, "")
+    //   //       .replace(/[đĐ]/g, "d")
+    //   //       .replace(/[^a-z0-9\s-]/g, "")
+    //   //       .replace(/\s+/g, "-")
+    //   //       .replace(/-+/g, "-")
+    //   //       .replace(/^-|-$/g, "")}"`,
+    //   //   )
+    //   // })
+    // }
   }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts])
 
   // Update rating stats when relatedRatings changes

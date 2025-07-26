@@ -1,15 +1,30 @@
 import express from "express"
-import { addComment, getFoodRatingStats, getBatchRatings, checkCanReview } from "../controllers/commentController.js"
-import auth from "../middleware/auth.js"
+import {
+  addComment,
+  getCommentsByFood,
+  getFoodRatingStats,
+  getBatchRatings,
+  checkCanReview,
+  getAllComments,
+  toggleApproveComment,
+  deleteComment,
+  replyToComment,
+} from "../controllers/commentController.js"
+import authMiddleware from "../middleware/auth.js"
 
 const commentRouter = express.Router()
 
 // Public routes
+commentRouter.post("/add", addComment)
+commentRouter.get("/food/:foodId", getCommentsByFood)
 commentRouter.get("/food/:foodId/stats", getFoodRatingStats)
-commentRouter.post("/get-ratings", getBatchRatings)
+commentRouter.post("/batch-ratings", getBatchRatings)
+commentRouter.get("/check/:userId/:foodId", checkCanReview)
 
-// Protected routes (require login)
-commentRouter.post("/add", auth, addComment)
-commentRouter.get("/can-rate/:userId/:foodId", auth, checkCanReview)
+// Admin routes
+commentRouter.get("/all", authMiddleware, getAllComments)
+commentRouter.post("/status", authMiddleware, toggleApproveComment)
+commentRouter.post("/delete", authMiddleware, deleteComment)
+commentRouter.post("/reply", authMiddleware, replyToComment)
 
 export default commentRouter
