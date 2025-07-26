@@ -9,24 +9,26 @@ import {
   toggleApproveComment,
   deleteComment,
   replyToComment,
+  debugUserOrders,
 } from "../controllers/commentController.js"
 import authMiddleware from "../middleware/auth.js"
 
 const commentRouter = express.Router()
 
 // Public routes
-commentRouter.post("/add", addComment)
 commentRouter.get("/food/:foodId", getCommentsByFood)
 commentRouter.get("/food/:foodId/stats", getFoodRatingStats)
-commentRouter.get("/rating-stats/:foodId", getFoodRatingStats) // Add this route
 commentRouter.post("/batch-ratings", getBatchRatings)
-commentRouter.post("/get-ratings", getBatchRatings) // Add this route for compatibility
-commentRouter.get("/check/:userId/:foodId", checkCanReview)
-commentRouter.get("/can-rate/:userId/:foodId", checkCanReview) // Add this route
+
+// Protected routes (require authentication)
+commentRouter.post("/add", authMiddleware, addComment)
+commentRouter.post("/add-comment", authMiddleware, addComment)
+commentRouter.get("/check/:userId/:foodId", authMiddleware, checkCanReview)
+commentRouter.get("/debug/orders/:userId", authMiddleware, debugUserOrders)
 
 // Admin routes
 commentRouter.get("/all", authMiddleware, getAllComments)
-commentRouter.post("/status", authMiddleware, toggleApproveComment)
+commentRouter.post("/toggle-approve", authMiddleware, toggleApproveComment)
 commentRouter.post("/delete", authMiddleware, deleteComment)
 commentRouter.post("/reply", authMiddleware, replyToComment)
 

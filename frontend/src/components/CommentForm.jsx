@@ -28,28 +28,50 @@ const CommentForm = ({ foodId, onCommentSubmitted, onCancel }) => {
     try {
       setIsSubmitting(true)
 
+      console.log("Submitting comment:", {
+        userId: user._id,
+        foodId,
+        comment: comment.trim(),
+        type: "comment",
+      })
+
       const response = await axios.post(
         `${url}/api/comment/add-comment`,
         {
           userId: user._id,
           foodId,
           comment: comment.trim(),
+          type: "comment",
         },
         {
-          headers: { token },
+          headers: {
+            token,
+            "Content-Type": "application/json",
+          },
         },
       )
 
+      console.log("Comment response:", response.data)
+
       if (response.data.success) {
         toast.success("Bình luận thành công!")
-        setComment("")
         onCommentSubmitted()
       } else {
         toast.error(response.data.message || "Có lỗi xảy ra")
       }
     } catch (error) {
       console.error("Error submitting comment:", error)
-      toast.error("Có lỗi xảy ra khi gửi bình luận")
+
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+        toast.error(error.response.data.message || "Có lỗi xảy ra khi gửi bình luận")
+      } else if (error.request) {
+        console.error("Error request:", error.request)
+        toast.error("Không thể kết nối đến server")
+      } else {
+        console.error("Error message:", error.message)
+        toast.error("Có lỗi xảy ra khi gửi bình luận")
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -62,8 +84,8 @@ const CommentForm = ({ foodId, onCommentSubmitted, onCancel }) => {
       className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8"
     >
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="text-primary" size={24} />
+        <div className="flex items-center gap-3">
+          <MessageCircle className="w-6 h-6 text-blue-400" />
           <h3 className="text-xl font-semibold text-white">Viết bình luận</h3>
         </div>
         <button onClick={onCancel} className="text-gray-400 hover:text-white transition-colors">
@@ -71,20 +93,21 @@ const CommentForm = ({ foodId, onCommentSubmitted, onCancel }) => {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
+          <label className="block text-gray-300 mb-2">Nội dung bình luận</label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Chia sẻ suy nghĩ của bạn về sản phẩm này..."
-            className="w-full p-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary resize-none"
+            placeholder="Chia sẻ ý kiến của bạn về sản phẩm này..."
+            className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-400 resize-none"
             rows={4}
-            maxLength={500}
+            required
           />
-          <div className="text-right text-sm text-gray-400 mt-1">{comment.length}/500</div>
+          <div className="text-right text-sm text-gray-400 mt-1">{comment.length}/500 ký tự</div>
         </div>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 justify-center">
           <motion.button
             type="button"
             onClick={onCancel}
@@ -98,7 +121,7 @@ const CommentForm = ({ foodId, onCommentSubmitted, onCancel }) => {
           <motion.button
             type="submit"
             disabled={!comment.trim() || isSubmitting}
-            className="px-6 py-2 bg-gradient-to-r from-primary to-primary-dark text-slate-900 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             whileHover={{ scale: comment.trim() ? 1.05 : 1 }}
             whileTap={{ scale: comment.trim() ? 0.95 : 1 }}
           >

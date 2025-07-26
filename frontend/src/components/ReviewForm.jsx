@@ -11,6 +11,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
   const { url, token, user } = useContext(StoreContext)
   const [rating, setRating] = useState(0)
   const [hoveredRating, setHoveredRating] = useState(0)
+  const [comment, setComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -29,17 +30,32 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
     try {
       setIsSubmitting(true)
 
+      console.log("Submitting review:", {
+        userId: user._id,
+        foodId,
+        rating,
+        comment: comment || "Đánh giá sao",
+        type: "rating",
+      })
+
       const response = await axios.post(
-        `${url}/api/comment/add`,
+        `${url}/api/comment/add-comment`,
         {
           userId: user._id,
           foodId,
           rating,
+          comment: comment || "Đánh giá sao",
+          type: "rating",
         },
         {
-          headers: { token },
+          headers: {
+            token,
+            "Content-Type": "application/json",
+          },
         },
       )
+
+      console.log("Review response:", response.data)
 
       if (response.data.success) {
         toast.success("Đánh giá thành công!")
@@ -49,7 +65,17 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
       }
     } catch (error) {
       console.error("Error submitting rating:", error)
-      toast.error("Có lỗi xảy ra khi gửi đánh giá")
+
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+        toast.error(error.response.data.message || "Có lỗi xảy ra khi gửi đánh giá")
+      } else if (error.request) {
+        console.error("Error request:", error.request)
+        toast.error("Không thể kết nối đến server")
+      } else {
+        console.error("Error message:", error.message)
+        toast.error("Có lỗi xảy ra khi gửi đánh giá")
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -103,6 +129,17 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
               {rating === 5 && "Rất hài lòng"}
             </motion.p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-gray-300 mb-2">Nhận xét (tùy chọn)</label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+            className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-primary resize-none"
+            rows={4}
+          />
         </div>
 
         <div className="flex gap-3 justify-center">
