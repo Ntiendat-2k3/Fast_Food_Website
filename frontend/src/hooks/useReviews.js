@@ -51,7 +51,7 @@ export const useReviews = (foodItem) => {
 
     try {
       setIsLoadingStats(true)
-      const response = await axios.get(`${url}/api/comment/rating-stats/${foodItem._id}`)
+      const response = await axios.get(`${url}/api/comment/food/${foodItem._id}/stats`)
 
       if (response.data.success) {
         setRatingStats(response.data.data)
@@ -77,7 +77,7 @@ export const useReviews = (foodItem) => {
 
   // Check if user can review this product
   const checkReviewEligibility = async () => {
-    if (!foodItem?._id || !token) {
+    if (!foodItem?._id || !token || !user?._id) {
       setReviewEligibility({
         canReview: false,
         hasReviewed: false,
@@ -88,22 +88,20 @@ export const useReviews = (foodItem) => {
 
     try {
       setIsCheckingEligibility(true)
-      const response = await axios.get(`${url}/api/comment/can-rate/${user._id}/${foodItem._id}`, {
-        headers: { token },
-      })
+      const response = await axios.get(`${url}/api/comment/check/${user._id}/${foodItem._id}`)
 
       if (response.data.success) {
         setReviewEligibility({
           canReview: response.data.data.canReview,
           hasReviewed: response.data.data.hasReviewed || false,
-          message: response.data.message,
+          message: response.data.message || "",
           existingRating: response.data.data.existingReview?.rating,
         })
       } else {
         setReviewEligibility({
           canReview: false,
           hasReviewed: false,
-          message: response.data.message,
+          message: response.data.message || "Không thể kiểm tra quyền đánh giá",
         })
       }
     } catch (error) {
@@ -125,7 +123,7 @@ export const useReviews = (foodItem) => {
       fetchRatingStats()
       checkReviewEligibility()
     }
-  }, [foodItem?._id, token])
+  }, [foodItem?._id, token, user?._id])
 
   const handleReviewSubmitted = () => {
     fetchReviews()

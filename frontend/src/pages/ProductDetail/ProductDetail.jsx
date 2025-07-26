@@ -42,6 +42,7 @@ const ProductDetail = () => {
     toggleWishlist,
   } = useProductDetail(slug)
 
+
   const {
     showReviewForm,
     setShowReviewForm,

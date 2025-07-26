@@ -34,12 +34,11 @@ const StoreContextProvider = (props) => {
     }
 
     try {
-      console.log("Adding to cart:", { itemName, quantity })
+      // console.log("Adding to cart:", { itemName, quantity })
 
       const response = await axios.post(`${url}/api/cart/add`, { itemName, quantity }, { headers: { token } })
 
       if (response.data.success) {
-        console.log("Added to cart successfully, reloading cart...")
         // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
@@ -62,12 +61,11 @@ const StoreContextProvider = (props) => {
     if (!token) return
 
     try {
-      console.log("Removing from cart:", itemName)
+      // console.log("Removing from cart:", itemName)
 
       const response = await axios.post(`${url}/api/cart/remove`, { itemName }, { headers: { token } })
 
       if (response.data.success) {
-        console.log("Removed from cart successfully")
         // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
@@ -88,12 +86,10 @@ const StoreContextProvider = (props) => {
     if (!token) return
 
     try {
-      console.log("Removing all from cart:", itemName)
 
       const response = await axios.post(`${url}/api/cart/remove-all`, { itemName }, { headers: { token } })
 
       if (response.data.success) {
-        console.log("Removed all from cart successfully")
         // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
@@ -114,7 +110,7 @@ const StoreContextProvider = (props) => {
     if (!token) return
 
     try {
-      console.log("Updating cart quantity:", { itemName, quantity })
+      // console.log("Updating cart quantity:", { itemName, quantity })
 
       const response = await axios.post(
         `${url}/api/cart/update-quantity`,
@@ -123,7 +119,6 @@ const StoreContextProvider = (props) => {
       )
 
       if (response.data.success) {
-        console.log("Updated cart quantity successfully")
         // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
@@ -142,22 +137,18 @@ const StoreContextProvider = (props) => {
   // Load cart data from database
   const loadCartData = async (userToken) => {
     if (!userToken) {
-      console.log("No token provided, clearing cart")
       setCartItems({})
       return
     }
 
     setIsLoadingCart(true)
     try {
-      console.log("Loading cart data from database...")
 
       const response = await axios.post(`${url}/api/cart/get`, {}, { headers: { token: userToken } })
 
-      console.log("Cart response:", response.data)
 
       if (response.data.success) {
         const cartData = response.data.cartData || {}
-        console.log("Cart data loaded:", cartData)
         setCartItems(cartData)
       } else {
         console.error("Failed to load cart:", response.data.message)
@@ -215,14 +206,12 @@ const StoreContextProvider = (props) => {
   // Fetch user data
   const fetchUserData = async (userToken) => {
     try {
-      console.log("Fetching user data...")
       const response = await axios.get(`${url}/api/user/profile`, {
         headers: { token: userToken },
       })
 
       // Check if the request was successful and the user data is in response.data.data
       if (response.data.success && response.data.data) {
-        console.log("User data fetched successfully:", response.data.data)
         setUser(response.data.data) // Use response.data.data
         localStorage.setItem("user", JSON.stringify(response.data.data)) // Use response.data.data
         return response.data.data // Use response.data.data
@@ -246,7 +235,7 @@ const StoreContextProvider = (props) => {
         await fetchFoodList()
 
         const storedToken = localStorage.getItem("token")
-        console.log("Stored token:", storedToken ? "Found" : "Not found")
+        // console.log("Stored token:", storedToken ? "Found" : "Not found")
 
         if (storedToken) {
           setToken(storedToken)
@@ -256,7 +245,7 @@ const StoreContextProvider = (props) => {
           if (storedUser) {
             try {
               const parsedUser = JSON.parse(storedUser)
-              console.log("Loaded user from localStorage:", parsedUser.name)
+              // console.log("Loaded user from localStorage:", parsedUser.name)
               setUser(parsedUser)
             } catch (error) {
               console.error("Error parsing user data:", error)
@@ -272,7 +261,6 @@ const StoreContextProvider = (props) => {
             await fetchUserData(storedToken)
           }
         } else {
-          console.log("No token found, user not logged in")
           setCartItems({})
         }
       } catch (error) {
@@ -288,10 +276,10 @@ const StoreContextProvider = (props) => {
   // Reload cart when token changes (login/logout)
   useEffect(() => {
     if (token) {
-      console.log("Token changed, reloading cart...")
+      // console.log("Token changed, reloading cart...")
       loadCartData(token)
     } else {
-      console.log("No token, clearing cart")
+      // console.log("No token, clearing cart")
       setCartItems({})
     }
   }, [token])
@@ -311,13 +299,11 @@ const StoreContextProvider = (props) => {
 
     setIsLoadingNotifications(true)
     try {
-      console.log("Fetching notifications...")
       const response = await axios.get(`${url}/api/notification/list?page=${page}&limit=${limit}`, {
         headers: { token },
       })
 
       if (response.data.success) {
-        console.log("Notifications fetched successfully:", response.data.data)
         setNotifications(response.data.data)
         return response.data
       } else {
@@ -342,7 +328,7 @@ const StoreContextProvider = (props) => {
       })
 
       if (response.data.success) {
-        console.log("Unread count fetched:", response.data.data.count)
+        // console.log("Unread count fetched:", response.data.data.count)
         setUnreadCount(response.data.data.count)
         return response.data.data.count
       }
@@ -363,7 +349,6 @@ const StoreContextProvider = (props) => {
       )
 
       if (response.data.success) {
-        console.log("Notification marked as read")
         // Refresh notifications and unread count
         await fetchNotifications()
         await fetchUnreadCount()
@@ -409,7 +394,7 @@ const StoreContextProvider = (props) => {
   // Fetch notifications when user logs in
   useEffect(() => {
     if (token && user) {
-      console.log("User logged in, fetching notifications...")
+      // console.log("User logged in, fetching notifications...")
       fetchNotifications()
       fetchUnreadCount()
     } else {

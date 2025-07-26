@@ -20,6 +20,8 @@ const ReviewsTab = ({
   user,
   url,
 }) => {
+  console.log("reviews:", reviews)
+
   return (
     <div>
       {showReviewForm ? (
@@ -50,6 +52,7 @@ const ReviewsTab = ({
       )}
 
       <ReviewsList
+        foodId={foodItem._id}
         reviews={reviews}
         ratingStats={ratingStats}
         isLoadingReviews={isLoadingReviews}

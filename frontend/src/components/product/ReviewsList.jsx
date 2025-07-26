@@ -5,10 +5,16 @@ import { motion } from "framer-motion"
 import { Star, User, MessageCircle, ChevronDown, ChevronUp } from "lucide-react"
 
 const ReviewsList = ({ foodId, url }) => {
+  console.log("ReviewsList props:", { foodId, url })
+
   const [reviews, setReviews] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAllReviews, setShowAllReviews] = useState(false)
+
+  console.log("Current reviews state:", reviews)
+
+  console.log(reviews)
 
   useEffect(() => {
     if (foodId) {
@@ -19,13 +25,25 @@ const ReviewsList = ({ foodId, url }) => {
 
   const fetchReviews = async () => {
     try {
+      console.log("Fetching reviews for foodId:", foodId)
+      console.log("URL:", `${url}/api/comment/food/${foodId}`)
+
       const response = await fetch(`${url}/api/comment/food/${foodId}`)
+      console.log("Response status:", response.status)
+
       const data = await response.json()
+      console.log("Response data:", data)
+
       if (data.success) {
+        console.log("Reviews data:", data.data)
         setReviews(data.data)
+      } else {
+        console.error("API returned success: false", data.message)
+        setReviews([])
       }
     } catch (error) {
       console.error("Error fetching reviews:", error)
+      setReviews([])
     }
   }
 
@@ -109,6 +127,8 @@ const ReviewsList = ({ foodId, url }) => {
   }
 
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3)
+
+  console.log(displayedReviews)
 
   return (
     <div className="space-y-6 bg-slate-900 rounded-2xl p-6 border border-slate-700">

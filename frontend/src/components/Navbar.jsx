@@ -75,19 +75,19 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
     setLoadingNotifications(true)
     try {
-      console.log("Fetching notifications...")
+      // console.log("Fetching notifications...")
       const response = await axios.get(`${url}/api/notification/list?page=1&limit=20`, {
         headers: { token },
       })
 
-      console.log("Notifications response:", response.data)
+      // console.log("Notifications response:", response.data)
 
       if (response.data.success) {
         setNotifications(response.data.data)
         // Count unread notifications
         const unread = response.data.data.filter((notification) => !notification.read && !notification.isRead).length
         setUnreadCount(unread)
-        console.log(`Loaded ${response.data.data.length} notifications, ${unread} unread`)
+        // console.log(`Loaded ${response.data.data.length} notifications, ${unread} unread`)
       } else {
         console.error("Failed to fetch notifications:", response.data.message)
       }
@@ -109,7 +109,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
       if (response.data.success) {
         setUnreadCount(response.data.data.count)
-        console.log("Unread count:", response.data.data.count)
+        // console.log("Unread count:", response.data.data.count)
       }
     } catch (error) {
       console.error("Error fetching unread count:", error)
@@ -165,7 +165,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
     if (!token) return
 
     try {
-      console.log("Marking notification as read:", notificationId)
+      // console.log("Marking notification as read:", notificationId)
       const response = await axios.post(`${url}/api/notification/read`, { id: notificationId }, { headers: { token } })
 
       if (response.data.success) {
@@ -178,7 +178,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
         // Update unread count
         setUnreadCount((prev) => Math.max(0, prev - 1))
-        console.log("Notification marked as read successfully")
+        // console.log("Notification marked as read successfully")
       }
     } catch (error) {
       console.error("Error marking notification as read:", error)
@@ -644,7 +644,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                           Lịch sử mua hàng
                         </Link>
                       </motion.div>
-                     
+
                       {/* New: Change Password option in mobile menu */}
                       <motion.div variants={menuItemVariants} custom={navItems.length + 4}>
                         <button

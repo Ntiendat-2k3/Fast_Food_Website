@@ -11,7 +11,7 @@ const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => 
   // Use either item or drink prop (for backward compatibility)
   const drinkData = item || drink
 
-  console.log("SuggestedDrinkRowItem props:", { item, drink, drinkData })
+  // console.log("SuggestedDrinkRowItem props:", { item, drink, drinkData })
 
   if (!drinkData) {
     console.error("❌ SuggestedDrinkRowItem: No drink data provided")
