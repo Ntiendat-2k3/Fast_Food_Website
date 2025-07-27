@@ -6,29 +6,30 @@ import {
   listOrders,
   updateStatus,
   updatePaymentStatus,
+  getUserPurchaseHistory,
   getRevenueStats,
   exportInvoice,
   confirmDelivery,
+  autoCompleteOrders,
+  cancelOrder,
 } from "../controllers/orderController.js"
-import { getUserPurchaseHistory } from "../controllers/purchaseHistoryController.js"
-import requireSignIn, { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
+import { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
 
 const orderRouter = express.Router()
 
-// Public/User routes
+// User routes
 orderRouter.post("/place", authMiddleware, placeOrder)
 orderRouter.post("/verify", verifyOrder)
 orderRouter.post("/userorders", authMiddleware, userOrders)
-orderRouter.post("/purchase-history", requireSignIn, getUserPurchaseHistory)
 orderRouter.post("/confirm-delivery", authMiddleware, confirmDelivery)
+orderRouter.post("/cancel", authMiddleware, cancelOrder)
+orderRouter.post("/purchase-history", authMiddleware, getUserPurchaseHistory)
 
-// Staff/Admin routes
+// Admin routes
 orderRouter.get("/list", verifyStaffOrAdmin, listOrders)
 orderRouter.post("/status", verifyStaffOrAdmin, updateStatus)
 orderRouter.post("/payment-status", verifyStaffOrAdmin, updatePaymentStatus)
-
-// Admin only routes
-orderRouter.get("/revenue-stats", verifyAdmin, getRevenueStats)
+orderRouter.get("/revenue-stats", verifyStaffOrAdmin, getRevenueStats)
 orderRouter.get("/export-invoice/:orderId", verifyStaffOrAdmin, exportInvoice)
 
 export default orderRouter

@@ -12,17 +12,18 @@ const orderSchema = new mongoose.Schema({
   paymentStatus: { type: String, default: "Chưa thanh toán" },
   voucherCode: { type: String, default: null },
   discountAmount: { type: Number, default: 0 },
-  // Thêm các field mới cho phí ship
   shippingFee: { type: Number, default: 14000 },
   deliveryFee: { type: Number, default: 14000 },
-  distance: { type: String, default: null },
+  distance: { type: Number, default: null },
   subtotal: { type: Number, default: 0 },
   itemsTotal: { type: Number, default: 0 },
-  // Thêm field để track thời gian giao hàng
-  deliveredAt: { type: Date, default: null },
-  // Thêm field để track việc khách hàng đã confirm nhận hàng
   customerConfirmed: { type: Boolean, default: false },
   customerConfirmedAt: { type: Date, default: null },
+  deliveredAt: { type: Date, default: null },
+  // Thêm các field cho việc hủy đơn hàng
+  cancelReason: { type: String, default: null },
+  cancelledBy: { type: String, default: null }, // 'customer' hoặc 'admin'
+  cancelledAt: { type: Date, default: null },
 })
 
 const orderModel = mongoose.models.order || mongoose.model("order", orderSchema)

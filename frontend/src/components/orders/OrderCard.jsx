@@ -1,7 +1,18 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Calendar, MapPin, Phone, Package, CheckCircle, Clock, CreditCard, ShoppingCart } from "lucide-react"
+import {
+  Calendar,
+  MapPin,
+  Phone,
+  Package,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  ShoppingCart,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react"
 import OrderStatusBadge from "./OrderStatusBadge"
 import PaymentStatusBadge from "./PaymentStatusBadge"
 import PaymentMethodIcon from "./PaymentMethodIcon"
@@ -9,12 +20,66 @@ import { useState, useContext } from "react"
 import { useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import { StoreContext } from "../../context/StoreContext"
+import CancelOrderModal from "./CancelOrderModal"
 
 const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) => {
   const [isConfirming, setIsConfirming] = useState(false)
   const [isReordering, setIsReordering] = useState(false)
   const { addToCart, food_list } = useContext(StoreContext)
   const navigate = useNavigate()
+
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+
+  const handleCancelOrder = async (reason) => {
+    try {
+      setIsCancelling(true)
+
+      const token = localStorage.getItem("token")
+      if (!token) {
+        toast.error("Vui lòng đăng nhập để thực hiện thao tác này")
+        return
+      }
+
+      console.log("Sending cancel request with:", {
+        orderId: order._id,
+        cancelReason: reason,
+      })
+
+      const response = await fetch(`${url}/api/order/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          token: token,
+        },
+        body: JSON.stringify({
+          orderId: order._id,
+          cancelReason: reason,
+        }),
+      })
+
+      console.log("Response status:", response.status)
+      const data = await response.json()
+      console.log("Response data:", data)
+
+      if (data.success) {
+        toast.success(data.message || "Đã hủy đơn hàng thành công!")
+        setShowCancelModal(false)
+
+        // Gọi callback để refresh danh sách đơn hàng
+        if (onOrderUpdate) {
+          onOrderUpdate()
+        }
+      } else {
+        toast.error(data.message || "Lỗi khi hủy đơn hàng")
+      }
+    } catch (error) {
+      console.error("Error cancelling order:", error)
+      toast.error("Lỗi kết nối. Vui lòng thử lại!")
+    } finally {
+      setIsCancelling(false)
+    }
+  }
 
   const handleProductClick = (productName) => {
     // Tìm sản phẩm trong food_list
@@ -90,6 +155,7 @@ const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) =
 
   const canConfirmDelivery = order.status === "Đã giao" && !order.customerConfirmed
   const isCompleted = order.status === "Đã hoàn thành" || order.customerConfirmed
+  const canCancelOrder = order.status === "Đang xử lý"
 
   return (
     <motion.div
@@ -253,6 +319,23 @@ const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) =
 
         {/* Action Buttons */}
         <div className="mt-6 pt-4 border-t border-yellow-500/20 space-y-4">
+          {/* Cancel Order Button */}
+          {canCancelOrder && (
+            <div className="flex items-center justify-between bg-gradient-to-r from-red-500/10 to-red-600/10 rounded-lg p-4 border border-red-500/30">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+                <span className="text-sm text-red-300 font-medium">Bạn muốn hủy đơn hàng này?</span>
+              </div>
+              <button
+                onClick={() => setShowCancelModal(true)}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Hủy đơn hàng</span>
+              </button>
+            </div>
+          )}
+
           {/* Confirm Delivery Button */}
           {canConfirmDelivery && (
             <div className="flex items-center justify-between bg-gradient-to-r from-yellow-500/10 to-amber-500/10 rounded-lg p-4 border border-yellow-500/30">
@@ -321,7 +404,31 @@ const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) =
             </div>
           </div>
         )}
+
+        {/* Cancel reason display */}
+        {order.status === "Đã hủy" && order.cancelReason && (
+          <div className="mt-4 pt-4 border-t border-yellow-500/20">
+            <div className="flex items-center gap-2 text-red-400 bg-red-500/20 rounded-lg p-3 border border-red-500/30">
+              <XCircle className="w-5 h-5" />
+              <div className="text-sm">
+                <span className="font-medium">Đơn hàng đã bị hủy</span>
+                <p className="text-red-300 mt-1">Lý do: {order.cancelReason}</p>
+                {order.cancelledAt && (
+                  <p className="text-red-300 text-xs mt-1">Thời gian: {formatDate(order.cancelledAt)}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleCancelOrder}
+        isLoading={isCancelling}
+      />
     </motion.div>
   )
 }

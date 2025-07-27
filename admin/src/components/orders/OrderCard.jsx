@@ -247,8 +247,8 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
       {/* Action Buttons Row - Always visible for admin */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          {/* Nút hủy đơn hàng - chỉ hiện khi đang xử lý */}
-          {(order.status === "Đang xử lý" || order.status === "Đang giao hàng") && (
+          {/* Nút hủy đơn hàng - chỉ hiện khi đang xử lý và chưa bị khách hàng hủy */}
+          {(order.status === "Đang xử lý" || order.status === "Đang giao hàng") && order.cancelledBy !== "customer" && (
             <button
               onClick={handleCancelOrder}
               disabled={isUpdating}
@@ -400,6 +400,27 @@ const OrderCard = ({ order, onStatusChange, onCancelOrder, formatDate, formatCur
         <div className="flex items-center justify-center p-3 bg-red-500/10 border border-red-500/30 rounded-lg mb-3">
           <XCircle className="w-4 h-4 text-red-400 mr-2" />
           <span className="text-sm font-medium text-red-400">Đơn hàng đã bị hủy</span>
+        </div>
+      )}
+
+      {/* Display "Đơn hàng đã bị hủy bởi khách hàng" if cancelled by customer */}
+      {order.status === "Đã hủy" && order.cancelledBy === "customer" && (
+        <div className="flex flex-col gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg mb-3">
+          <div className="flex items-center justify-center">
+            <XCircle className="w-4 h-4 text-red-400 mr-2" />
+            <span className="text-sm font-medium text-red-400">Đơn hàng đã bị hủy bởi khách hàng</span>
+          </div>
+          {order.cancelReason && (
+            <div className="text-xs text-red-300 bg-red-500/20 p-2 rounded border border-red-500/30">
+              <span className="font-medium">Lý do hủy:</span> {order.cancelReason}
+            </div>
+          )}
+          {order.cancelledAt && (
+            <div className="text-xs text-red-300 text-center">
+              Hủy lúc:{" "}
+              {formatDate ? formatDate(order.cancelledAt) : new Date(order.cancelledAt).toLocaleDateString("vi-VN")}
+            </div>
+          )}
         </div>
       )}
 

@@ -713,6 +713,112 @@ const getUserPurchaseHistory = async (req, res) => {
   }
 }
 
+// Khách hàng hủy đơn hàng
+const cancelOrder = async (req, res) => {
+  try {
+    const { orderId, cancelReason } = req.body
+    const userId = req.body.userId
+
+    console.log("Cancel order request:", { orderId, userId, cancelReason })
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!orderId) {
+      return res.json({ success: false, message: "Thiếu thông tin đơn hàng" })
+    }
+
+    if (!cancelReason || cancelReason.trim() === "") {
+      return res.json({ success: false, message: "Vui lòng nhập lý do hủy đơn hàng" })
+    }
+
+    // Tìm đơn hàng và kiểm tra quyền
+    const order = await orderModel.findById(orderId)
+
+    if (!order) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
+    }
+
+    if (order.userId !== userId) {
+      return res.json({ success: false, message: "Không có quyền thực hiện thao tác này" })
+    }
+
+    if (order.status !== "Đang xử lý") {
+      return res.json({ success: false, message: "Chỉ có thể hủy đơn hàng khi đang xử lý" })
+    }
+
+    // Cập nhật trạng thái đơn hàng
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      {
+        status: "Đã hủy",
+        cancelReason: cancelReason.trim(),
+        cancelledBy: "customer",
+        cancelledAt: new Date(),
+        paymentStatus: order.paymentStatus === "Đã thanh toán" ? "Chờ hoàn tiền" : "Đã hủy",
+      },
+      { new: true },
+    )
+
+    if (!updatedOrder) {
+      return res.json({ success: false, message: "Không thể cập nhật đơn hàng" })
+    }
+
+    // Tạo notification cho admin
+    try {
+      const notification = new notificationModel({
+        title: "Đơn hàng bị hủy",
+        message: `Khách hàng ${order.address.name} đã hủy đơn hàng #${order._id.slice(-8).toUpperCase()}. Lý do: ${cancelReason}`,
+        type: "order_cancelled",
+        orderId: orderId,
+        userId: userId,
+        createdAt: new Date(),
+      })
+
+      await notification.save()
+
+      // Emit real-time notification to admin
+      if (req.io) {
+        req.io.emit("orderCancelled", {
+          orderId: orderId,
+          customerName: order.address.name,
+          reason: cancelReason,
+          amount: order.amount,
+          cancelledAt: new Date(),
+        })
+
+        req.io.emit("newNotification", {
+          id: notification._id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          orderId: orderId,
+          userId: userId,
+          createdAt: notification.createdAt,
+          isRead: false,
+        })
+      }
+    } catch (notificationError) {
+      console.log("Error creating notification:", notificationError)
+      // Không return error vì đơn hàng đã được hủy thành công
+    }
+
+    console.log("Order cancelled successfully:", orderId)
+
+    res.json({
+      success: true,
+      message: "Hủy đơn hàng thành công",
+      data: {
+        orderId: updatedOrder._id,
+        status: updatedOrder.status,
+        cancelReason: updatedOrder.cancelReason,
+        cancelledAt: updatedOrder.cancelledAt,
+      },
+    })
+  } catch (error) {
+    console.log("Error cancelling order:", error)
+    res.json({ success: false, message: "Lỗi hệ thống khi hủy đơn hàng. Vui lòng thử lại!" })
+  }
+}
+
 export {
   placeOrder,
   verifyOrder,
@@ -725,4 +831,5 @@ export {
   exportInvoice,
   confirmDelivery,
   autoCompleteOrders,
+  cancelOrder,
 }
