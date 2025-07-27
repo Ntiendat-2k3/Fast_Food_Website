@@ -186,17 +186,18 @@ const addComment = async (req, res) => {
       })
     }
 
-    // Check if user has purchased the product (only for ratings)
-    if (type === "rating") {
-      const hasPurchased = await checkUserPurchase(userId, foodId)
-      console.log("Purchase check result:", hasPurchased)
+    // Kiểm tra xem user có mua sản phẩm này chưa (cho cả rating và comment)
+    const hasPurchased = await checkUserPurchase(userId, foodId)
+    console.log("Purchase check result:", hasPurchased)
 
-      if (!hasPurchased) {
-        return res.json({
-          success: false,
-          message: "Bạn cần mua và nhận được sản phẩm này trước khi có thể đánh giá",
-        })
-      }
+    if (!hasPurchased) {
+      return res.json({
+        success: false,
+        message:
+          type === "rating"
+            ? "Bạn cần mua và nhận được sản phẩm này trước khi có thể đánh giá"
+            : "Bạn cần mua và nhận được sản phẩm này trước khi có thể bình luận",
+      })
     }
 
     const newComment = new commentModel({
@@ -476,7 +477,7 @@ const checkCanReview = async (req, res) => {
 
     const result = {
       canReview: hasPurchased && !existingRating,
-      canComment: !existingComment, // Anyone can comment once
+      canComment: hasPurchased && !existingComment, // Cập nhật: bình luận cũng cần mua hàng
       hasPurchased,
       hasReviewed: !!existingRating,
       hasCommented: !!existingComment,

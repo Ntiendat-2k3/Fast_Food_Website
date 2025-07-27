@@ -127,39 +127,6 @@ const ReviewsList = ({
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">Chưa có đánh giá hoặc bình luận nào</h3>
           <p className="text-slate-400 mb-6">Hãy là người đầu tiên chia sẻ trải nghiệm của bạn về sản phẩm này</p>
-
-          {token && (
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleWriteComment}
-                disabled={userEligibility?.hasCommented}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center gap-2 ${
-                  userEligibility?.hasCommented
-                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white hover:shadow-blue-500/20"
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                {userEligibility?.hasCommented ? "Đã bình luận" : "Viết bình luận"}
-              </button>
-              <button
-                onClick={handleWriteReview}
-                disabled={userEligibility?.hasReviewed || !userEligibility?.canReview}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg flex items-center gap-2 ${
-                  userEligibility?.hasReviewed || !userEligibility?.canReview
-                    ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900 hover:shadow-yellow-400/20"
-                }`}
-              >
-                <Star className="w-4 h-4" />
-                {userEligibility?.hasReviewed
-                  ? "Đã đánh giá"
-                  : !userEligibility?.hasPurchased
-                    ? "Cần mua hàng"
-                    : "Viết đánh giá"}
-              </button>
-            </div>
-          )}
         </div>
       </motion.div>
     )

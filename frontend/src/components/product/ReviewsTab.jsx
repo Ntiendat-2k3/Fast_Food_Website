@@ -4,7 +4,7 @@ import { useState, useEffect, useContext } from "react"
 import { motion } from "framer-motion"
 import { MessageCircle, Star, AlertCircle, RefreshCw } from "lucide-react"
 import ReviewsList from "./ReviewsList"
-import ReviewCommentForm from "../../components/ReviewCommentForm"
+import ReviewCommentForm from "../ReviewCommentForm"
 import { StoreContext } from "../../context/StoreContext"
 import axios from "axios"
 import { toast } from "react-toastify"
@@ -192,21 +192,47 @@ const ReviewsTab = ({ foodItem, ratingStats, isLoadingStats, reviews, isLoadingR
                 className={`rounded-xl p-4 border ${
                   userEligibility.hasCommented
                     ? "bg-green-900/20 border-green-500/30"
-                    : "bg-blue-900/20 border-blue-500/30"
+                    : userEligibility.canComment
+                      ? "bg-blue-900/20 border-blue-500/30"
+                      : "bg-red-900/20 border-red-500/30"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <MessageCircle
-                    className={`w-5 h-5 ${userEligibility.hasCommented ? "text-green-400" : "text-blue-400"}`}
+                    className={`w-5 h-5 ${
+                      userEligibility.hasCommented
+                        ? "text-green-400"
+                        : userEligibility.canComment
+                          ? "text-blue-400"
+                          : "text-red-400"
+                    }`}
                   />
                   <div>
                     <h4
-                      className={`font-semibold ${userEligibility.hasCommented ? "text-green-400" : "text-blue-400"}`}
+                      className={`font-semibold ${
+                        userEligibility.hasCommented
+                          ? "text-green-400"
+                          : userEligibility.canComment
+                            ? "text-blue-400"
+                            : "text-red-400"
+                      }`}
                     >
                       Bình luận
                     </h4>
-                    <p className={`text-sm ${userEligibility.hasCommented ? "text-green-300" : "text-blue-300"}`}>
-                      {userEligibility.hasCommented ? "Đã bình luận" : "Có thể bình luận"}
+                    <p
+                      className={`text-sm ${
+                        userEligibility.hasCommented
+                          ? "text-green-300"
+                          : userEligibility.canComment
+                            ? "text-blue-300"
+                            : "text-red-300"
+                      }`}
+                    >
+                      {userEligibility.hasCommented
+                        ? "Đã bình luận"
+                        : userEligibility.canComment
+                          ? "Có thể bình luận"
+                          : "Cần mua hàng để bình luận"}
                     </p>
                   </div>
                 </div>
@@ -221,8 +247,10 @@ const ReviewsTab = ({ foodItem, ratingStats, isLoadingStats, reviews, isLoadingR
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-red-400" />
                   <div>
-                    <h4 className="text-red-400 font-semibold">Không thể đánh giá</h4>
-                    <p className="text-red-300 text-sm">Bạn cần mua sản phẩm này trước khi có thể đánh giá</p>
+                    <h4 className="text-red-400 font-semibold">Không thể đánh giá hoặc bình luận</h4>
+                    <p className="text-red-300 text-sm">
+                      Bạn cần mua và hoàn thành đơn hàng chứa sản phẩm này trước khi có thể đánh giá hoặc bình luận
+                    </p>
                   </div>
                 </div>
                 <div className="flex gap-2">

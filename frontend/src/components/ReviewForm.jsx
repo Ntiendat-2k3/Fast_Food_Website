@@ -2,7 +2,7 @@
 
 import { useState, useContext } from "react"
 import { motion } from "framer-motion"
-import { Star, X } from "lucide-react"
+import { Star, X, ShoppingCart } from "lucide-react"
 import { StoreContext } from "../context/StoreContext"
 import axios from "axios"
 import { toast } from "react-toastify"
@@ -94,6 +94,19 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
         </button>
       </div>
 
+      {/* Warning message */}
+      <div className="bg-orange-900/20 border border-orange-500/30 rounded-xl p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <ShoppingCart className="w-5 h-5 text-orange-400" />
+          <div>
+            <h4 className="text-orange-400 font-semibold">Yêu cầu mua hàng</h4>
+            <p className="text-orange-300 text-sm">
+              Bạn cần mua và hoàn thành đơn hàng chứa sản phẩm này trước khi có thể đánh giá
+            </p>
+          </div>
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="text-center">
           <p className="text-gray-300 mb-4">Bạn cảm thấy sản phẩm này như thế nào?</p>
@@ -121,7 +134,7 @@ const ReviewForm = ({ foodId, onReviewSubmitted, onCancel }) => {
           </div>
 
           {rating > 0 && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-yellow-400 font-medium">
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-yellow-400 font-medium mb-4">
               {rating === 1 && "Rất không hài lòng"}
               {rating === 2 && "Không hài lòng"}
               {rating === 3 && "Bình thường"}
