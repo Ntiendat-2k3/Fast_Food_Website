@@ -20,6 +20,7 @@ import Staff from "./pages/Staff/Staff"
 import Categories from "./pages/Categories/Categories"
 import Notifications from "./pages/Notifications/Notifications" // New import
 import Customers from "./pages/Customers/Customers" // New import
+import Inventory from "./pages/Inventory/Inventory"
 
 const App = () => {
   const url = "http://localhost:4000"
@@ -283,6 +284,14 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                    path="/inventory"
+                    element={
+                      <ProtectedRoute>
+                        <Inventory url={url} />
+                      </ProtectedRoute>
+                    }
+                  />
               <Route
                 path="/customers" // New route for Customers
                 element={

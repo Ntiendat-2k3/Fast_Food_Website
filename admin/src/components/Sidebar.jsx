@@ -48,6 +48,7 @@ const Sidebar = ({ onLogout, userRole }) => {
         ...(userRole === "admin" ? [{ title: "Thêm sản phẩm", path: "/add", icon: Plus }] : []),
         { title: "Danh sách", path: "/list", icon: List },
         ...(userRole === "admin" ? [{ title: "Danh mục", path: "/categories", icon: Grid3X3 }] : []),
+        { title: "Quản lý kho", path: "/inventory", icon: Package },
       ].filter(Boolean),
     },
     {
