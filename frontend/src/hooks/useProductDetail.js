@@ -19,8 +19,8 @@ export const useProductDetail = (slug) => {
   const [ratingStats, setRatingStats] = useState({ averageRating: 0, totalReviews: 0 })
   const [suggestedDrinks, setSuggestedDrinks] = useState([])
   const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
+  const [stock, setStock] = useState(0)
 
-  // Find food item by slug with EXACT matching
   const foodItem = food_list?.find((item) => {
     if (!slug || !item?.name) {
       return false
@@ -29,6 +29,22 @@ export const useProductDetail = (slug) => {
     const match = compareNameWithSlug(item.name, slug)
     return match
   })
+
+  // Fetch product stock from backend (with fallback to default)
+  const fetchProductStock = useCallback(
+    async (productId) => {
+      try {
+        const response = await axios.get(`${url}/api/inventory/product/${productId}`)
+        if (response.data.success) {
+          setStock(response.data.data.quantity || 0)
+        }
+      } catch (error) {
+        console.error("Error fetching product stock:", error)
+        setStock(50)
+      }
+    },
+    [url],
+  )
 
   const fetchRatingsForProducts = useCallback(
     async (productIds) => {
@@ -82,6 +98,11 @@ export const useProductDetail = (slug) => {
     }
 
     if (foodItem) {
+      // Fetch stock for the current product
+      if (foodItem._id) {
+        fetchProductStock(foodItem._id)
+      }
+
       // Set rating stats for the current food item
       if (relatedRatings[foodItem._id]) {
         setRatingStats(relatedRatings[foodItem._id])
@@ -131,7 +152,7 @@ export const useProductDetail = (slug) => {
         checkWishlistStatus(foodItem._id)
       }
     }
-  }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts])
+  }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts, fetchProductStock])
 
   // Update rating stats when relatedRatings changes
   useEffect(() => {
@@ -157,6 +178,16 @@ export const useProductDetail = (slug) => {
 
   const handleAddToCart = () => {
     if (foodItem) {
+      if (stock <= 0) {
+        toast.error("Sản phẩm đã hết hàng")
+        return
+      }
+
+      if (quantity > stock) {
+        toast.error(`Chỉ còn ${stock} sản phẩm trong kho`)
+        return
+      }
+
       addToCart(foodItem.name, quantity)
       toast.success("Đã thêm vào giỏ hàng", {
         position: "top-right",
@@ -171,6 +202,16 @@ export const useProductDetail = (slug) => {
 
   const handleBuyNow = () => {
     if (foodItem) {
+      if (stock <= 0) {
+        toast.error("Sản phẩm đã hết hàng")
+        return
+      }
+
+      if (quantity > stock) {
+        toast.error(`Chỉ còn ${stock} sản phẩm trong kho`)
+        return
+      }
+
       // Tạo một giỏ hàng tạm thời chỉ chứa sản phẩm hiện tại
       const tempCartItems = {
         [foodItem.name]: quantity,
@@ -191,7 +232,11 @@ export const useProductDetail = (slug) => {
   }
 
   const increaseQuantity = () => {
-    setQuantity((prev) => prev + 1)
+    if (quantity < stock) {
+      setQuantity((prev) => prev + 1)
+    } else {
+      toast.warning("Không thể thêm quá số lượng có sẵn trong kho")
+    }
   }
 
   const decreaseQuantity = () => {
@@ -238,6 +283,7 @@ export const useProductDetail = (slug) => {
     ratingStats,
     suggestedDrinks,
     isLoadingSuggestedDrinks,
+    stock, // Return stock value
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,

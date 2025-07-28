@@ -35,6 +35,7 @@ const ProductDetail = () => {
     ratingStats,
     suggestedDrinks,
     isLoadingSuggestedDrinks,
+    stock,
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,
@@ -42,6 +43,7 @@ const ProductDetail = () => {
     toggleWishlist,
   } = useProductDetail(slug)
 
+  console.log("stock:",stock)
 
   const {
     showReviewForm,
@@ -123,6 +125,7 @@ const ProductDetail = () => {
               suggestedDrinks={suggestedDrinks}
               isLoadingSuggestedDrinks={isLoadingSuggestedDrinks}
               relatedRatings={relatedRatings}
+              stock={stock}
             />
           </div>
 

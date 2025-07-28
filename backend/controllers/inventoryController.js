@@ -129,6 +129,8 @@ const getInventoryByFoodId = async (req, res) => {
 
     const inventory = await inventoryModel.findOne({ foodId }).populate("foodId", "name image category price")
 
+    console.log("inventory", inventory)
+
     if (!inventory) {
       return res.json({ success: false, message: "Không tìm thấy thông tin kho hàng" })
     }

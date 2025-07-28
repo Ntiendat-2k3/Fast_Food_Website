@@ -1,6 +1,7 @@
 import express from "express"
 import {
   getInventoryList,
+  getInventoryByFoodId,
   getInventoryStats,
   initializeInventory,
   updateInventory,
@@ -27,5 +28,8 @@ inventoryRouter.post("/check-availability", checkAvailability)
 
 // Reduce stock when order is placed
 inventoryRouter.post("/reduce-stock", reduceStock)
+
+// Get inventory by food ID
+inventoryRouter.get("/product/:foodId", getInventoryByFoodId)
 
 export default inventoryRouter

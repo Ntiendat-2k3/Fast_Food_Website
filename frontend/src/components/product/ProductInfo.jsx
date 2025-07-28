@@ -1,8 +1,58 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Star, Check, Minus, Plus, CreditCard, ShoppingCart, Truck, ShieldCheck, RefreshCw } from "lucide-react"
+import {
+  Star,
+  Check,
+  Minus,
+  Plus,
+  CreditCard,
+  ShoppingCart,
+  Truck,
+  ShieldCheck,
+  RefreshCw,
+  AlertTriangle,
+  X,
+} from "lucide-react"
 import SuggestedDrinks from "./SuggestedDrinks"
+
+// Stock Status Component
+const StockStatus = ({ stock }) => {
+  const getStockStatus = () => {
+    if (stock <= 0) {
+      return {
+        text: "Hết hàng",
+        color: "text-red-400",
+        bgColor: "bg-red-500/10",
+        icon: <X size={14} className="mr-1" />,
+      }
+    } else if (stock <= 20) {
+      // Changed from 10 to 20 to match admin panel
+      return {
+        text: `Sắp hết (${stock} còn lại)`,
+        color: "text-yellow-400",
+        bgColor: "bg-yellow-500/10",
+        icon: <AlertTriangle size={14} className="mr-1" />,
+      }
+    } else {
+      return {
+        text: "Còn hàng",
+        color: "text-green-400",
+        bgColor: "bg-green-500/10",
+        icon: <Check size={14} className="mr-1" />,
+      }
+    }
+  }
+
+  const status = getStockStatus()
+
+  return (
+    <span className={`${status.color} text-sm ${status.bgColor} px-2 py-1 rounded-full flex items-center w-fit`}>
+      {status.icon}
+      {status.text}
+    </span>
+  )
+}
 
 const ProductInfo = ({
   product,
@@ -15,7 +65,11 @@ const ProductInfo = ({
   suggestedDrinks,
   isLoadingSuggestedDrinks,
   relatedRatings,
+  stock = 50, // Add stock prop with default value
 }) => {
+  const isOutOfStock = stock <= 0
+  const isLowStock = stock > 0 && stock <= 20 // Changed from 10 to 20
+
   return (
     <div className="space-y-6">
       {/* Rating and Reviews */}
@@ -88,27 +142,37 @@ const ProductInfo = ({
       >
         <div className="flex items-center justify-between">
           <label className="text-white font-medium">Số lượng</label>
-          <span className="text-green-400 text-sm bg-green-500/10 px-2 py-1 rounded-full">Còn hàng</span>
+          <StockStatus stock={stock} />
         </div>
-        <div className="flex items-center bg-slate-700/50 rounded-xl border border-slate-600 w-fit">
+        <div
+          className={`flex items-center bg-slate-700/50 rounded-xl border border-slate-600 w-fit ${isOutOfStock ? "opacity-50" : ""}`}
+        >
           <motion.button
             onClick={decreaseQuantity}
-            className="w-12 h-12 flex items-center justify-center text-white hover:text-primary transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            disabled={isOutOfStock}
+            className={`w-12 h-12 flex items-center justify-center text-white hover:text-primary transition-colors ${isOutOfStock ? "cursor-not-allowed" : ""}`}
+            whileHover={!isOutOfStock ? { scale: 1.1 } : {}}
+            whileTap={!isOutOfStock ? { scale: 0.9 } : {}}
           >
             <Minus size={18} />
           </motion.button>
           <div className="w-16 h-12 flex items-center justify-center text-white font-semibold">{quantity}</div>
           <motion.button
             onClick={increaseQuantity}
-            className="w-12 h-12 flex items-center justify-center text-white hover:text-primary transition-colors"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            disabled={isOutOfStock || quantity >= stock}
+            className={`w-12 h-12 flex items-center justify-center text-white hover:text-primary transition-colors ${isOutOfStock || quantity >= stock ? "cursor-not-allowed opacity-50" : ""}`}
+            whileHover={!isOutOfStock && quantity < stock ? { scale: 1.1 } : {}}
+            whileTap={!isOutOfStock && quantity < stock ? { scale: 0.9 } : {}}
           >
             <Plus size={18} />
           </motion.button>
         </div>
+        {isLowStock && !isOutOfStock && (
+          <p className="text-yellow-400 text-sm flex items-center">
+            <AlertTriangle size={16} className="mr-1" />
+            Chỉ còn {stock} sản phẩm trong kho
+          </p>
+        )}
       </motion.div>
 
       {/* Action Buttons */}
@@ -120,21 +184,31 @@ const ProductInfo = ({
       >
         <motion.button
           onClick={handleBuyNow}
-          className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary/30"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          disabled={isOutOfStock}
+          className={`${
+            isOutOfStock
+              ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
+          } py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2`}
+          whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
+          whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
         >
           <CreditCard size={20} />
-          Mua ngay
+          {isOutOfStock ? "Hết hàng" : "Mua ngay"}
         </motion.button>
         <motion.button
           onClick={handleAddToCart}
-          className="border-2 border-primary text-primary hover:bg-primary hover:text-slate-900 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          disabled={isOutOfStock}
+          className={`${
+            isOutOfStock
+              ? "border-2 border-gray-600 text-gray-400 cursor-not-allowed"
+              : "border-2 border-primary text-primary hover:bg-primary hover:text-slate-900"
+          } py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2`}
+          whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
+          whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
         >
           <ShoppingCart size={20} />
-          Thêm vào giỏ
+          {isOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
         </motion.button>
       </motion.div>
 
@@ -153,7 +227,7 @@ const ProductInfo = ({
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.8 }} // Adjusted delay
+        transition={{ delay: 0.8 }}
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         <div className="flex items-center bg-slate-700/30 p-3 rounded-xl">
