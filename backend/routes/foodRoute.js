@@ -10,6 +10,7 @@ import {
   removeMultipleFood,
   getSuggestedDrinks,
   debugSuggestedDrinks,
+  getFoodSalesCount,
 } from "../controllers/foodController.js"
 import multer from "multer"
 
@@ -34,6 +35,7 @@ foodRouter.get("/search", searchFood)
 foodRouter.get("/category/:category", getFoodByCategory)
 foodRouter.get("/suggested-drinks/:category", getSuggestedDrinks)
 foodRouter.get("/debug-suggested-drinks/:category", debugSuggestedDrinks)
+foodRouter.get("/sales/:foodId", getFoodSalesCount)
 foodRouter.get("/:id", getFoodById)
 
 export default foodRouter

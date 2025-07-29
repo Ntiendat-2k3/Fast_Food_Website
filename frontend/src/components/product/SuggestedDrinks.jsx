@@ -16,13 +16,12 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
   // Use productCategory or category, whichever is provided
   const targetCategory = productCategory || category
 
-  console.log("SuggestedDrinks props:", { productCategory, category, isCompact })
-  console.log("Target category:", targetCategory)
+  // console.log("SuggestedDrinks props:", { productCategory, category, isCompact })
+  // console.log("Target category:", targetCategory)
 
   useEffect(() => {
     const fetchSuggestedDrinks = async () => {
       if (!targetCategory) {
-        console.log("⚠️ No category provided, loading random drinks...")
         try {
           setLoading(true)
           const response = await axios.get(`${url}/api/food/list`)
@@ -33,7 +32,7 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
             )
             const randomDrinks = allDrinks.slice(0, 4)
             setSuggestedDrinks(randomDrinks)
-            console.log("✅ Loaded random drinks:", randomDrinks)
+            // console.log("✅ Loaded random drinks:", randomDrinks)
           } else {
             setError("Không thể tải đồ uống")
           }
@@ -50,20 +49,19 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
         setLoading(true)
         setError(null)
 
-        console.log(`🔍 Fetching suggested drinks for category: ${targetCategory}`)
+        // console.log(`🔍 Fetching suggested drinks for category: ${targetCategory}`)
         const response = await axios.get(`${url}/api/food/suggested-drinks/${encodeURIComponent(targetCategory)}`)
 
-        console.log("📦 Suggested drinks response:", response.data)
+        // console.log("📦 Suggested drinks response:", response.data)
 
         if (response.data.success && response.data.data) {
           setSuggestedDrinks(response.data.data)
-          console.log(`✅ Successfully loaded drinks:`, response.data.data)
+          // console.log(`✅ Successfully loaded drinks:`, response.data.data)
         } else {
-          console.log("❌ Error from API:", response.data.message)
+          // console.log("❌ Error from API:", response.data.message)
           setError(response.data.message)
 
           // Fallback: load random drinks
-          console.log("🔄 Loading fallback drinks...")
           const fallbackResponse = await axios.get(`${url}/api/food/list`)
           if (fallbackResponse.data.success) {
             const allDrinks = fallbackResponse.data.data.filter(
@@ -71,7 +69,7 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
             )
             const randomDrinks = allDrinks.slice(0, 4)
             setSuggestedDrinks(randomDrinks)
-            console.log("✅ Loaded fallback drinks:", randomDrinks)
+            // console.log("✅ Loaded fallback drinks:", randomDrinks)
           }
         }
       } catch (err) {
@@ -87,7 +85,7 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
             )
             const randomDrinks = allDrinks.slice(0, 4)
             setSuggestedDrinks(randomDrinks)
-            console.log("✅ Final fallback drinks loaded:", randomDrinks)
+            // console.log("✅ Final fallback drinks loaded:", randomDrinks)
           }
         } catch (finalErr) {
           console.error("❌ Final fallback failed:", finalErr)
@@ -178,7 +176,7 @@ const SuggestedDrinks = ({ productCategory, category, isCompact = false }) => {
 
       <div className="space-y-4">
         {suggestedDrinks.map((drink, index) => {
-          console.log(`Rendering drink ${index}:`, drink)
+          // console.log(`Rendering drink ${index}:`, drink)
           return <SuggestedDrinkRowItem key={drink._id || index} item={drink} url={url} addToCart={addToCart} />
         })}
       </div>

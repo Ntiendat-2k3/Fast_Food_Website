@@ -81,6 +81,57 @@ const getFoodByCategory = async (req, res) => {
   }
 }
 
+// Get sales count for a specific food item
+const getFoodSalesCount = async (req, res) => {
+  try {
+    const { foodId } = req.params
+
+    // Find the food item first to get its name
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      return res.json({ success: false, message: "Food not found" })
+    }
+
+    // Count total quantity sold from all completed orders
+    const salesData = await orderModel.aggregate([
+      {
+        $match: {
+          status: { $in: ["Food Processing", "Out for delivery", "Delivered"] }, // Only count confirmed orders
+        },
+      },
+      {
+        $unwind: "$items",
+      },
+      {
+        $match: {
+          "items.name": food.name,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalSold: { $sum: "$items.quantity" },
+        },
+      },
+    ])
+
+    const totalSold = salesData.length > 0 ? salesData[0].totalSold : 0
+
+
+    res.json({
+      success: true,
+      data: {
+        foodId: foodId,
+        foodName: food.name,
+        totalSold: totalSold,
+      },
+    })
+  } catch (error) {
+    console.error("Error getting food sales count:", error)
+    res.json({ success: false, message: "Error getting sales data" })
+  }
+}
+
 // Debug endpoint to check data structure
 const debugSuggestedDrinks = async (req, res) => {
   try {
@@ -320,4 +371,5 @@ export {
   removeMultipleFood,
   getSuggestedDrinks,
   debugSuggestedDrinks,
+  getFoodSalesCount,
 }
