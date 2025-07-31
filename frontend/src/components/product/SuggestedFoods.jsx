@@ -24,6 +24,9 @@ const SuggestedFoods = ({ currentProductId, isCompact = true }) => {
       try {
         const response = await axios.get(`${url}/api/food/suggested-foods/${currentProductId}`)
 
+        console.log(response.data);
+
+
         if (response.data.success) {
           setSuggestedFoods(response.data.data || [])
         } else {

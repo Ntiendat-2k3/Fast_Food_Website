@@ -6,9 +6,9 @@ import { StoreContext } from "../../context/StoreContext"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
 import { slugify } from "../../utils/slugify"
-import { ShoppingCart, Check } from "lucide-react"
+import { ShoppingCart, Check, Leaf } from "lucide-react"
 
-const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
+const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
   const { addToCart, cartItems } = useContext(StoreContext)
   const navigate = useNavigate()
   const [imageError, setImageError] = useState(false)
@@ -37,35 +37,39 @@ const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
   }
 
   // Get purchase count with fallback
-  const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 150) + 25
+  const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 100) + 15
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ x: 4 }}
-      className="bg-slate-700/30 backdrop-blur-sm rounded-lg p-3 border border-slate-600/50 hover:border-primary/50 transition-all duration-300 cursor-pointer group"
+      whileHover={{ x: 2 }}
+      className="bg-slate-700/30 backdrop-blur-sm rounded-lg p-3 border border-slate-600/50 hover:border-green-400/50 transition-all duration-300 cursor-pointer group"
       onClick={handleViewProduct}
     >
       <div className="flex items-center gap-3">
         {/* Product Image */}
         <div className="relative w-12 h-12 flex-shrink-0">
           <img
-            src={imageError ? "/placeholder.svg?height=48&width=48&query=food" : `${url}/images/${item.image}`}
+            src={imageError ? "/placeholder.svg?height=48&width=48&query=salad" : `${url}/images/${item.image}`}
             alt={item.name}
             className="w-full h-full object-cover rounded-lg"
             onError={() => setImageError(true)}
           />
+          {/* Healthy indicator */}
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+            <Leaf size={8} className="text-white" />
+          </div>
         </div>
 
         {/* Product Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-1">
-            <h5 className="text-white font-medium text-sm group-hover:text-primary transition-colors line-clamp-1">
+            <h5 className="text-white font-medium text-sm group-hover:text-green-400 transition-colors line-clamp-1">
               {item.name}
             </h5>
             {item.category && (
-              <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-xs font-medium ml-2 flex-shrink-0">
+              <span className="bg-green-400/20 text-green-400 px-2 py-0.5 rounded-full text-xs font-medium ml-2 flex-shrink-0">
                 {item.category}
               </span>
             )}
@@ -73,9 +77,10 @@ const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
 
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-primary font-semibold text-sm">{formatPrice(item.price)}</span>
+              <span className="text-green-400 font-semibold text-sm">{formatPrice(item.price)}</span>
               {/* Sales Count */}
-              <span className="text-gray-400 text-xs flex items-center bg-gray-500/10 px-1.5 py-0.5 rounded-full mt-1">
+              <span className="text-gray-400 text-xs flex items-center">
+                <Leaf size={8} className="mr-1 text-green-400" />
                 Đã bán {purchaseCount}
               </span>
             </div>
@@ -85,12 +90,12 @@ const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`p-2 rounded-lg font-medium text-xs transition-all duration-200 ${
+              className={`p-2 rounded-lg font-medium text-xs transition-all duration-200 flex-shrink-0 ${
                 isAdding
                   ? "bg-green-600 text-white"
                   : cartItems[item.name] > 0
                     ? "bg-green-600 text-white"
-                    : "bg-primary hover:bg-primary/80 text-white hover:shadow-lg"
+                    : "bg-green-500 hover:bg-green-400 text-white hover:shadow-lg"
               }`}
             >
               {isAdding ? (
@@ -111,4 +116,4 @@ const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
   )
 }
 
-export default SuggestedFoodRowItem
+export default SuggestedSaladRowItem
