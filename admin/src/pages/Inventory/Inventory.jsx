@@ -209,6 +209,19 @@ const Inventory = ({ url }) => {
   useEffect(() => {
     fetchInventoryList()
     fetchStats()
+
+    // Listen for real-time inventory updates
+    if (window.io) {
+      window.io.on("inventoryUpdated", (data) => {
+        console.log("Inventory updated:", data)
+        fetchInventoryList(currentPage)
+        fetchStats()
+      })
+
+      return () => {
+        window.io.off("inventoryUpdated")
+      }
+    }
   }, [])
 
   // Reload data when filters change

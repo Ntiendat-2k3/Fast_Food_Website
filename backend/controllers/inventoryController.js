@@ -127,18 +127,27 @@ const getInventoryByFoodId = async (req, res) => {
   try {
     const { foodId } = req.params
 
-    const inventory = await inventoryModel.findOne({ foodId }).populate("foodId", "name image category price")
+    if (!foodId) {
+      return res.json({ success: false, message: "Food ID is required" })
+    }
 
-    // console.log("inventory", inventory)
+    const inventory = await inventoryModel.findOne({ foodId }).populate("foodId", "name category price image")
 
     if (!inventory) {
-      return res.json({ success: false, message: "Không tìm thấy thông tin kho hàng" })
+      return res.json({
+        success: true,
+        data: {
+          quantity: 0,
+          status: "out_of_stock",
+          maxStockLevel: 0,
+        },
+      })
     }
 
     res.json({ success: true, data: inventory })
   } catch (error) {
     console.error("Error fetching inventory by food ID:", error)
-    res.json({ success: false, message: "Lỗi khi lấy thông tin kho hàng" })
+    res.json({ success: false, message: "Lỗi khi lấy thông tin tồn kho" })
   }
 }
 

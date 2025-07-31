@@ -35,6 +35,7 @@ export const useProductDetail = (slug) => {
     async (productId) => {
       try {
         const response = await axios.get(`${url}/api/inventory/product/${productId}`)
+        console.log(response.data)
         if (response.data.success) {
           setStock(response.data.data.quantity || 0)
         }

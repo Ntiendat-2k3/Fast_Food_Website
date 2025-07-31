@@ -65,7 +65,7 @@ const SalesCount = ({ productId, url }) => {
     const fetchSalesCount = async () => {
       try {
         const response = await axios.get(`${url}/api/food/sales/${productId}`)
-        console.log("response:",response.data)
+        console.log("response:",response.data.data)
         if (response.data.success) {
           setSalesCount(response.data.data.totalSold)
         }

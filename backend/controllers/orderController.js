@@ -4,6 +4,7 @@ import notificationModel from "../models/notificationModel.js"
 import PDFDocument from "pdfkit"
 import path from "path"
 import { fileURLToPath } from "url"
+import inventoryModel from "../models/inventoryModel.js"
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url)
@@ -73,6 +74,53 @@ const placeOrder = async (req, res) => {
     // Lưu đơn hàng
     const savedOrder = await newOrder.save()
 
+    // Giảm số lượng tồn kho cho các sản phẩm trong đơn hàng
+    try {
+      const inventoryUpdatePromises = items.map(async (item) => {
+        const inventory = await inventoryModel.findOne({ foodId: item.foodId })
+
+        if (inventory) {
+          const newQuantity = Math.max(0, inventory.quantity - item.quantity)
+          let newStatus = "out_of_stock"
+
+          if (newQuantity > 20) {
+            newStatus = "in_stock"
+          } else if (newQuantity > 0) {
+            newStatus = "low_stock"
+          }
+
+          await inventoryModel.findByIdAndUpdate(inventory._id, {
+            quantity: newQuantity,
+            status: newStatus,
+            lastUpdated: new Date(),
+            updatedBy: `order_${savedOrder._id}`,
+          })
+
+          console.log(`Updated inventory for ${item.name}: ${inventory.quantity} -> ${newQuantity}`)
+        } else {
+          console.log(`No inventory found for product: ${item.name}`)
+        }
+      })
+
+      await Promise.all(inventoryUpdatePromises)
+      console.log("Inventory updated successfully for order:", savedOrder._id)
+
+      // Emit real-time inventory update
+      if (req.io) {
+        req.io.emit("inventoryUpdated", {
+          orderId: savedOrder._id,
+          updatedItems: items.map((item) => ({
+            foodId: item.foodId,
+            name: item.name,
+            quantityReduced: item.quantity,
+          })),
+        })
+      }
+    } catch (inventoryError) {
+      console.error("Error updating inventory:", inventoryError)
+      // Không throw error để không ảnh hưởng đến việc đặt hàng
+    }
+
     // Tạo notification cho admin
     const notification = new notificationModel({
       title: "Đơn hàng mới",
@@ -130,17 +178,17 @@ const placeOrder = async (req, res) => {
 const listOrders = async (req, res) => {
   try {
     const orders = await orderModel.find({})
-    // console.log(
-    //   "Orders from database with shipping info:",
-    //   orders.map((order) => ({
-    //     id: order._id,
-    //     voucherCode: order.voucherCode,
-    //     discountAmount: order.discountAmount,
-    //     shippingFee: order.shippingFee,
-    //     deliveryFee: order.deliveryFee,
-    //     distance: order.distance,
-    //   })),
-    // ) // Debug log
+    console.log(
+      "Orders from database with shipping info:",
+      orders.map((order) => ({
+        id: order._id,
+        voucherCode: order.voucherCode,
+        discountAmount: order.discountAmount,
+        shippingFee: order.shippingFee,
+        deliveryFee: order.deliveryFee,
+        distance: order.distance,
+      })),
+    ) // Debug log
 
     res.json({ success: true, data: orders })
   } catch (error) {

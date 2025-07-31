@@ -8,28 +8,19 @@ import {
   checkAvailability,
   reduceStock,
 } from "../controllers/inventoryController.js"
+import { verifyStaffOrAdmin } from "../middleware/auth.js"
 
 const inventoryRouter = express.Router()
 
-// Get inventory list with pagination and filters
-inventoryRouter.get("/list", getInventoryList)
+inventoryRouter.get("/list", verifyStaffOrAdmin, getInventoryList)
+inventoryRouter.post("/update", verifyStaffOrAdmin, updateInventory)
+inventoryRouter.get("/stats", verifyStaffOrAdmin, getInventoryStats)
+inventoryRouter.post("/initialize", verifyStaffOrAdmin, initializeInventory)
+inventoryRouter.post("/check-availability", verifyStaffOrAdmin, checkAvailability)
+inventoryRouter.post("/reduce-stock", verifyStaffOrAdmin, reduceStock)
 
-// Get inventory statistics
-inventoryRouter.get("/stats", getInventoryStats)
 
-// Initialize inventory for existing foods
-inventoryRouter.post("/initialize", initializeInventory)
-
-// Update inventory item
-inventoryRouter.post("/update", updateInventory)
-
-// Check product availability
-inventoryRouter.post("/check-availability", checkAvailability)
-
-// Reduce stock when order is placed
-inventoryRouter.post("/reduce-stock", reduceStock)
-
-// Get inventory by food ID
+// public route
 inventoryRouter.get("/product/:foodId", getInventoryByFoodId)
 
 export default inventoryRouter

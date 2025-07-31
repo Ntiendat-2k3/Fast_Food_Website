@@ -3,7 +3,7 @@
 import { useContext, useState, useEffect } from "react"
 import { StoreContext } from "../context/StoreContext"
 import { useNavigate } from "react-router-dom"
-import { Star, Check, Heart, Eye, Plus } from "lucide-react"
+import { Star, Check, Heart, Eye, Plus, AlertCircle, Package } from "lucide-react"
 import { motion } from "framer-motion"
 import { slugify } from "../utils/slugify"
 import axios from "axios"
@@ -59,12 +59,55 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
 
+  const [inventory, setInventory] = useState(null)
+  const [inventoryLoading, setInventoryLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        const response = await axios.get(`${url}/api/inventory/product/${_id}`)
+        if (response.data.success) {
+          setInventory(response.data.data)
+        }
+      } catch (error) {
+        console.error("Error fetching inventory:", error)
+      } finally {
+        setInventoryLoading(false)
+      }
+    }
+
+    if (_id) {
+      fetchInventory()
+    }
+  }, [_id, url])
+
+  const getStockStatus = () => {
+    if (inventoryLoading) return { text: "Đang tải...", color: "text-gray-400" }
+    if (!inventory) return { text: "Không có thông tin", color: "text-gray-400" }
+
+    if (inventory.quantity === 0) {
+      return { text: "Hết hàng", color: "text-red-400" }
+    } else if (inventory.quantity <= 20) {
+      return { text: `Còn ${inventory.quantity} sản phẩm`, color: "text-yellow-400" }
+    } else {
+      return { text: `Còn ${inventory.quantity} sản phẩm`, color: "text-green-400" }
+    }
+  }
+
+  const stockStatus = getStockStatus()
+  const isOutOfStock = inventory && inventory.quantity <= 0
+
   const handleClick = () => {
     navigate(`/product/${slugify(name)}`)
   }
 
   const handleAddToCart = (e) => {
     e.stopPropagation()
+
+    if (inventory && inventory.quantity <= 0) {
+      return // Không cho phép thêm vào giỏ hàng nếu hết hàng
+    }
+
     setIsAdding(true)
     addToCart(name, 1)
 
@@ -330,8 +373,19 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
           {price?.toLocaleString("vi-VN") || 0} đ
         </motion.div>
 
-        {/* Sales Count Badge */}
-        <SalesCount productId={_id} url={url} />
+        {/* Stock Status Badge */}
+        <div
+          className={`absolute bottom-3 right-3 px-2 py-1 rounded-full text-xs font-bold flex items-center ${
+            isOutOfStock
+              ? "bg-red-500/80 text-white"
+              : inventory?.quantity <= 20
+                ? "bg-yellow-500/80 text-white"
+                : "bg-green-500/80 text-white"
+          }`}
+        >
+          <Package size={12} className="mr-1" />
+          {stockStatus.text}
+        </div>
       </div>
 
       {/* Content */}
@@ -377,18 +431,26 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
         {/* Add to Cart Button */}
         <motion.button
           onClick={handleAddToCart}
+          disabled={isOutOfStock}
           className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
-            isAdding
-              ? "bg-green-500 text-white"
-              : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
+            isOutOfStock
+              ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+              : isAdding
+                ? "bg-green-500 text-white"
+                : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
           }`}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
+          whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 + 0.5 }}
         >
-          {isAdding ? (
+          {isOutOfStock ? (
+            <>
+              <AlertCircle size={18} />
+              Hết hàng
+            </>
+          ) : isAdding ? (
             <>
               <Check size={18} />
               Đã thêm!
