@@ -11,6 +11,7 @@ import ProductInfo from "../../components/product/ProductInfo"
 import ProductTabs from "../../components/product/ProductTabs"
 import RelatedProducts from "../../components/product/RelatedProducts"
 import SuggestedDrinks from "../../components/product/SuggestedDrinks"
+import SuggestedFoods from "../../components/product/SuggestedFoods"
 import { useProductDetail } from "../../hooks/useProductDetail"
 import { useReviews } from "../../hooks/useReviews"
 import { AlertCircle } from "lucide-react"
@@ -49,6 +50,8 @@ const ProductDetail = () => {
     decreaseQuantity,
     toggleWishlist,
   } = useProductDetail(slug)
+
+  console.log("FoodItem:", foodItem)
 
   const {
     showReviewForm,
@@ -156,7 +159,12 @@ const ProductDetail = () => {
     },
   }
 
+  // Check if current product is a drink
+  const isDrink = foodItem && foodItem.category && foodItem.category.toLowerCase().includes("uống")
+
   console.log("stock:", stock)
+  console.log("isDrink:", isDrink)
+  console.log("foodItem category:", foodItem?.category)
 
   if (!foodItem) {
     return <ProductNotFound />
@@ -231,10 +239,16 @@ const ProductDetail = () => {
           />
         </div>
 
-        {/* Suggested Drinks Section - Only show if not a drink itself */}
-        {foodItem && foodItem.category && foodItem.category !== "Đồ uống" && (
+        {/* Conditional Suggestions Section */}
+        {foodItem && (
           <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700 p-6">
-            <SuggestedDrinks productCategory={foodItem.category} category={foodItem.category} isCompact={false} />
+            {isDrink ? (
+              // If it's a drink, show suggested foods
+              <SuggestedFoods drinkName={foodItem.name}/>
+            ) : (
+              // If it's food, show suggested drinks
+              <SuggestedDrinks productCategory={foodItem.category} category={foodItem.category} isCompact={false} />
+            )}
           </div>
         )}
 

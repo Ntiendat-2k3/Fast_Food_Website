@@ -10,6 +10,11 @@ const categorySchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 })
 
+// Add indexes for better performance
+categorySchema.index({ name: 1 })
+categorySchema.index({ isActive: 1 })
+categorySchema.index({ order: 1 })
+
 const categoryModel = mongoose.models.category || mongoose.model("category", categorySchema)
 
 export default categoryModel

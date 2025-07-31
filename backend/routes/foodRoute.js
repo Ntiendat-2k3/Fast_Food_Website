@@ -9,7 +9,9 @@ import {
   getFoodById,
   removeMultipleFood,
   getSuggestedDrinks,
+  getSuggestedFoods,
   debugSuggestedDrinks,
+  debugSuggestedFoods,
   getFoodSalesCount,
 } from "../controllers/foodController.js"
 import multer from "multer"
@@ -33,9 +35,15 @@ foodRouter.post("/remove-multiple", removeMultipleFood)
 foodRouter.put("/update", upload.single("image"), updateFood)
 foodRouter.get("/search", searchFood)
 foodRouter.get("/category/:category", getFoodByCategory)
-foodRouter.get("/suggested-drinks/:category", getSuggestedDrinks)
-foodRouter.get("/debug-suggested-drinks/:category", debugSuggestedDrinks)
+foodRouter.get("/item/:id", getFoodById)
 foodRouter.get("/sales/:foodId", getFoodSalesCount)
-foodRouter.get("/:id", getFoodById)
+
+// Suggestion routes
+foodRouter.get("/suggested-drinks/:category", getSuggestedDrinks)
+foodRouter.get("/suggested-foods/:drinkName", getSuggestedFoods)
+
+// Debug routes
+foodRouter.get("/debug-drinks/:category", debugSuggestedDrinks)
+foodRouter.get("/debug-foods/:drinkName", debugSuggestedFoods)
 
 export default foodRouter

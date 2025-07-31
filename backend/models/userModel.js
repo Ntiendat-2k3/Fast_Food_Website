@@ -19,14 +19,14 @@ const userSchema = new mongoose.Schema(
     updatedAt: { type: Date, default: Date.now },
 
     isVerified: { type: Boolean, default: false },
-    verificationCode: { type: String }, // Reused for email verification and password reset codes
-    verificationCodeExpires: { type: Date }, // Reused for email verification and password reset codes
+    verificationCode: { type: String },
+    verificationCodeExpires: { type: Date },
   },
   { minimize: false, timestamps: true },
 )
 
 userSchema.index({ email: 1 })
-userSchema.index({ name: 1 }) // Index for username
+userSchema.index({ name: 1 })
 userSchema.index({ role: 1 })
 userSchema.index({ isActive: 1 })
 

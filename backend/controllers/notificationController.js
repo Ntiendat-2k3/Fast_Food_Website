@@ -62,11 +62,11 @@ const createNotification = async (req, res) => {
 // Get all notifications (admin)
 const getAllNotifications = async (req, res) => {
   try {
-    console.log("Getting all notifications, requester role:", req.userRole)
+    // console.log("Getting all notifications, requester role:", req.userRole)
 
     const notifications = await notificationModel.find({}).populate("userId", "name email").sort({ createdAt: -1 })
 
-    console.log(`Found ${notifications.length} notifications`)
+    // console.log(`Found ${notifications.length} notifications`)
 
     res.json({
       success: true,
@@ -85,7 +85,7 @@ const getUserNotifications = async (req, res) => {
     const { page = 1, limit = 10 } = req.query
     const userId = req.userId
 
-    console.log("Getting user notifications for userId:", userId)
+    // console.log("Getting user notifications for userId:", userId)
 
     const notifications = await notificationModel
       .find({ userId })
@@ -95,7 +95,7 @@ const getUserNotifications = async (req, res) => {
 
     const total = await notificationModel.countDocuments({ userId })
 
-    console.log(`Found ${notifications.length} notifications for user ${userId}`)
+    // console.log(`Found ${notifications.length} notifications for user ${userId}`)
 
     res.json({
       success: true,
@@ -117,7 +117,7 @@ const getUserNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id, read = true } = req.body
-    console.log("Marking notification as read:", { id, read })
+    // console.log("Marking notification as read:", { id, read })
 
     if (!id) {
       return res.json({ success: false, message: "Thiếu ID thông báo" })
@@ -152,7 +152,7 @@ const markAsRead = async (req, res) => {
 const deleteNotification = async (req, res) => {
   try {
     const { id } = req.body
-    console.log("Deleting notification:", id)
+    // console.log("Deleting notification:", id)
 
     if (!id) {
       return res.json({ success: false, message: "Thiếu ID thông báo" })
@@ -174,14 +174,14 @@ const deleteNotification = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.userId
-    console.log("Getting unread count for userId:", userId)
+    // console.log("Getting unread count for userId:", userId)
 
     const count = await notificationModel.countDocuments({
       userId,
       $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
 
-    console.log(`Unread count for user ${userId}: ${count}`)
+    // console.log(`Unread count for user ${userId}: ${count}`)
 
     res.json({ success: true, data: { count } })
   } catch (error) {
