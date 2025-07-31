@@ -130,17 +130,17 @@ const placeOrder = async (req, res) => {
 const listOrders = async (req, res) => {
   try {
     const orders = await orderModel.find({})
-    console.log(
-      "Orders from database with shipping info:",
-      orders.map((order) => ({
-        id: order._id,
-        voucherCode: order.voucherCode,
-        discountAmount: order.discountAmount,
-        shippingFee: order.shippingFee,
-        deliveryFee: order.deliveryFee,
-        distance: order.distance,
-      })),
-    ) // Debug log
+    // console.log(
+    //   "Orders from database with shipping info:",
+    //   orders.map((order) => ({
+    //     id: order._id,
+    //     voucherCode: order.voucherCode,
+    //     discountAmount: order.discountAmount,
+    //     shippingFee: order.shippingFee,
+    //     deliveryFee: order.deliveryFee,
+    //     distance: order.distance,
+    //   })),
+    // ) // Debug log
 
     res.json({ success: true, data: orders })
   } catch (error) {
