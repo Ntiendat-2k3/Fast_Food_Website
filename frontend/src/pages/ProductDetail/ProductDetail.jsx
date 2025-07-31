@@ -23,11 +23,6 @@ const ProductDetail = () => {
   const navigate = useNavigate()
   const { url, user, token, cartItems } = useContext(StoreContext)
 
-  // Debug URL params
-  // console.log("ProductDetail - URL params:", useParams())
-  // console.log("ProductDetail - slug from params:", slug)
-  // console.log("ProductDetail - window.location:", window.location.pathname)
-
   const [inventory, setInventory] = useState(null)
   const [inventoryLoading, setInventoryLoading] = useState(true)
 
@@ -162,9 +157,6 @@ const ProductDetail = () => {
   // Check if current product is a drink
   const isDrink = foodItem && foodItem.category && foodItem.category.toLowerCase().includes("uống")
 
-  console.log("stock:", stock)
-  console.log("isDrink:", isDrink)
-  console.log("foodItem category:", foodItem?.category)
 
   if (!foodItem) {
     return <ProductNotFound />
@@ -243,16 +235,13 @@ const ProductDetail = () => {
         {foodItem && (
           <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl overflow-hidden shadow-2xl mb-12 border border-slate-700 p-6">
             {isDrink ? (
-              // If it's a drink, show suggested foods
-              <SuggestedFoods drinkName={foodItem.name}/>
+              <SuggestedFoods drinkName={foodItem.name}  />
             ) : (
-              // If it's food, show suggested drinks
               <SuggestedDrinks productCategory={foodItem.category} category={foodItem.category} isCompact={false} />
             )}
           </div>
         )}
 
-        {/* Related Products */}
         <RelatedProducts
           relatedProducts={relatedProducts}
           url={url}
@@ -261,7 +250,6 @@ const ProductDetail = () => {
           addToCart={handleAddToCart}
         />
 
-        {/* Out of Stock Warning */}
         {isOutOfStock && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
