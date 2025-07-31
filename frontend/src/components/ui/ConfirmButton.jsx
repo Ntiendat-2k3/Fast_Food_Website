@@ -19,6 +19,7 @@ const ConfirmButton = ({ icon, text, loading, onClick, disabled = false, classNa
       ) : (
         <>
           {icon && <span className="mr-2">{icon}</span>}
+          Thanh toán
           {text}
         </>
       )}

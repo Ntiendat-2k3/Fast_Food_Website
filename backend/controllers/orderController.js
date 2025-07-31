@@ -5,6 +5,7 @@ import PDFDocument from "pdfkit"
 import path from "path"
 import { fileURLToPath } from "url"
 import inventoryModel from "../models/inventoryModel.js"
+import voucherModel from "../models/voucherModel.js"
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url)
@@ -12,6 +13,8 @@ const __dirname = path.dirname(__filename)
 
 // placing user order from frontend
 const placeOrder = async (req, res) => {
+  const frontend_url = "http://localhost:5173"
+
   try {
     console.log("Order data received:", req.body) // Debug log
 
@@ -39,6 +42,18 @@ const placeOrder = async (req, res) => {
       return res.json({ success: false, message: "Thông tin địa chỉ không đầy đủ" })
     }
 
+    // Find voucher by code if provided
+    let voucherId = null
+    if (voucherCode) {
+      const voucher = await voucherModel.findOne({
+        code: voucherCode,
+        isActive: true,
+      })
+      if (voucher) {
+        voucherId = voucher._id
+      }
+    }
+
     // Tạo đơn hàng mới với đầy đủ thông tin
     const newOrder = new orderModel({
       userId: userId,
@@ -50,6 +65,7 @@ const placeOrder = async (req, res) => {
       paymentMethod: paymentMethod || "COD",
       paymentStatus: paymentMethod === "COD" ? "Chưa thanh toán" : "Đang xử lý",
       voucherCode: voucherCode || null,
+      voucherId: voucherId,
       discountAmount: discountAmount || 0,
       // Lưu thông tin phí ship
       shippingFee: shippingFee || deliveryFee || 14000,
@@ -73,6 +89,13 @@ const placeOrder = async (req, res) => {
 
     // Lưu đơn hàng
     const savedOrder = await newOrder.save()
+
+    // Update voucher usage count if voucher was used
+    if (voucherId) {
+      await voucherModel.findByIdAndUpdate(voucherId, {
+        $inc: { usageCount: 1 },
+      })
+    }
 
     // Giảm số lượng tồn kho cho các sản phẩm trong đơn hàng
     try {
@@ -166,7 +189,7 @@ const placeOrder = async (req, res) => {
       success: true,
       message: "Đặt hàng thành công",
       orderId: savedOrder._id,
-      redirectUrl: paymentMethod === "COD" ? "/thankyou" : `/payment/${paymentMethod}/${savedOrder._id}`,
+      redirectUrl: paymentMethod === "COD" ? "/thankyou" : `${frontend_url}/payment/${paymentMethod}/${savedOrder._id}`,
     })
   } catch (error) {
     console.log("Error placing order:", error)
@@ -177,7 +200,11 @@ const placeOrder = async (req, res) => {
 // Listing orders for admin panel
 const listOrders = async (req, res) => {
   try {
-    const orders = await orderModel.find({})
+    const orders = await orderModel
+      .find({})
+      .populate("userId", "name email")
+      .populate("voucherId", "code discountType discountValue")
+      .sort({ date: -1 })
     console.log(
       "Orders from database with shipping info:",
       orders.map((order) => ({
@@ -298,7 +325,10 @@ const getRevenueStats = async (req, res) => {
 const exportInvoice = async (req, res) => {
   try {
     const { orderId } = req.params
-    const order = await orderModel.findById(orderId)
+    const order = await orderModel
+      .findById(orderId)
+      .populate("userId", "name email phone")
+      .populate("voucherId", "code discountType discountValue description")
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" })
@@ -557,63 +587,74 @@ const verifyOrder = async (req, res) => {
 
 const userOrders = async (req, res) => {
   try {
-    const userId = req.body.userId
-    console.log("Fetching orders for user:", userId)
-
-    if (!userId) {
-      return res.json({ success: false, message: "Không tìm thấy ID người dùng" })
-    }
-
-    const orders = await orderModel.find({ userId: userId }).sort({ date: -1 })
-    console.log(`Found ${orders.length} orders for user ${userId}`)
-
+    const orders = await orderModel
+      .find({ userId: req.body.userId })
+      .populate("voucherId", "code discountType discountValue")
+      .sort({ date: -1 })
     res.json({ success: true, data: orders })
   } catch (error) {
-    console.log("Error in userOrders:", error)
-    res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+    console.log(error)
+    res.json({ success: false, message: "Error" })
   }
 }
 
+// Listing orders for admin panel
+// const listOrders = async (req, res) => {
+//   try {
+//     const orders = await orderModel.find({})
+//     console.log(
+//       "Orders from database with shipping info:",
+//       orders.map((order) => ({
+//         id: order._id,
+//         voucherCode: order.voucherCode,
+//         discountAmount: order.discountAmount,
+//         shippingFee: order.shippingFee,
+//         deliveryFee: order.deliveryFee,
+//         distance: order.distance,
+//       })),
+//     ) // Debug log
+
+//     res.json({ success: true, data: orders })
+//   } catch (error) {
+//     console.log("Error listing orders:", error)
+//     res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
+//   }
+// }
+
+// api for updating order status
 const updateStatus = async (req, res) => {
   try {
-    const { orderId, status } = req.body
+    const updateData = { status: req.body.status }
 
-    // Lấy thông tin đơn hàng hiện tại
-    const currentOrder = await orderModel.findById(orderId)
-    if (!currentOrder) {
-      return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
-    }
-
-    // Kiểm tra logic hủy đơn hàng
-    if (status === "Đã hủy") {
-      if (currentOrder.status !== "Đang xử lý" && currentOrder.status !== "Đang giao hàng") {
-        return res.json({
-          success: false,
-          message: "Chỉ có thể hủy đơn hàng khi đang xử lý hoặc đang giao hàng",
-        })
-      }
-    }
-
-    // Tạo object update với status mới
-    const updateData = { status: status }
-
-    // Nếu status là "Đã giao", lưu thời gian giao hàng
-    if (status === "Đã giao") {
+    // Add timestamp for specific status changes
+    if (req.body.status === "Đã giao hàng") {
       updateData.deliveredAt = new Date()
     }
 
-    // Nếu status là "Đã hoàn thành", tự động cập nhật paymentStatus thành "Đã thanh toán"
-    if (status === "Đã hoàn thành") {
-      updateData.paymentStatus = "Đã thanh toán"
-    }
-
-    // Cập nhật đơn hàng
-    await orderModel.findByIdAndUpdate(orderId, updateData)
-
-    res.json({ success: true, message: "Cập nhật trạng thái thành công" })
+    await orderModel.findByIdAndUpdate(req.body.orderId, updateData)
+    res.json({ success: true, message: "Status Updated" })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái" })
+    res.json({ success: false, message: "Error" })
+  }
+}
+
+// Get order details with populated references
+const getOrderDetails = async (req, res) => {
+  try {
+    const order = await orderModel
+      .findById(req.params.orderId)
+      .populate("userId", "name email phone")
+      .populate("voucherId", "code discountType discountValue description")
+
+    if (!order) {
+      return res.json({ success: false, message: "Order not found" })
+    }
+
+    res.json({ success: true, data: order })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: "Error" })
   }
 }
 
@@ -880,4 +921,5 @@ export {
   confirmDelivery,
   autoCompleteOrders,
   cancelOrder,
+  getOrderDetails,
 }

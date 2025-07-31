@@ -1,19 +1,25 @@
 import foodModel from "../models/foodModel.js"
 import orderModel from "../models/orderModel.js"
+import categoryModel from "../models/categoryModel.js"
 import fs from "fs"
 
 // add food item
 const addFood = async (req, res) => {
-  const image_filename = `${req.file.filename}`
-
-  const food = new foodModel({
-    name: req.body.name,
-    description: req.body.description,
-    price: req.body.price,
-    category: req.body.category,
-    image: image_filename,
-  })
   try {
+    const image_filename = `${req.file.filename}`
+
+    // Find category by name to get ObjectId
+    const category = await categoryModel.findOne({ name: req.body.category })
+
+    const food = new foodModel({
+      name: req.body.name,
+      description: req.body.description,
+      price: req.body.price,
+      category: req.body.category, // Keep string for backward compatibility
+      categoryId: category ? category._id : null, // Add ObjectId reference
+      image: image_filename,
+    })
+
     await food.save()
     res.json({ success: true, message: "Food Added" })
   } catch (error) {
@@ -32,7 +38,7 @@ const listFood = async (req, res) => {
       query.category = category
     }
 
-    const foods = await foodModel.find(query)
+    const foods = await foodModel.find(query).populate("categoryId", "name icon description")
     res.json({ success: true, data: foods })
   } catch (error) {
     console.log(error)
@@ -57,11 +63,12 @@ const searchFood = async (req, res) => {
 // Get food by ID
 const getFoodById = async (req, res) => {
   try {
-    const { id } = req.params
-    const food = await foodModel.findById(id)
+    const food = await foodModel.findById(req.params.id).populate("categoryId", "name icon description")
+
     if (!food) {
       return res.json({ success: false, message: "Food not found" })
     }
+
     res.json({ success: true, data: food })
   } catch (error) {
     console.log(error)
@@ -73,7 +80,21 @@ const getFoodById = async (req, res) => {
 const getFoodByCategory = async (req, res) => {
   try {
     const { category } = req.params
-    const foods = await foodModel.find({ category: category })
+
+    // Try to find by category name first, then by categoryId
+    let foods
+    const categoryDoc = await categoryModel.findOne({ name: category })
+
+    if (categoryDoc) {
+      foods = await foodModel
+        .find({
+          $or: [{ category: category }, { categoryId: categoryDoc._id }],
+        })
+        .populate("categoryId", "name icon description")
+    } else {
+      foods = await foodModel.find({ category: category }).populate("categoryId", "name icon description")
+    }
+
     res.json({ success: true, data: foods })
   } catch (error) {
     console.log(error)
@@ -116,7 +137,6 @@ const getFoodSalesCount = async (req, res) => {
     ])
 
     const totalSold = salesData.length > 0 ? salesData[0].totalSold : 0
-
 
     res.json({
       success: true,
@@ -281,33 +301,34 @@ const getSuggestedDrinks = async (req, res) => {
 // Update food item
 const updateFood = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id, name, description, price, category } = req.body
+
+    // Find category by name to get ObjectId
+    const categoryDoc = await categoryModel.findOne({ name: category })
+
     const updateData = {
-      name: req.body.name,
-      description: req.body.description,
-      price: req.body.price,
-      category: req.body.category,
+      name,
+      description,
+      price,
+      category, // Keep string for backward compatibility
+      categoryId: categoryDoc ? categoryDoc._id : null, // Add ObjectId reference
+      updatedAt: new Date(),
     }
 
+    // If new image is uploaded
     if (req.file) {
-      // Remove old image
-      const oldFood = await foodModel.findById(id)
-      if (oldFood && oldFood.image) {
-        fs.unlink(`uploads/${oldFood.image}`, () => {})
+      const food = await foodModel.findById(id)
+      if (food && food.image) {
+        fs.unlink(`uploads/${food.image}`, () => {})
       }
       updateData.image = req.file.filename
     }
 
-    const updatedFood = await foodModel.findByIdAndUpdate(id, updateData, { new: true })
-
-    if (!updatedFood) {
-      return res.json({ success: false, message: "Food not found" })
-    }
-
-    res.json({ success: true, message: "Food Updated", data: updatedFood })
+    await foodModel.findByIdAndUpdate(id, updateData)
+    res.json({ success: true, message: "Food Updated" })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error updating food" })
+    res.json({ success: false, message: "Error" })
   }
 }
 

@@ -1,6 +1,5 @@
 import addressModel from "../models/addressModel.js"
 
-// Get all addresses for a user
 const getUserAddresses = async (req, res) => {
   try {
     const userId = req.user._id
@@ -13,7 +12,6 @@ const getUserAddresses = async (req, res) => {
   }
 }
 
-// Add a new address
 const addAddress = async (req, res) => {
   try {
     const userId = req.user._id
@@ -61,7 +59,6 @@ const addAddress = async (req, res) => {
   }
 }
 
-// Update an address
 const updateAddress = async (req, res) => {
   try {
     const userId = req.user._id
@@ -104,7 +101,6 @@ const updateAddress = async (req, res) => {
   }
 }
 
-// Delete an address
 const deleteAddress = async (req, res) => {
   try {
     const userId = req.user._id
@@ -146,13 +142,11 @@ const deleteAddress = async (req, res) => {
   }
 }
 
-// Set an address as default
 const setDefaultAddress = async (req, res) => {
   try {
     const userId = req.user._id
     const { addressId } = req.body
 
-    // Check if address exists and belongs to user
     const address = await addressModel.findOne({
       _id: addressId,
       userId,
@@ -162,14 +156,11 @@ const setDefaultAddress = async (req, res) => {
       return res.json({ success: false, message: "Địa chỉ không tồn tại hoặc không thuộc về bạn" })
     }
 
-    // Unset any existing default
     await addressModel.updateMany({ userId }, { isDefault: false })
 
-    // Set this address as default
     address.isDefault = true
     await address.save()
 
-    // Get all addresses to return to client
     const addresses = await addressModel.find({ userId }).sort({ isDefault: -1, updatedAt: -1 })
 
     res.json({

@@ -68,6 +68,7 @@ const voucherSchema = new mongoose.Schema(
 // Index for better query performance
 voucherSchema.index({ code: 1 })
 voucherSchema.index({ isActive: 1, startDate: 1, endDate: 1 })
+voucherSchema.index({ createdBy: 1 })
 
 // Validate that end date is after start date
 voucherSchema.pre("save", function (next) {
