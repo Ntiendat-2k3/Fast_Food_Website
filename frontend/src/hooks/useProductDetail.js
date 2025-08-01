@@ -166,11 +166,18 @@ export const useProductDetail = (slug) => {
     if (!token) return
 
     try {
+      console.log("Checking wishlist status for foodId:", foodId, "with token:", token)
+
       const response = await axios.get(`${url}/api/wishlist/check/${foodId}`, {
         headers: { token },
       })
+
+      console.log("Wishlist check response:", response.data)
+
       if (response.data.success) {
         setIsInWishlist(response.data.isInWishlist)
+      } else {
+        console.error("Failed to check wishlist status:", response.data.message)
       }
     } catch (error) {
       console.error("Error checking wishlist status:", error)

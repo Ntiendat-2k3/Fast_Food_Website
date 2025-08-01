@@ -1,40 +1,29 @@
 import mongoose from "mongoose"
 
-const wishlistSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
-    required: true,
-  },
-  items: [
-    {
-      foodId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "food",
-        required: true,
-      },
-      addedAt: {
-        type: Date,
-        default: Date.now,
-      },
+const wishlistSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
     },
-  ],
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    foodId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "food",
+      required: true,
+    },
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
+  {
+    timestamps: true,
   },
-})
+)
 
-// Indexes
+// Create compound index to ensure a user can't add the same food item twice
+wishlistSchema.index({ userId: 1, foodId: 1 }, { unique: true })
+
+// Create individual indexes for better query performance
 wishlistSchema.index({ userId: 1 })
-wishlistSchema.index({ "items.foodId": 1 })
-
-// Ensure unique combination of userId and foodId
-wishlistSchema.index({ userId: 1, "items.foodId": 1 }, { unique: true })
+wishlistSchema.index({ foodId: 1 })
 
 const wishlistModel = mongoose.models.wishlist || mongoose.model("wishlist", wishlistSchema)
 

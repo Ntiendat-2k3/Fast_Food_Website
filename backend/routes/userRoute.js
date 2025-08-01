@@ -6,9 +6,6 @@ import {
   getUserProfile,
   updateUserProfile,
   getAllUsers,
-  blockUser,
-  unblockUser,
-  getBlacklist,
   deleteUser,
   googleLogin,
   verifyEmail,
@@ -36,9 +33,6 @@ userRouter.post("/change-password", requireSignIn, changePassword) // New protec
 
 // Admin/Staff routes
 userRouter.get("/list", requireSignIn, verifyStaffOrAdmin, getAllUsers)
-userRouter.get("/blacklist", requireSignIn, verifyStaffOrAdmin, getBlacklist)
-userRouter.post("/block", requireSignIn, verifyStaffOrAdmin, blockUser)
-userRouter.post("/unblock", requireSignIn, verifyStaffOrAdmin, unblockUser)
 
 // Admin only routes
 userRouter.post("/delete", requireSignIn, verifyAdmin, deleteUser)

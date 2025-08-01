@@ -7,13 +7,11 @@ import cartRouter from "./routes/cartRoute.js"
 import orderRouter from "./routes/orderRoute.js"
 import categoryRouter from "./routes/categoryRoute.js"
 import commentRouter from "./routes/commentRoute.js"
-import feedbackRouter from "./routes/feedbackRoute.js"
 import notificationRouter from "./routes/notificationRoute.js"
 import addressRouter from "./routes/addressRoute.js"
 import voucherRouter from "./routes/voucherRoute.js"
 import wishlistRouter from "./routes/wishlistRoute.js"
 import purchaseHistoryRouter from "./routes/purchaseHistoryRoute.js"
-// import revenueRouter from "./routes/revenueRoute.js"
 import staffRouter from "./routes/staffRoute.js"
 import shippingRouter from "./routes/shippingRoute.js"
 import messageRouter from "./routes/messageRoute.js"
@@ -39,13 +37,11 @@ app.use("/api/cart", cartRouter)
 app.use("/api/order", orderRouter)
 app.use("/api/category", categoryRouter)
 app.use("/api/comment", commentRouter)
-app.use("/api/feedback", feedbackRouter)
 app.use("/api/notification", notificationRouter)
 app.use("/api/address", addressRouter)
 app.use("/api/voucher", voucherRouter)
 app.use("/api/wishlist", wishlistRouter)
 app.use("/api/purchase-history", purchaseHistoryRouter)
-// app.use("/api/revenue", revenueRouter)
 app.use("/api/staff", staffRouter)
 app.use("/api/shipping", shippingRouter)
 app.use("/api/message", messageRouter)

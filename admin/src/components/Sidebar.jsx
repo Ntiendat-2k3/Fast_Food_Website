@@ -76,17 +76,17 @@ const Sidebar = ({ onLogout, userRole }) => {
     },
     {
       id: "communication",
-      title: "Giao tiếp",
+      title: "Tin nhắn",
       icon: MessageCircle,
       color: "from-pink-500 to-pink-600",
       submenu: [
         { title: "Tin nhắn", path: "/chat", icon: MessageSquare },
-        { title: "Bình luận", path: "/comments", icon: MessageCircle },
+        { title: "Đánh giá sản phẩm", path: "/comments", icon: MessageCircle },
       ],
     },
     {
-      id: "marketing",
-      title: "Marketing",
+      id: "Voucher&Notif",
+      title: "Voucher & Thông báo",
       icon: Gift,
       color: "from-cyan-500 to-cyan-600",
       submenu: [

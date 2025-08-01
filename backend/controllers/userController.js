@@ -1,9 +1,8 @@
 import userModel from "../models/userModel.js"
-import blacklistModel from "../models/blacklistModel.js"
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
 import validator from "validator"
-import { sendVerificationEmail, sendPasswordResetCode } from "../utils/emailSender.js" // Updated import
+import { sendVerificationEmail, sendPasswordResetCode } from "../utils/emailSender.js"
 
 // Create token
 const createToken = (id, role = "user") => {
@@ -477,103 +476,6 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-// Block user
-const blockUser = async (req, res) => {
-  try {
-    const { userId, reason } = req.body
-    console.log("Blocking user:", { userId, reason, blockedBy: req.userId })
-
-    if (!userId || !reason) {
-      return res.json({ success: false, message: "Thiếu thông tin userId hoặc reason" })
-    }
-
-    // Check if user exists
-    const user = await userModel.findById(userId)
-    if (!user) {
-      return res.json({ success: false, message: "Người dùng không tồn tại" })
-    }
-
-    // Check if user is already blocked
-    const existingBlock = await blacklistModel.findOne({ userId })
-    if (existingBlock) {
-      return res.json({ success: false, message: "Người dùng đã bị chặn" })
-    }
-
-    // Get blocker info
-    const blocker = await userModel.findById(req.userId)
-
-    // Create blacklist entry
-    const blacklistEntry = new blacklistModel({
-      userId,
-      reason,
-      blockedBy: blocker ? blocker.name : "Admin",
-    })
-
-    await blacklistEntry.save()
-    console.log("User blocked successfully")
-
-    res.json({ success: true, message: "Đã chặn người dùng thành công" })
-  } catch (error) {
-    console.error("Error blocking user:", error)
-    res.json({ success: false, message: "Lỗi server: " + error.message })
-  }
-}
-
-// Unblock user
-const unblockUser = async (req, res) => {
-  try {
-    const { blacklistId } = req.body
-    console.log("Unblocking user with blacklist ID:", blacklistId)
-
-    if (!blacklistId) {
-      return res.json({ success: false, message: "Thiếu blacklistId" })
-    }
-
-    const result = await blacklistModel.findByIdAndDelete(blacklistId)
-    if (!result) {
-      return res.json({ success: false, message: "Không tìm thấy bản ghi chặn" })
-    }
-
-    console.log("User unblocked successfully")
-    res.json({ success: true, message: "Đã bỏ chặn người dùng thành công" })
-  } catch (error) {
-    console.error("Error unblocking user:", error)
-    res.json({ success: false, message: "Lỗi server: " + error.message })
-  }
-}
-
-// Get blacklist
-const getBlacklist = async (req, res) => {
-  try {
-    console.log("=== GET BLACKLIST ===")
-    console.log("Request user role:", req.userRole)
-    console.log("Request user:", req.user ? req.user.name : "No user")
-
-    const blacklist = await blacklistModel.find({}).populate("userId", "name email").sort({ blockedAt: -1 })
-
-    // Transform data to include user info directly
-    const transformedBlacklist = blacklist.map((item) => ({
-      _id: item._id,
-      userId: item.userId._id,
-      userName: item.userId.name,
-      email: item.userId.email,
-      reason: item.reason,
-      blockedAt: item.blockedAt,
-      blockedBy: item.blockedBy,
-    }))
-
-    console.log(`Found ${transformedBlacklist.length} blocked users`)
-
-    res.json({
-      success: true,
-      data: transformedBlacklist,
-      message: `Tìm thấy ${transformedBlacklist.length} người dùng bị chặn`,
-    })
-  } catch (error) {
-    console.error("Error getting blacklist:", error)
-    res.json({ success: false, message: "Lỗi server: " + error.message })
-  }
-}
 
 // Delete user (admin only)
 const deleteUser = async (req, res) => {
@@ -607,9 +509,6 @@ export {
   getUserProfile,
   updateUserProfile,
   getAllUsers,
-  blockUser,
-  unblockUser,
-  getBlacklist,
   deleteUser,
   verifyEmail,
   forgotPassword,

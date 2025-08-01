@@ -1,25 +1,18 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Shield, Star, Check, X, Trash2, Reply, Edit, Send } from "lucide-react"
+import { MessageSquare, Star, Check, X, Trash2, Reply, Edit, Send } from "lucide-react"
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
 import Pagination from "../../components/Pagination"
-import TabNavigation from "../../components/comments/TabNavigation"
 import CommentFilters from "../../components/comments/CommentFilters"
-import BlockUserForm from "../../components/comments/BlockUserForm"
-import BlacklistTable from "../../components/comments/BlacklistTable"
 
 const Comments = ({ url }) => {
-  const [activeTab, setActiveTab] = useState("comments") // "comments" or "blacklist"
   const [comments, setComments] = useState([])
-  const [blacklist, setBlacklist] = useState([])
-  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [blacklistLoading, setBlacklistLoading] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -27,13 +20,6 @@ const Comments = ({ url }) => {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, id: null, message: "" })
   const [foodList, setFoodList] = useState([])
   const [categories, setCategories] = useState([])
-  const selectedUserRef = useRef(null)
-
-  // New blacklist form
-  const [blockUserForm, setBlockUserForm] = useState({
-    userId: "",
-    reason: "",
-  })
 
   // Reply to comment form
   const [replyForm, setReplyForm] = useState({
@@ -43,7 +29,6 @@ const Comments = ({ url }) => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
-  const [blacklistPage, setBlacklistPage] = useState(1)
   const itemsPerPage = 10
 
   const fetchComments = async () => {
@@ -108,73 +93,10 @@ const Comments = ({ url }) => {
     }
   }
 
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại để tiếp tục")
-        return
-      }
-
-      const response = await axios.get(`${url}/api/user/list`, {
-        headers: {
-          token: token,
-        },
-      })
-
-      if (response.data.success) {
-        setUsers(response.data.data)
-      } else {
-        console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi tải danh sách người dùng")
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi tải danh sách người dùng")
-    }
-  }
-
-  const fetchBlacklist = async () => {
-    setBlacklistLoading(true)
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại để tiếp tục")
-        setBlacklistLoading(false)
-        return
-      }
-
-      const response = await axios.get(`${url}/api/user/blacklist`, {
-        headers: {
-          token: token,
-        },
-      })
-
-      if (response.data.success) {
-        setBlacklist(response.data.data)
-      } else {
-        console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi tải danh sách đen")
-      }
-    } catch (error) {
-      console.error("Error fetching blacklist:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi tải danh sách đen")
-    } finally {
-      setBlacklistLoading(false)
-    }
-  }
-
   useEffect(() => {
     fetchComments()
     fetchFoodList()
-    fetchUsers()
   }, [])
-
-  useEffect(() => {
-    if (activeTab === "blacklist") {
-      fetchBlacklist()
-    }
-  }, [activeTab])
 
   const handleStatusChange = async (commentId, isApproved) => {
     try {
@@ -285,71 +207,6 @@ const Comments = ({ url }) => {
     }
   }
 
-  const handleBlockUser = async () => {
-    if (!blockUserForm.userId || !blockUserForm.reason) {
-      toast.error("Vui lòng chọn người dùng và nhập lý do chặn")
-      return
-    }
-
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại để tiếp tục")
-        return
-      }
-
-      // Find the selected user to display in confirmation
-      const selectedUser = users.find((user) => user._id === blockUserForm.userId)
-      if (!selectedUser) {
-        toast.error("Người dùng không hợp lệ, vui lòng chọn lại")
-        return
-      }
-
-      console.log("Blocking user:", selectedUser.name, selectedUser._id)
-      console.log("Block user form data:", blockUserForm)
-
-      // Create a new object for the request to ensure we're not sending any extra data
-      const blockData = {
-        userId: blockUserForm.userId,
-        reason: blockUserForm.reason,
-      }
-
-      const response = await axios.post(`${url}/api/user/block`, blockData, {
-        headers: {
-          token: token,
-        },
-      })
-
-      if (response.data.success) {
-        toast.success(`Đã chặn người dùng ${selectedUser.name} thành công`)
-
-        // Reset form
-        setBlockUserForm({
-          userId: "",
-          reason: "",
-        })
-
-        // Refresh blacklist
-        fetchBlacklist()
-      } else {
-        console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi chặn người dùng")
-      }
-    } catch (error) {
-      console.error("Error blocking user:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi chặn người dùng")
-    }
-  }
-
-  const handleUnblockUser = (blacklistId) => {
-    setConfirmModal({
-      isOpen: true,
-      type: "unblockUser",
-      id: blacklistId,
-      message: "Bạn có chắc chắn muốn bỏ chặn người dùng này?",
-    })
-  }
-
   const handleConfirmAction = async () => {
     const { type, id } = confirmModal
     const token = localStorage.getItem("token")
@@ -382,31 +239,6 @@ const Comments = ({ url }) => {
       } catch (error) {
         console.error("Error deleting comment:", error)
         toast.error("Lỗi kết nối đến máy chủ")
-      }
-    } else if (type === "unblockUser") {
-      try {
-        const response = await axios.post(
-          `${url}/api/user/unblock`,
-          { blacklistId: id },
-          {
-            headers: {
-              token: token,
-            },
-          },
-        )
-
-        if (response.data.success) {
-          // Update local state
-          const updatedBlacklist = blacklist.filter((item) => item._id !== id)
-          setBlacklist(updatedBlacklist)
-          toast.success("Đã bỏ chặn người dùng thành công")
-        } else {
-          console.error("API returned error:", response.data.message)
-          toast.error(response.data.message || "Lỗi khi bỏ chặn người dùng")
-        }
-      } catch (error) {
-        console.error("Error unblocking user:", error)
-        toast.error("Lỗi kết nối đến máy chủ khi bỏ chặn người dùng")
       }
     }
 
@@ -469,34 +301,13 @@ const Comments = ({ url }) => {
     return filteredComments.slice(indexOfFirstItem, indexOfLastItem)
   }
 
-  // Get current page items for blacklist
-  const getCurrentBlacklist = () => {
-    const indexOfLastItem = blacklistPage * itemsPerPage
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage
-    return blacklist.slice(indexOfFirstItem, indexOfLastItem)
-  }
-
   const totalCommentsPages = Math.ceil(filteredComments.length / itemsPerPage)
-  const totalBlacklistPages = Math.ceil(blacklist.length / itemsPerPage)
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber)
   }
 
-  const handleBlacklistPageChange = (pageNumber) => {
-    setBlacklistPage(pageNumber)
-  }
-
   const currentComments = getCurrentComments()
-  const currentBlacklist = getCurrentBlacklist()
-
-  // Handle user selection for blacklist
-  const handleUserSelect = (e) => {
-    const userId = e.target.value
-    console.log("User selected:", userId)
-    selectedUserRef.current = userId
-    setBlockUserForm({ ...blockUserForm, userId })
-  }
 
   return (
     <div className="w-full min-h-screen bg-slate-900">
@@ -506,241 +317,193 @@ const Comments = ({ url }) => {
           Quản lý đánh giá sản phẩm
         </h1>
 
-        {/* Tab Navigation */}
-        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        {/* Filters */}
+        <CommentFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          categories={categories}
+          fetchComments={fetchComments}
+        />
 
-        {/* Comments Tab */}
-        {activeTab === "comments" && (
-          <div>
-            {/* Filters */}
-            <CommentFilters
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              categoryFilter={categoryFilter}
-              setCategoryFilter={setCategoryFilter}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              categories={categories}
-              fetchComments={fetchComments}
-            />
+        {/* Comments List */}
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-400"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg">
+            <p className="font-medium">Lỗi:</p>
+            <p>{error}</p>
+          </div>
+        ) : currentComments.length === 0 ? (
+          <div className="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
+            <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">Không có đánh giá nào</h3>
+            <p className="text-slate-400">Chưa có đánh giá nào phù hợp với bộ lọc hiện tại</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {currentComments.map((comment) => (
+              <div
+                key={comment._id}
+                className={`bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${
+                  comment.isApproved ? "border-green-600/30" : "border-yellow-600/30"
+                } p-4`}
+              >
+                <div className="flex flex-col sm:flex-row justify-between mb-4">
+                  <div className="flex items-center mb-3 sm:mb-0">
+                    <div
+                      className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 font-bold text-lg ${
+                        comment.isApproved
+                          ? "bg-gradient-to-br from-green-400 to-green-500 text-slate-900"
+                          : "bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900"
+                      }`}
+                    >
+                      {getInitials(comment.userName)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white text-sm">{comment.userName}</p>
+                      {comment.userEmail && <p className="text-xs text-slate-400">{comment.userEmail}</p>}
+                      <p className="text-xs text-slate-400">{formatDate(comment.createdAt)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {!comment.isApproved && (
+                      <button
+                        onClick={() => handleStatusChange(comment._id, true)}
+                        className="p-1.5 bg-green-600/20 text-green-400 rounded-full hover:bg-green-600/30 transition-colors"
+                        title="Duyệt đánh giá"
+                      >
+                        <Check size={16} />
+                      </button>
+                    )}
+                    {comment.isApproved && (
+                      <button
+                        onClick={() => handleStatusChange(comment._id, false)}
+                        className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-full hover:bg-yellow-600/30 transition-colors"
+                        title="Hủy duyệt"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteClick(comment._id)}
+                      className="p-1.5 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
+                      title="Xóa đánh giá"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Comments List */}
-            {loading ? (
-              <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-400"></div>
-              </div>
-            ) : error ? (
-              <div className="bg-red-900/20 border border-red-800 text-red-300 p-4 rounded-lg">
-                <p className="font-medium">Lỗi:</p>
-                <p>{error}</p>
-              </div>
-            ) : currentComments.length === 0 ? (
-              <div className="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
-                <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-white mb-2">Không có đánh giá nào</h3>
-                <p className="text-slate-400">Chưa có đánh giá nào phù hợp với bộ lọc hiện tại</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {currentComments.map((comment) => (
-                  <div
-                    key={comment._id}
-                    className={`bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${
-                      comment.isApproved ? "border-green-600/30" : "border-yellow-600/30"
-                    } p-4`}
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between mb-4">
-                      <div className="flex items-center mb-3 sm:mb-0">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 font-bold text-lg ${
-                            comment.isApproved
-                              ? "bg-gradient-to-br from-green-400 to-green-500 text-slate-900"
-                              : "bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900"
-                          }`}
+                <div className="bg-slate-700/30 rounded-lg p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                    <div className="flex items-center mr-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={16}
+                          className={i < comment.rating ? "text-yellow-400 fill-yellow-400" : "text-slate-500"}
+                        />
+                      ))}
+                      <span className="ml-2 text-sm font-medium text-yellow-400">{comment.rating}/5 sao</span>
+                    </div>
+                    <span className="text-xs font-medium text-slate-300">
+                      Đánh giá cho: {comment.foodName || getFoodName(comment.foodId)}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded-full">
+                      {comment.foodCategory || getFoodCategory(comment.foodId)}
+                    </span>
+                  </div>
+
+                  {comment.comment && comment.comment !== "Đánh giá sao" && (
+                    <p className="text-slate-300 text-sm mb-3">{comment.comment}</p>
+                  )}
+
+                  {/* Admin Reply Section */}
+                  {comment.adminReply && comment.adminReply.message && replyForm.commentId !== comment._id ? (
+                    <div className="mt-3 bg-yellow-900/20 p-2.5 rounded-lg border border-yellow-600/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-xs font-medium text-yellow-300 mb-1">
+                          <Reply size={12} className="mr-1" />
+                          Phản hồi của quản trị viên:
+                        </div>
+                        <button
+                          onClick={() => setReplyForm({ commentId: comment._id, message: comment.adminReply.message })}
+                          className="p-1 text-yellow-400 hover:text-yellow-300"
+                          title="Chỉnh sửa phản hồi"
                         >
-                          {getInitials(comment.userName)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-white text-sm">{comment.userName}</p>
-                          {comment.userEmail && <p className="text-xs text-slate-400">{comment.userEmail}</p>}
-                          <p className="text-xs text-slate-400">{formatDate(comment.createdAt)}</p>
-                        </div>
+                          <Edit size={12} />
+                        </button>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        {!comment.isApproved && (
+                      <p className="text-slate-300 text-xs whitespace-pre-line">{comment.adminReply.message}</p>
+                      {comment.adminReply.createdAt && (
+                        <p className="text-xs text-slate-400 mt-1">{formatDate(comment.adminReply.createdAt)}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-3">
+                      <div className="flex items-center text-xs font-medium text-slate-300 mb-1.5">
+                        <Reply size={12} className="mr-1" />
+                        {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
+                          ? "Chỉnh sửa phản hồi:"
+                          : "Thêm phản hồi:"}
+                      </div>
+                      <textarea
+                        placeholder="Nhập phản hồi của bạn..."
+                        rows={2}
+                        value={replyForm.commentId === comment._id ? replyForm.message : ""}
+                        onChange={(e) => setReplyForm({ commentId: comment._id, message: e.target.value })}
+                        onClick={() => {
+                          if (replyForm.commentId !== comment._id) {
+                            setReplyForm({
+                              commentId: comment._id,
+                              message: comment.adminReply?.message || "",
+                            })
+                          }
+                        }}
+                        className="block w-full rounded-lg border border-slate-600 bg-slate-700 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 text-xs"
+                      />
+                      <div className="flex justify-end mt-2 gap-2">
+                        {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message && (
                           <button
-                            onClick={() => handleStatusChange(comment._id, true)}
-                            className="p-1.5 bg-green-600/20 text-green-400 rounded-full hover:bg-green-600/30 transition-colors"
-                            title="Duyệt đánh giá"
+                            onClick={() => setReplyForm({ commentId: null, message: "" })}
+                            className="px-2.5 py-1 rounded-lg text-xs flex items-center bg-slate-600 text-slate-300 hover:bg-slate-500"
                           >
-                            <Check size={16} />
-                          </button>
-                        )}
-                        {comment.isApproved && (
-                          <button
-                            onClick={() => handleStatusChange(comment._id, false)}
-                            className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-full hover:bg-yellow-600/30 transition-colors"
-                            title="Hủy duyệt"
-                          >
-                            <X size={16} />
+                            Hủy
                           </button>
                         )}
                         <button
-                          onClick={() => handleDeleteClick(comment._id)}
-                          className="p-1.5 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
-                          title="Xóa đánh giá"
+                          onClick={handleReplyToComment}
+                          disabled={!replyForm.message || replyForm.commentId !== comment._id}
+                          className={`px-2.5 py-1 rounded-lg text-xs flex items-center ${
+                            !replyForm.message || replyForm.commentId !== comment._id
+                              ? "bg-slate-600 text-slate-400 cursor-not-allowed"
+                              : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 hover:from-yellow-500 hover:to-yellow-600"
+                          }`}
                         >
-                          <Trash2 size={16} />
+                          <Send size={12} className="mr-1" />
+                          {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
+                            ? "Cập nhật"
+                            : "Gửi phản hồi"}
                         </button>
                       </div>
                     </div>
-
-                    <div className="bg-slate-700/30 rounded-lg p-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                        <div className="flex items-center mr-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={16}
-                              className={i < comment.rating ? "text-yellow-400 fill-yellow-400" : "text-slate-500"}
-                            />
-                          ))}
-                          <span className="ml-2 text-sm font-medium text-yellow-400">{comment.rating}/5 sao</span>
-                        </div>
-                        <span className="text-xs font-medium text-slate-300">
-                          Đánh giá cho: {comment.foodName || getFoodName(comment.foodId)}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded-full">
-                          {comment.foodCategory || getFoodCategory(comment.foodId)}
-                        </span>
-                      </div>
-
-                      {comment.comment && comment.comment !== "Đánh giá sao" && (
-                        <p className="text-slate-300 text-sm mb-3">{comment.comment}</p>
-                      )}
-
-                      {/* Admin Reply Section */}
-                      {comment.adminReply && comment.adminReply.message && replyForm.commentId !== comment._id ? (
-                        <div className="mt-3 bg-yellow-900/20 p-2.5 rounded-lg border border-yellow-600/30">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center text-xs font-medium text-yellow-300 mb-1">
-                              <Reply size={12} className="mr-1" />
-                              Phản hồi của quản trị viên:
-                            </div>
-                            <button
-                              onClick={() =>
-                                setReplyForm({ commentId: comment._id, message: comment.adminReply.message })
-                              }
-                              className="p-1 text-yellow-400 hover:text-yellow-300"
-                              title="Chỉnh sửa phản hồi"
-                            >
-                              <Edit size={12} />
-                            </button>
-                          </div>
-                          <p className="text-slate-300 text-xs whitespace-pre-line">{comment.adminReply.message}</p>
-                          {comment.adminReply.createdAt && (
-                            <p className="text-xs text-slate-400 mt-1">{formatDate(comment.adminReply.createdAt)}</p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="mt-3">
-                          <div className="flex items-center text-xs font-medium text-slate-300 mb-1.5">
-                            <Reply size={12} className="mr-1" />
-                            {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
-                              ? "Chỉnh sửa phản hồi:"
-                              : "Thêm phản hồi:"}
-                          </div>
-                          <textarea
-                            placeholder="Nhập phản hồi của bạn..."
-                            rows={2}
-                            value={replyForm.commentId === comment._id ? replyForm.message : ""}
-                            onChange={(e) => setReplyForm({ commentId: comment._id, message: e.target.value })}
-                            onClick={() => {
-                              if (replyForm.commentId !== comment._id) {
-                                setReplyForm({
-                                  commentId: comment._id,
-                                  message: comment.adminReply?.message || "",
-                                })
-                              }
-                            }}
-                            className="block w-full rounded-lg border border-slate-600 bg-slate-700 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 text-xs"
-                          />
-                          <div className="flex justify-end mt-2 gap-2">
-                            {replyForm.commentId === comment._id &&
-                              comment.adminReply &&
-                              comment.adminReply.message && (
-                                <button
-                                  onClick={() => setReplyForm({ commentId: null, message: "" })}
-                                  className="px-2.5 py-1 rounded-lg text-xs flex items-center bg-slate-600 text-slate-300 hover:bg-slate-500"
-                                >
-                                  Hủy
-                                </button>
-                              )}
-                            <button
-                              onClick={handleReplyToComment}
-                              disabled={!replyForm.message || replyForm.commentId !== comment._id}
-                              className={`px-2.5 py-1 rounded-lg text-xs flex items-center ${
-                                !replyForm.message || replyForm.commentId !== comment._id
-                                  ? "bg-slate-600 text-slate-400 cursor-not-allowed"
-                                  : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 hover:from-yellow-500 hover:to-yellow-600"
-                              }`}
-                            >
-                              <Send size={12} className="mr-1" />
-                              {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
-                                ? "Cập nhật"
-                                : "Gửi phản hồi"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
-            )}
-
-            {/* Pagination */}
-            {!loading && !error && totalCommentsPages > 1 && (
-              <div className="mt-6">
-                <Pagination currentPage={currentPage} totalPages={totalCommentsPages} onPageChange={handlePageChange} />
-              </div>
-            )}
+            ))}
           </div>
         )}
 
-        {/* Blacklist Tab */}
-        {activeTab === "blacklist" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Block User Form */}
-            <div className="lg:col-span-1">
-              <BlockUserForm
-                blockUserForm={blockUserForm}
-                setBlockUserForm={setBlockUserForm}
-                handleBlockUser={handleBlockUser}
-                users={users}
-                handleUserSelect={handleUserSelect}
-              />
-            </div>
-
-            {/* Blacklist Table */}
-            <div className="lg:col-span-2">
-              <div className="bg-slate-800 rounded-xl shadow-lg p-4 sm:p-6 border border-slate-700">
-                <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 flex items-center">
-                  <Shield className="mr-2 text-yellow-400" size={20} />
-                  Danh sách người dùng bị chặn
-                </h2>
-
-                <BlacklistTable
-                  blacklistLoading={blacklistLoading}
-                  currentBlacklist={currentBlacklist}
-                  handleUnblockUser={handleUnblockUser}
-                  formatDate={formatDate}
-                  blacklistPage={blacklistPage}
-                  totalBlacklistPages={totalBlacklistPages}
-                  handleBlacklistPageChange={handleBlacklistPageChange}
-                />
-              </div>
-            </div>
+        {/* Pagination */}
+        {!loading && !error && totalCommentsPages > 1 && (
+          <div className="mt-6">
+            <Pagination currentPage={currentPage} totalPages={totalCommentsPages} onPageChange={handlePageChange} />
           </div>
         )}
       </div>
@@ -750,14 +513,10 @@ const Comments = ({ url }) => {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null, id: null, message: "" })}
         onConfirm={handleConfirmAction}
-        title={confirmModal.type === "deleteComment" ? "Xóa đánh giá" : "Bỏ chặn người dùng"}
+        title="Xóa đánh giá"
         message={confirmModal.message}
-        confirmText={confirmModal.type === "deleteComment" ? "Xóa" : "Bỏ chặn"}
-        confirmButtonClass={
-          confirmModal.type === "deleteComment"
-            ? "bg-red-600 hover:bg-red-700"
-            : "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 text-slate-900"
-        }
+        confirmText="Xóa"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
       />
     </div>
   )
