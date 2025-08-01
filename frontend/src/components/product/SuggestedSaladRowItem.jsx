@@ -36,8 +36,9 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ"
   }
 
-  // Get purchase count with fallback
   const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 100) + 15
+
+  const isInCart = Boolean(cartItems[item.name])
 
   return (
     <motion.div
@@ -56,7 +57,6 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
             className="w-full h-full object-cover rounded-lg"
             onError={() => setImageError(true)}
           />
-          {/* Healthy indicator */}
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
             <Leaf size={8} className="text-white" />
           </div>
@@ -78,33 +78,28 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-green-400 font-semibold text-sm">{formatPrice(item.price)}</span>
-              {/* Sales Count */}
               <span className="text-gray-400 text-xs flex items-center">
                 <Leaf size={8} className="mr-1 text-green-400" />
                 Đã bán {purchaseCount}
               </span>
             </div>
 
+            {/* Add to Cart Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
               disabled={isAdding}
-              className={`p-2 rounded-lg font-medium text-xs transition-all duration-200 flex-shrink-0 ${
-                isAdding
+              className={`p-2 rounded-full font-medium text-xs transition-all duration-200 flex-shrink-0 ${
+                isAdding || isInCart
                   ? "bg-green-600 text-white"
-                  : cartItems[item.name] > 0
-                    ? "bg-green-600 text-white"
-                    : "bg-green-500 hover:bg-green-400 text-white hover:shadow-lg"
+                  : "bg-green-500 hover:bg-green-400 text-white hover:shadow-lg"
               }`}
             >
               {isAdding ? (
                 <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : cartItems[item.name] > 0 ? (
-                <div className="flex items-center gap-1">
-                  <Check size={14} />
-                  <span className="text-xs">{cartItems[item.name]}</span>
-                </div>
+              ) : isInCart ? (
+                <Check size={14} />
               ) : (
                 <ShoppingCart size={14} />
               )}

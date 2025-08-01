@@ -106,7 +106,7 @@ const SuggestedSalads = ({ currentProduct, isCompact = true }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-6 bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 border border-slate-700 h-fit"
+      className="mt-8 bg-slate-800/50 backdrop-blur-xl rounded-2xl p-4 border border-slate-700 h-fit"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
