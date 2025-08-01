@@ -17,14 +17,12 @@ import {
   Heart,
   History,
   KeyRound,
-  MapPin,
+  CheckCheck,
 } from "lucide-react"
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
-import { assets } from "../assets/assets" // Re-added assets import
 
 const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
-  // Receive setShowChangePasswordModal as prop
   const [menu, setMenu] = useState("home")
   const { getTotalCartAmount, token, setToken, cartItems, url, user, setUser } = useContext(StoreContext)
   const { darkMode, toggleDarkMode } = useTheme()
@@ -71,28 +69,40 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
   // Fetch notifications
   const fetchNotifications = async () => {
-    if (!token) return
+    if (!token) {
+      console.log("No token available for fetching notifications")
+      return
+    }
 
     setLoadingNotifications(true)
     try {
-      // console.log("Fetching notifications...")
+      console.log("Fetching notifications with token...")
       const response = await axios.get(`${url}/api/notification/list?page=1&limit=20`, {
         headers: { token },
       })
 
-      // console.log("Notifications response:", response.data)
+      console.log("Notifications response:", response.data)
 
       if (response.data.success) {
-        setNotifications(response.data.data)
+        setNotifications(response.data.data || [])
         // Count unread notifications
-        const unread = response.data.data.filter((notification) => !notification.read && !notification.isRead).length
+        const unread = (response.data.data || []).filter(
+          (notification) => !notification.read && !notification.isRead,
+        ).length
         setUnreadCount(unread)
-        // console.log(`Loaded ${response.data.data.length} notifications, ${unread} unread`)
+        console.log(`Loaded ${response.data.data?.length || 0} notifications, ${unread} unread`)
       } else {
         console.error("Failed to fetch notifications:", response.data.message)
+        setNotifications([])
+        setUnreadCount(0)
       }
     } catch (error) {
       console.error("Error fetching notifications:", error)
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+      }
+      setNotifications([])
+      setUnreadCount(0)
     } finally {
       setLoadingNotifications(false)
     }
@@ -100,39 +110,59 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
   // Fetch unread count
   const fetchUnreadCount = async () => {
-    if (!token) return
+    if (!token) {
+      console.log("No token available for fetching unread count")
+      return
+    }
 
     try {
+      console.log("Fetching unread count...")
       const response = await axios.get(`${url}/api/notification/unread-count`, {
         headers: { token },
       })
 
+      console.log("Unread count response:", response.data)
+
       if (response.data.success) {
-        setUnreadCount(response.data.data.count)
-        // console.log("Unread count:", response.data.data.count)
+        setUnreadCount(response.data.data.count || 0)
+        console.log("Unread count:", response.data.data.count)
+      } else {
+        console.error("Failed to fetch unread count:", response.data.message)
+        setUnreadCount(0)
       }
     } catch (error) {
       console.error("Error fetching unread count:", error)
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+      }
+      setUnreadCount(0)
     }
   }
 
   // Fetch notifications when component mounts and token changes
   useEffect(() => {
-    if (token) {
+    if (token && user) {
+      console.log("User logged in, fetching notifications for user:", user.name)
       fetchNotifications()
       fetchUnreadCount()
 
       // Set up polling to check for new notifications every 30 seconds
       const intervalId = setInterval(() => {
+        console.log("Polling for new notifications...")
         fetchNotifications()
         fetchUnreadCount()
       }, 30000)
-      return () => clearInterval(intervalId)
+
+      return () => {
+        console.log("Clearing notification polling interval")
+        clearInterval(intervalId)
+      }
     } else {
+      console.log("No token or user, clearing notifications")
       setNotifications([])
       setUnreadCount(0)
     }
-  }, [token, url])
+  }, [token, user, url])
 
   // Fetch wishlist count
   useEffect(() => {
@@ -165,8 +195,14 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
     if (!token) return
 
     try {
-      // console.log("Marking notification as read:", notificationId)
-      const response = await axios.post(`${url}/api/notification/read`, { id: notificationId }, { headers: { token } })
+      console.log("Marking notification as read:", notificationId)
+      const response = await axios.post(
+        `${url}/api/notification/read`,
+        { id: notificationId, read: true },
+        { headers: { token } },
+      )
+
+      console.log("Mark as read response:", response.data)
 
       if (response.data.success) {
         // Update local state
@@ -178,10 +214,42 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
         // Update unread count
         setUnreadCount((prev) => Math.max(0, prev - 1))
-        // console.log("Notification marked as read successfully")
+        console.log("Notification marked as read successfully")
+      } else {
+        console.error("Failed to mark notification as read:", response.data.message)
       }
     } catch (error) {
       console.error("Error marking notification as read:", error)
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+      }
+    }
+  }
+
+  const markAllAsRead = async () => {
+    if (!token) return
+
+    try {
+      console.log("Marking all notifications as read...")
+      const response = await axios.post(`${url}/api/notification/mark-all-read`, {}, { headers: { token } })
+
+      console.log("Mark all as read response:", response.data)
+
+      if (response.data.success) {
+        // Update local state
+        setNotifications((prevNotifications) =>
+          prevNotifications.map((notification) => ({ ...notification, read: true, isRead: true })),
+        )
+        setUnreadCount(0)
+        console.log("All notifications marked as read successfully")
+      } else {
+        console.error("Failed to mark all notifications as read:", response.data.message)
+      }
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error)
+      if (error.response) {
+        console.error("Error response:", error.response.data)
+      }
     }
   }
 
@@ -246,14 +314,18 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
   // Format date
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    try {
+      const date = new Date(dateString)
+      const now = new Date()
+      const diffInMinutes = Math.floor((now - date) / (1000 * 60))
+
+      if (diffInMinutes < 1) return "Vừa xong"
+      if (diffInMinutes < 60) return `${diffInMinutes} phút trước`
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} giờ trước`
+      return `${Math.floor(diffInMinutes / 1440)} ngày trước`
+    } catch (error) {
+      return "Không xác định"
+    }
   }
 
   // Navigation items
@@ -309,7 +381,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <div className="bg-gradient-to-r from-primary to-primary-dark p-2 rounded-xl group-hover:scale-110 transition-transform duration-300">
-            <svg
+              <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
                 height="24"
@@ -371,6 +443,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                   onClick={() => {
                     setNotificationsOpen(!notificationsOpen)
                     if (!notificationsOpen) {
+                      console.log("Opening notifications dropdown, refreshing...")
                       fetchNotifications() // Refresh notifications when opening
                     }
                   }}
@@ -392,52 +465,74 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700 py-2 z-10 max-h-96 overflow-y-auto"
+                      className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl rounded-xl shadow-2xl border border-slate-700 py-2 z-10 max-h-96 overflow-hidden"
                     >
                       <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-                        <h3 className="font-medium text-white">Thông báo</h3>
-                        {loadingNotifications && (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        )}
-                      </div>
-                      {notifications.length > 0 ? (
-                        <div>
-                          {notifications.map((notification) => (
-                            <div
-                              key={notification._id}
-                              className={`px-4 py-3 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                !notification.read && !notification.isRead ? "bg-blue-500/10" : ""
-                              }`}
-                              onClick={() => markAsRead(notification._id)}
+                        <h3 className="font-medium text-white">Thông báo ({unreadCount})</h3>
+                        <div className="flex items-center space-x-2">
+                          {unreadCount > 0 && (
+                            <button
+                              onClick={markAllAsRead}
+                              className="text-xs text-primary hover:text-primary/80 flex items-center"
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <h4
-                                  className={`font-medium text-sm ${!notification.read && !notification.isRead ? "text-primary" : "text-white"}`}
-                                >
-                                  {notification.title}
-                                </h4>
-                                <span
-                                  className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeStyle(notification.type)}`}
-                                >
-                                  {getNotificationTypeLabel(notification.type)}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-300 mb-1">{notification.message}</p>
-                              <div className="flex items-center justify-between">
-                                <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
-                                {notification.createdBy && (
-                                  <p className="text-xs text-gray-500">bởi {notification.createdBy}</p>
+                              <CheckCheck size={14} className="mr-1" />
+                              Đọc tất cả
+                            </button>
+                          )}
+                          {loadingNotifications && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          <div>
+                            {notifications.map((notification) => (
+                              <div
+                                key={notification._id}
+                                className={`px-4 py-3 border-b border-slate-700 hover:bg-slate-700/50 cursor-pointer transition-colors ${
+                                  !notification.read && !notification.isRead ? "bg-blue-500/10" : ""
+                                }`}
+                                onClick={() =>
+                                  !notification.read && !notification.isRead && markAsRead(notification._id)
+                                }
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <h4
+                                    className={`font-medium text-sm ${
+                                      !notification.read && !notification.isRead ? "text-primary" : "text-white"
+                                    }`}
+                                  >
+                                    {notification.title}
+                                  </h4>
+                                  <span
+                                    className={`text-xs px-2 py-0.5 rounded-full ${getNotificationTypeStyle(
+                                      notification.type,
+                                    )}`}
+                                  >
+                                    {getNotificationTypeLabel(notification.type)}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-300 mb-1">{notification.message}</p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
+                                  {notification.createdBy && (
+                                    <p className="text-xs text-gray-500">bởi {notification.createdBy}</p>
+                                  )}
+                                </div>
+                                {!notification.read && !notification.isRead && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                                 )}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="px-4 py-6 text-center text-gray-400">
-                          <Bell size={24} className="mx-auto mb-2 opacity-50" />
-                          <p>Không có thông báo nào</p>
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="px-4 py-6 text-center text-gray-400">
+                            <Bell size={24} className="mx-auto mb-2 opacity-50" />
+                            <p>Không có thông báo nào</p>
+                          </div>
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -530,10 +625,9 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                         <History size={16} className="mr-3" />
                         Lịch sử mua hàng
                       </Link>
-                      {/* New: Change Password option */}
                       <button
                         onClick={() => {
-                          setShowChangePasswordModal(true) // Use prop to show modal
+                          setShowChangePasswordModal(true)
                           setDropdownOpen(false)
                         }}
                         className="block w-full text-left px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
@@ -644,12 +738,10 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                           Lịch sử mua hàng
                         </Link>
                       </motion.div>
-
-                      {/* New: Change Password option in mobile menu */}
                       <motion.div variants={menuItemVariants} custom={navItems.length + 4}>
                         <button
                           onClick={() => {
-                            setShowChangePasswordModal(true) // Use prop to show modal
+                            setShowChangePasswordModal(true)
                             setMobileMenuOpen(false)
                           }}
                           className="w-full text-left font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] text-white hover:text-primary hover:bg-slate-700/30"
@@ -666,7 +758,6 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
           )}
         </AnimatePresence>
       </div>
-      {/* ChangePasswordModal is now rendered in App.jsx */}
     </header>
   )
 }
