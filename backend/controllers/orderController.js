@@ -205,17 +205,17 @@ const listOrders = async (req, res) => {
       .populate("userId", "name email")
       .populate("voucherId", "code discountType discountValue")
       .sort({ date: -1 })
-    console.log(
-      "Orders from database with shipping info:",
-      orders.map((order) => ({
-        id: order._id,
-        voucherCode: order.voucherCode,
-        discountAmount: order.discountAmount,
-        shippingFee: order.shippingFee,
-        deliveryFee: order.deliveryFee,
-        distance: order.distance,
-      })),
-    ) // Debug log
+    // console.log(
+    //   "Orders from database with shipping info:",
+    //   orders.map((order) => ({
+    //     id: order._id,
+    //     voucherCode: order.voucherCode,
+    //     discountAmount: order.discountAmount,
+    //     shippingFee: order.shippingFee,
+    //     deliveryFee: order.deliveryFee,
+    //     distance: order.distance,
+    //   })),
+    // ) // Debug log
 
     res.json({ success: true, data: orders })
   } catch (error) {

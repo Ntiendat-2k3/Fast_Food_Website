@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react"
 import SuggestedDrinks from "./SuggestedDrinks"
+import SuggestedFoods from "./SuggestedFoods"
 import { useState, useEffect } from "react"
 import axios from "axios"
 
@@ -65,7 +66,7 @@ const SalesCount = ({ productId, url }) => {
     const fetchSalesCount = async () => {
       try {
         const response = await axios.get(`${url}/api/food/sales/${productId}`)
-        console.log("response:",response.data.data)
+        console.log("response:", response.data.data)
         if (response.data.success) {
           setSalesCount(response.data.data.totalSold)
         }
@@ -116,6 +117,9 @@ const ProductInfo = ({
 }) => {
   const isOutOfStock = stock <= 0
   const isLowStock = stock > 0 && stock <= 20 // Changed from 10 to 20
+
+  // Check if current product is a drink
+  const isDrink = product && product.category && product.category.toLowerCase().includes("uống")
 
   return (
     <div className="space-y-6">
@@ -257,15 +261,31 @@ const ProductInfo = ({
         </motion.button>
       </motion.div>
 
-      {product.category !== "Đồ uống" && suggestedDrinks && suggestedDrinks.length > 0 && (
+      {/* Conditional Suggestions */}
+      {isDrink ? (
+        // If it's a drink, show suggested foods
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.75 }}
           className="mt-6 pt-6 border-t border-slate-700"
         >
-          <SuggestedDrinks productCategory={product.category} isCompact={true} />
+          <SuggestedFoods drinkName={product.name} isCompact={true} />
         </motion.div>
+      ) : (
+        // If it's food, show suggested drinks
+        product.category !== "Đồ uống" &&
+        suggestedDrinks &&
+        suggestedDrinks.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.75 }}
+            className="mt-6 pt-6 border-t border-slate-700"
+          >
+            <SuggestedDrinks productCategory={product.category} isCompact={true} />
+          </motion.div>
+        )
       )}
 
       {/* Features */}
