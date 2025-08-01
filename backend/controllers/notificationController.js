@@ -160,8 +160,23 @@ const markAsRead = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
     }
 
-    // Find notification and verify it belongs to the user
-    const notification = await notificationModel.findOne({ _id: id, userId: userId })
+    // Get user info to check role
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
+    }
+
+    let notification
+
+    // If user is admin or staff, they can mark any notification as read
+    if (user.role === "admin" || user.role === "staff") {
+      notification = await notificationModel.findById(id)
+      console.log("Admin/Staff marking notification as read:", id)
+    } else {
+      // Regular users can only mark their own notifications
+      notification = await notificationModel.findOne({ _id: id, userId: userId })
+      console.log("User marking own notification as read:", id)
+    }
 
     if (!notification) {
       return res.json({ success: false, message: "Không tìm thấy thông báo hoặc bạn không có quyền truy cập" })
@@ -247,6 +262,71 @@ const deleteNotification = async (req, res) => {
   }
 }
 
+// Delete multiple notifications
+const deleteMultipleNotifications = async (req, res) => {
+  try {
+    const { ids } = req.body
+    console.log("Deleting multiple notifications:", ids, "by user:", req.userId)
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.json({ success: false, message: "Thiếu danh sách ID thông báo" })
+    }
+
+    const result = await notificationModel.deleteMany({ _id: { $in: ids } })
+
+    console.log(`Deleted ${result.deletedCount} notifications successfully`)
+
+    res.json({
+      success: true,
+      message: `Đã xóa ${result.deletedCount} thông báo thành công`,
+      deletedCount: result.deletedCount,
+    })
+  } catch (error) {
+    console.error("Error deleting multiple notifications:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
+// Delete all notifications (admin only)
+const deleteAllNotifications = async (req, res) => {
+  try {
+    const { type } = req.body // "all", "orders", "created"
+    console.log("Deleting all notifications, type:", type, "by user:", req.userId)
+
+    let deleteQuery = {}
+
+    if (type === "orders") {
+      // Delete only order notifications
+      deleteQuery = {
+        $or: [{ title: { $regex: /đơn hàng|order/i } }, { message: { $regex: /đơn hàng|order/i } }, { type: "order" }],
+      }
+    } else if (type === "created") {
+      // Delete only created notifications (not order notifications)
+      deleteQuery = {
+        $and: [
+          { title: { $not: { $regex: /đơn hàng|order/i } } },
+          { message: { $not: { $regex: /đơn hàng|order/i } } },
+          { type: { $ne: "order" } },
+        ],
+      }
+    }
+    // If type is "all" or undefined, deleteQuery remains {} (delete all)
+
+    const result = await notificationModel.deleteMany(deleteQuery)
+
+    console.log(`Deleted ${result.deletedCount} notifications of type: ${type || "all"}`)
+
+    res.json({
+      success: true,
+      message: `Đã xóa ${result.deletedCount} thông báo thành công`,
+      deletedCount: result.deletedCount,
+    })
+  } catch (error) {
+    console.error("Error deleting all notifications:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
 // Get unread count
 const getUnreadCount = async (req, res) => {
   try {
@@ -279,5 +359,7 @@ export {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  deleteMultipleNotifications,
+  deleteAllNotifications,
   getUnreadCount,
 }

@@ -84,13 +84,18 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
       console.log("Notifications response:", response.data)
 
       if (response.data.success) {
-        setNotifications(response.data.data || [])
-        // Count unread notifications
-        const unread = (response.data.data || []).filter(
-          (notification) => !notification.read && !notification.isRead,
-        ).length
+        // Filter notifications to only show those created by admin
+        const adminNotifications = (response.data.data || []).filter(
+          (notification) => notification.createdBy === "admin",
+        )
+
+        setNotifications(adminNotifications)
+        // Count unread notifications from admin notifications only
+        const unread = adminNotifications.filter((notification) => !notification.read && !notification.isRead).length
         setUnreadCount(unread)
-        console.log(`Loaded ${response.data.data?.length || 0} notifications, ${unread} unread`)
+        console.log(
+          `Loaded ${adminNotifications.length} admin notifications (${response.data.data?.length || 0} total), ${unread} unread`,
+        )
       } else {
         console.error("Failed to fetch notifications:", response.data.message)
         setNotifications([])
