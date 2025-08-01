@@ -285,18 +285,15 @@ const StoreContextProvider = (props) => {
   // Fetch user notifications
   const fetchNotifications = async (page = 1, limit = 20) => {
     if (!token) {
-      console.log("No token available for fetching notifications in context")
       return null
     }
 
     setIsLoadingNotifications(true)
     try {
-      console.log("Context: Fetching notifications with token...")
       const response = await axios.get(`${url}/api/notification/list?page=${page}&limit=${limit}`, {
         headers: { token },
       })
 
-      console.log("Context: Notifications response:", response.data)
 
       if (response.data.success) {
         setNotifications(response.data.data || [])
@@ -321,17 +318,14 @@ const StoreContextProvider = (props) => {
   // Fetch unread notification count
   const fetchUnreadCount = async () => {
     if (!token) {
-      console.log("No token available for fetching unread count in context")
       return 0
     }
 
     try {
-      console.log("Context: Fetching unread count...")
       const response = await axios.get(`${url}/api/notification/unread-count`, {
         headers: { token },
       })
 
-      console.log("Context: Unread count response:", response.data)
 
       if (response.data.success) {
         const count = response.data.data.count || 0
@@ -355,19 +349,18 @@ const StoreContextProvider = (props) => {
   // Mark notification as read
   const markNotificationAsRead = async (notificationId) => {
     if (!token) {
-      console.log("No token available for marking notification as read")
       return false
     }
 
     try {
-      console.log("Context: Marking notification as read:", notificationId)
+      // console.log("Context: Marking notification as read:", notificationId)
       const response = await axios.post(
         `${url}/api/notification/read`,
         { id: notificationId, read: true },
         { headers: { token } },
       )
 
-      console.log("Context: Mark as read response:", response.data)
+      // console.log("Context: Mark as read response:", response.data)
 
       if (response.data.success) {
         // Update local notifications state
@@ -428,11 +421,10 @@ const StoreContextProvider = (props) => {
   // Fetch notifications when user logs in
   useEffect(() => {
     if (token && user) {
-      console.log("Context: User logged in, fetching notifications for:", user.name)
+      // console.log("Context: User logged in, fetching notifications for:", user.name)
       fetchNotifications()
       fetchUnreadCount()
     } else {
-      console.log("Context: No token or user, clearing notifications")
       setNotifications([])
       setUnreadCount(0)
     }

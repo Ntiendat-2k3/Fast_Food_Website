@@ -257,14 +257,33 @@ const getCommentsByFood = async (req, res) => {
   try {
     const { foodId } = req.params
 
+    console.log("=== BACKEND: Getting comments for foodId:", foodId)
+
     if (!mongoose.Types.ObjectId.isValid(foodId)) {
+      console.log("Invalid foodId format")
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
     }
 
+    // Kiểm tra xem food có tồn tại không
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      console.log("Food not found in database")
+      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+    }
+    console.log("Food found:", food.name)
+
+    // Lấy tất cả comments cho foodId này
+    const allComments = await commentModel.find({ foodId })
+    console.log("Total comments found (all):", allComments.length)
+
+    // Lấy chỉ comments đã được approve
     const ratings = await commentModel
       .find({ foodId, isApproved: true })
       .populate("userId", "name email")
       .sort({ createdAt: -1 })
+
+    console.log("Approved comments found:", ratings.length)
+    console.log("Sample comment data:", ratings.length > 0 ? ratings[0] : "No comments")
 
     const formattedRatings = ratings.map((rating) => ({
       _id: rating._id,
@@ -278,8 +297,7 @@ const getCommentsByFood = async (req, res) => {
       adminReplyAt: rating.adminReplyAt,
     }))
 
-    console.log(formattedRatings);
-
+    console.log("Formatted ratings:", formattedRatings.length)
 
     res.json({ success: true, data: formattedRatings })
   } catch (error) {
@@ -648,6 +666,64 @@ const debugUserOrders = async (req, res) => {
   }
 }
 
+// Thêm function để tạo comment test
+const createTestComment = async (req, res) => {
+  try {
+    const { foodId } = req.body
+
+    console.log("Creating test comment for foodId:", foodId)
+
+    if (!mongoose.Types.ObjectId.isValid(foodId)) {
+      return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
+    }
+
+    // Kiểm tra food có tồn tại không
+    const food = await foodModel.findById(foodId)
+    if (!food) {
+      return res.json({ success: false, message: "Không tìm thấy sản phẩm" })
+    }
+
+    // Tạo một user test hoặc lấy user đầu tiên
+    const testUser = await userModel.findOne()
+    if (!testUser) {
+      return res.json({ success: false, message: "Không tìm thấy user nào trong hệ thống" })
+    }
+
+    // Tạo comment test
+    const testComment = new commentModel({
+      userId: testUser._id,
+      foodId: foodId,
+      rating: 5,
+      comment: "Đây là comment test để kiểm tra hệ thống đánh giá. Sản phẩm rất ngon và chất lượng!",
+      userName: testUser.name,
+      isApproved: true,
+    })
+
+    const savedComment = await testComment.save()
+    console.log("Test comment created:", savedComment._id)
+
+    res.json({
+      success: true,
+      message: "Tạo comment test thành công",
+      data: savedComment,
+    })
+  } catch (error) {
+    console.error("Error creating test comment:", error)
+
+    if (error.code === 11000) {
+      return res.json({
+        success: false,
+        message: "User này đã có comment cho sản phẩm này rồi",
+      })
+    }
+
+    res.json({
+      success: false,
+      message: "Lỗi khi tạo comment test: " + error.message,
+    })
+  }
+}
+
 export {
   addComment,
   getCommentsByFood,
@@ -659,4 +735,5 @@ export {
   deleteComment,
   replyToComment,
   debugUserOrders,
+  createTestComment,
 }

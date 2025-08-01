@@ -10,9 +10,6 @@ const ReviewsList = ({ foodId, url, refreshTrigger }) => {
   const [loading, setLoading] = useState(true)
   const [showAllReviews, setShowAllReviews] = useState(false)
 
-  console.log(reviews);
-
-
   useEffect(() => {
     if (foodId) {
       fetchReviews()
@@ -22,14 +19,18 @@ const ReviewsList = ({ foodId, url, refreshTrigger }) => {
 
   const fetchReviews = async () => {
     try {
+      console.log("Fetching reviews for foodId:", foodId)
       const response = await fetch(`${url}/api/comment/food/${foodId}`)
       const data = await response.json()
+
+      console.log("Reviews API response:", data)
 
       if (data.success) {
         const sortedReviews = data.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         setReviews(sortedReviews)
-        console.log("Fetched reviews:", sortedReviews)
+        console.log("Reviews set:", sortedReviews.length)
       } else {
+        console.log("No reviews found or API error:", data.message)
         setReviews([])
       }
     } catch (error) {
@@ -40,10 +41,15 @@ const ReviewsList = ({ foodId, url, refreshTrigger }) => {
 
   const fetchStats = async () => {
     try {
+      console.log("Fetching stats for foodId:", foodId)
       const response = await fetch(`${url}/api/comment/food/${foodId}/stats`)
       const data = await response.json()
+
+      console.log("Stats API response:", data)
+
       if (data.success) {
         setStats(data.data)
+        console.log("Stats set:", data.data)
       }
     } catch (error) {
       console.error("Error fetching stats:", error)

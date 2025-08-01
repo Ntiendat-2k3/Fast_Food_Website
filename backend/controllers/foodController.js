@@ -234,15 +234,15 @@ const getSuggestedDrinks = async (req, res) => {
   try {
     const { category } = req.params
 
-    console.log(`🔍 Getting suggested drinks for category: ${category}`)
+    // console.log(`🔍 Getting suggested drinks for category: ${category}`)
 
     // Get all available categories for debugging
     const allCategories = await foodModel.distinct("category")
-    console.log("📂 Available categories:", allCategories)
+    // console.log("📂 Available categories:", allCategories)
 
     // Find all foods in the specified category
     const categoryFoods = await foodModel.find({ category: category })
-    console.log(`🍔 Found ${categoryFoods.length} foods in category "${category}"`)
+    // console.log(`🍔 Found ${categoryFoods.length} foods in category "${category}"`)
 
     if (categoryFoods.length === 0) {
       return res.json({
@@ -253,14 +253,14 @@ const getSuggestedDrinks = async (req, res) => {
     }
 
     const categoryFoodNames = categoryFoods.map((food) => food.name)
-    console.log("📝 Category food names:", categoryFoodNames)
+    // console.log("📝 Category food names:", categoryFoodNames)
 
     // Find orders that contain items from this category
     const ordersWithCategory = await orderModel.find({
       "items.name": { $in: categoryFoodNames },
     })
 
-    console.log(`📦 Found ${ordersWithCategory.length} orders with ${category} items`)
+    // console.log(`📦 Found ${ordersWithCategory.length} orders with ${category} items`)
 
     if (ordersWithCategory.length === 0) {
       // Fallback: return random drinks
@@ -275,7 +275,7 @@ const getSuggestedDrinks = async (req, res) => {
     // Get all actual drinks from database
     const allDrinks = await foodModel.find({ category: "Đồ uống" })
     const drinkNames = allDrinks.map((drink) => drink.name)
-    console.log("🥤 Available drinks:", drinkNames)
+    // console.log("🥤 Available drinks:", drinkNames)
 
     // Count drink occurrences in orders that contain the target category
     const drinkCount = {}
@@ -289,7 +289,7 @@ const getSuggestedDrinks = async (req, res) => {
       })
     })
 
-    console.log("🥤 Drink counts:", drinkCount)
+    // console.log("🥤 Drink counts:", drinkCount)
 
     // Get the actual drink objects and add purchase count
     const suggestedDrinks = allDrinks
@@ -301,7 +301,7 @@ const getSuggestedDrinks = async (req, res) => {
       .sort((a, b) => b.purchaseCount - a.purchaseCount)
       .slice(0, 6) // Limit to top 6
 
-    console.log(`✅ Returning ${suggestedDrinks.length} suggested drinks`)
+    // console.log(`✅ Returning ${suggestedDrinks.length} suggested drinks`)
 
     // If no drinks found based on history, return random drinks
     if (suggestedDrinks.length === 0) {
@@ -325,11 +325,11 @@ const getSuggestedFoods = async (req, res) => {
   try {
     const { drinkName } = req.params
 
-    console.log(`🔍 Getting suggested foods for drink: ${drinkName}`)
+    // console.log(`🔍 Getting suggested foods for drink: ${drinkName}`)
 
     // First, get all available categories to understand the data structure
     const allCategories = await foodModel.distinct("category")
-    console.log("📂 All available categories:", allCategories)
+    // console.log("📂 All available categories:", allCategories)
 
     // Try to find the drink with flexible search (case insensitive, partial match)
     let drink = await foodModel.findOne({
@@ -349,31 +349,31 @@ const getSuggestedFoods = async (req, res) => {
         category: "Đồ uống",
         name: { $regex: drinkName, $options: "i" },
       })
-      console.log(
-        `🔍 Found ${possibleDrinks.length} possible drinks:`,
-        possibleDrinks.map((d) => d.name),
-      )
+      // console.log(
+      //   // `🔍 Found ${possibleDrinks.length} possible drinks:`,
+      //   possibleDrinks.map((d) => d.name),
+      // )
       if (possibleDrinks.length > 0) {
         drink = possibleDrinks[0] // Take the first match
       }
     }
 
-    console.log(`🥤 Drink search result:`, drink ? `Found "${drink.name}" in category: ${drink.category}` : "Not found")
+    // console.log(`🥤 Drink search result:`, drink ? `Found "${drink.name}" in category: ${drink.category}` : "Not found")
 
     // Find orders that contain this drink name (use the original search term from orders)
     const ordersWithDrink = await orderModel.find({
       "items.name": { $regex: drinkName, $options: "i" },
     })
 
-    console.log(`📦 Found ${ordersWithDrink.length} orders with drink pattern "${drinkName}"`)
+    // console.log(`📦 Found ${ordersWithDrink.length} orders with drink pattern "${drinkName}"`)
 
     // Get sample order items for debugging
     if (ordersWithDrink.length > 0) {
       const sampleOrder = ordersWithDrink[0]
-      console.log(
-        `📋 Sample order items:`,
-        sampleOrder.items.map((item) => item.name),
-      )
+      // console.log(
+      //   `📋 Sample order items:`,
+      //   sampleOrder.items.map((item) => item.name),
+      // )
     }
 
     if (ordersWithDrink.length === 0) {
@@ -385,7 +385,7 @@ const getSuggestedFoods = async (req, res) => {
         })
         .limit(4)
 
-      console.log(`🔄 Fallback: returning ${randomFoods.length} random foods`)
+      // console.log(`🔄 Fallback: returning ${randomFoods.length} random foods`)
       return res.json({
         success: true,
         data: randomFoods,
@@ -399,7 +399,7 @@ const getSuggestedFoods = async (req, res) => {
       category: { $nin: drinkCategories },
     })
 
-    console.log(`🍔 Found ${allFoods.length} foods (excluding drinks)`)
+    // console.log(`🍔 Found ${allFoods.length} foods (excluding drinks)`)
 
     // Create a map of food names for quick lookup
     const foodNamesSet = new Set(allFoods.map((food) => food.name))
@@ -408,19 +408,19 @@ const getSuggestedFoods = async (req, res) => {
     const foodCount = {}
 
     ordersWithDrink.forEach((order) => {
-      console.log(`📋 Processing order ${order._id} with ${order.items.length} items`)
+      // console.log(`📋 Processing order ${order._id} with ${order.items.length} items`)
 
       order.items.forEach((item) => {
         // Only count if the item is actually a food (not the drink itself and exists in foods)
         const isDrinkItem = item.name.toLowerCase().includes(drinkName.toLowerCase())
         if (foodNamesSet.has(item.name) && !isDrinkItem) {
           foodCount[item.name] = (foodCount[item.name] || 0) + (item.quantity || 1)
-          console.log(`  ➕ Added ${item.quantity || 1} of "${item.name}" (total: ${foodCount[item.name]})`)
+          // console.log(`  ➕ Added ${item.quantity || 1} of "${item.name}" (total: ${foodCount[item.name]})`)
         }
       })
     })
 
-    console.log("🍔 Final food counts:", foodCount)
+    // console.log("🍔 Final food counts:", foodCount)
 
     // Get the actual food objects and add purchase count
     const suggestedFoods = allFoods
@@ -432,7 +432,7 @@ const getSuggestedFoods = async (req, res) => {
       .sort((a, b) => b.purchaseCount - a.purchaseCount)
       .slice(0, 6) // Limit to top 6
 
-    console.log(`✅ Returning ${suggestedFoods.length} suggested foods`)
+    // console.log(`✅ Returning ${suggestedFoods.length} suggested foods`)
 
     // If no foods found based on history, return random foods
     if (suggestedFoods.length === 0) {
@@ -442,7 +442,7 @@ const getSuggestedFoods = async (req, res) => {
         })
         .limit(4)
 
-      console.log(`🔄 No suggestions found, returning ${randomFoods.length} random foods`)
+      // console.log(`🔄 No suggestions found, returning ${randomFoods.length} random foods`)
       return res.json({
         success: true,
         data: randomFoods,

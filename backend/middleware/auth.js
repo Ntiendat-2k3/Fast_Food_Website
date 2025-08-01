@@ -21,10 +21,10 @@ const authMiddleware = async (req, res, next) => {
 const requireSignIn = async (req, res, next) => {
   try {
     let token = req.headers.authorization || req.headers.token
-    console.log("Auth middleware - token received:", token ? "Yes" : "No")
+    // console.log("Auth middleware - token received:", token ? "Yes" : "No")
 
     if (!token) {
-      console.log("No token provided")
+      // console.log("No token provided")
       return res.json({ success: false, message: "Authorization token required" })
     }
 
@@ -33,24 +33,24 @@ const requireSignIn = async (req, res, next) => {
       token = token.slice(7)
     }
 
-    console.log("Decoding token...")
+    // console.log("Decoding token...")
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    console.log("Token decoded successfully, user ID:", decoded.id, "role:", decoded.role)
+    // console.log("Token decoded successfully, user ID:", decoded.id, "role:", decoded.role)
 
     const user = await userModel.findById(decoded.id).select("-password")
     if (!user) {
-      console.log("User not found in database")
+      // console.log("User not found in database")
       return res.json({ success: false, message: "User not found" })
     }
 
-    console.log("User found:", { id: user._id, name: user.name, role: user.role })
+    // console.log("User found:", { id: user._id, name: user.name, role: user.role })
 
     // Set both req.user and req.userId for compatibility
     req.user = user
     req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role
 
-    console.log("Auth middleware completed - userId set to:", req.userId)
+    // console.log("Auth middleware completed - userId set to:", req.userId)
     next()
   } catch (error) {
     console.error("Auth middleware error:", error.message)
@@ -61,12 +61,12 @@ const requireSignIn = async (req, res, next) => {
 // Admin verification
 const isAdmin = (req, res, next) => {
   try {
-    console.log("Admin check - user role:", req.user?.role)
+    // console.log("Admin check - user role:", req.user?.role)
     if (req.user && req.user.role === "admin") {
-      console.log("Admin access granted")
+      // console.log("Admin access granted")
       next()
     } else {
-      console.log("Admin access denied - user role:", req.user?.role)
+      // console.log("Admin access denied - user role:", req.user?.role)
       return res.json({ success: false, message: "Admin access required" })
     }
   } catch (error) {
@@ -78,12 +78,12 @@ const isAdmin = (req, res, next) => {
 // Staff or Admin verification
 const isStaffOrAdmin = (req, res, next) => {
   try {
-    console.log("Staff/Admin check - user role:", req.user?.role)
+    // console.log("Staff/Admin check - user role:", req.user?.role)
     if (req.user && (req.user.role === "admin" || req.user.role === "staff")) {
-      console.log("Staff/Admin access granted")
+      // console.log("Staff/Admin access granted")
       next()
     } else {
-      console.log("Staff/Admin access denied - user role:", req.user?.role)
+      // console.log("Staff/Admin access denied - user role:", req.user?.role)
       return res.json({ success: false, message: "Access denied. Admin or staff role required." })
     }
   } catch (error) {
@@ -96,7 +96,7 @@ const isStaffOrAdmin = (req, res, next) => {
 const verifyAdmin = async (req, res, next) => {
   try {
     let token = req.headers.authorization || req.headers.token
-    console.log("Admin verification - token received:", token ? "Yes" : "No")
+    // console.log("Admin verification - token received:", token ? "Yes" : "No")
 
     if (!token) {
       return res.json({ success: false, message: "Authorization token required" })
@@ -108,15 +108,15 @@ const verifyAdmin = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    console.log("Admin verification - decoded role:", decoded.role)
+    // console.log("Admin verification - decoded role:", decoded.role)
 
     const user = await userModel.findById(decoded.id).select("-password")
     if (!user || user.role !== "admin") {
-      console.log("Admin verification failed - user role:", user?.role)
+      // console.log("Admin verification failed - user role:", user?.role)
       return res.json({ success: false, message: "Admin access required" })
     }
 
-    console.log("Admin verification successful")
+    // console.log("Admin verification successful")
     req.user = user
     req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role
@@ -131,7 +131,7 @@ const verifyAdmin = async (req, res, next) => {
 const verifyStaffOrAdmin = async (req, res, next) => {
   try {
     let token = req.headers.authorization || req.headers.token
-    console.log("Staff/Admin verification - token received:", token ? "Yes" : "No")
+    // console.log("Staff/Admin verification - token received:", token ? "Yes" : "No")
 
     if (!token) {
       return res.json({ success: false, message: "Authorization token required" })
@@ -143,15 +143,15 @@ const verifyStaffOrAdmin = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
-    console.log("Staff/Admin verification - decoded role:", decoded.role)
+    // console.log("Staff/Admin verification - decoded role:", decoded.role)
 
     const user = await userModel.findById(decoded.id).select("-password")
     if (!user || (user.role !== "admin" && user.role !== "staff")) {
-      console.log("Staff/Admin verification failed - user role:", user?.role)
+      // console.log("Staff/Admin verification failed - user role:", user?.role)
       return res.json({ success: false, message: "Access denied. Admin or staff role required." })
     }
 
-    console.log("Staff/Admin verification successful")
+    // console.log("Staff/Admin verification successful")
     req.user = user
     req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role

@@ -70,18 +70,18 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
   // Fetch notifications
   const fetchNotifications = async () => {
     if (!token) {
-      console.log("No token available for fetching notifications")
+      // console.log("No token available for fetching notifications")
       return
     }
 
     setLoadingNotifications(true)
     try {
-      console.log("Fetching notifications with token...")
+      // console.log("Fetching notifications with token...")
       const response = await axios.get(`${url}/api/notification/list?page=1&limit=20`, {
         headers: { token },
       })
 
-      console.log("Notifications response:", response.data)
+      // console.log("Notifications response:", response.data)
 
       if (response.data.success) {
         // Filter notifications to only show those created by admin
@@ -93,9 +93,9 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
         // Count unread notifications from admin notifications only
         const unread = adminNotifications.filter((notification) => !notification.read && !notification.isRead).length
         setUnreadCount(unread)
-        console.log(
-          `Loaded ${adminNotifications.length} admin notifications (${response.data.data?.length || 0} total), ${unread} unread`,
-        )
+        // console.log(
+        //   `Loaded ${adminNotifications.length} admin notifications (${response.data.data?.length || 0} total), ${unread} unread`,
+        // )
       } else {
         console.error("Failed to fetch notifications:", response.data.message)
         setNotifications([])
@@ -116,21 +116,20 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
   // Fetch unread count
   const fetchUnreadCount = async () => {
     if (!token) {
-      console.log("No token available for fetching unread count")
+      // console.log("No token available for fetching unread count")
       return
     }
 
     try {
-      console.log("Fetching unread count...")
       const response = await axios.get(`${url}/api/notification/unread-count`, {
         headers: { token },
       })
 
-      console.log("Unread count response:", response.data)
+      // console.log("Unread count response:", response.data)
 
       if (response.data.success) {
         setUnreadCount(response.data.data.count || 0)
-        console.log("Unread count:", response.data.data.count)
+        // console.log("Unread count:", response.data.data.count)
       } else {
         console.error("Failed to fetch unread count:", response.data.message)
         setUnreadCount(0)
@@ -147,19 +146,17 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
   // Fetch notifications when component mounts and token changes
   useEffect(() => {
     if (token && user) {
-      console.log("User logged in, fetching notifications for user:", user.name)
+      // console.log("User logged in, fetching notifications for user:", user.name)
       fetchNotifications()
       fetchUnreadCount()
 
       // Set up polling to check for new notifications every 30 seconds
       const intervalId = setInterval(() => {
-        console.log("Polling for new notifications...")
         fetchNotifications()
         fetchUnreadCount()
       }, 30000)
 
       return () => {
-        console.log("Clearing notification polling interval")
         clearInterval(intervalId)
       }
     } else {
@@ -200,14 +197,14 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
     if (!token) return
 
     try {
-      console.log("Marking notification as read:", notificationId)
+      // console.log("Marking notification as read:", notificationId)
       const response = await axios.post(
         `${url}/api/notification/read`,
         { id: notificationId, read: true },
         { headers: { token } },
       )
 
-      console.log("Mark as read response:", response.data)
+      // console.log("Mark as read response:", response.data)
 
       if (response.data.success) {
         // Update local state
@@ -219,7 +216,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
 
         // Update unread count
         setUnreadCount((prev) => Math.max(0, prev - 1))
-        console.log("Notification marked as read successfully")
+        // console.log("Notification marked as read successfully")
       } else {
         console.error("Failed to mark notification as read:", response.data.message)
       }
@@ -235,10 +232,10 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
     if (!token) return
 
     try {
-      console.log("Marking all notifications as read...")
+      // console.log("Marking all notifications as read...")
       const response = await axios.post(`${url}/api/notification/mark-all-read`, {}, { headers: { token } })
 
-      console.log("Mark all as read response:", response.data)
+      // console.log("Mark all as read response:", response.data)
 
       if (response.data.success) {
         // Update local state
@@ -246,7 +243,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
           prevNotifications.map((notification) => ({ ...notification, read: true, isRead: true })),
         )
         setUnreadCount(0)
-        console.log("All notifications marked as read successfully")
+        // console.log("All notifications marked as read successfully")
       } else {
         console.error("Failed to mark all notifications as read:", response.data.message)
       }
@@ -448,7 +445,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                   onClick={() => {
                     setNotificationsOpen(!notificationsOpen)
                     if (!notificationsOpen) {
-                      console.log("Opening notifications dropdown, refreshing...")
+
                       fetchNotifications() // Refresh notifications when opening
                     }
                   }}

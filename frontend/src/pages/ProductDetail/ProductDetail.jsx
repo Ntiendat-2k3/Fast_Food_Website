@@ -51,6 +51,8 @@ const ProductDetail = () => {
     decreaseQuantity,
     toggleWishlist,
   } = useProductDetail(slug);
+  console.log(foodItem);
+
 
   // ======= Review Hook =======
   const {
