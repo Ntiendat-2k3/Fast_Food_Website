@@ -1,12 +1,12 @@
-// Cấu hình OpenAI API
 import dotenv from "dotenv"
+
 dotenv.config()
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || null
 
-if (!OPENAI_API_KEY) {
-  console.error("OPENAI_API_KEY không được cấu hình trong biến môi trường!")
-  console.error("Chatbot sẽ hoạt động ở chế độ fallback.")
+// Log để debug (không hiển thị key đầy đủ)
+if (OPENAI_API_KEY) {
+  console.log("✅ OpenAI API Key loaded:", OPENAI_API_KEY.substring(0, 10) + "...")
+} else {
+  console.log("⚠️ OpenAI API Key not found - using fallback mode")
 }
-
-export { OPENAI_API_KEY }

@@ -36,7 +36,7 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ"
   }
 
-  const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 100) + 15
+  // const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 100) + 15
 
   const isInCart = Boolean(cartItems[item.name])
 
@@ -80,7 +80,7 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
               <span className="text-green-400 font-semibold text-sm">{formatPrice(item.price)}</span>
               <span className="text-gray-400 text-xs flex items-center">
                 <Leaf size={8} className="mr-1 text-green-400" />
-                Đã bán {purchaseCount}
+                {/* Đã bán {purchaseCount} */}
               </span>
             </div>
 
