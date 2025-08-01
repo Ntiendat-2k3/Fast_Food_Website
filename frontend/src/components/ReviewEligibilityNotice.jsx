@@ -1,65 +1,99 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { Star, ShoppingCart, User } from "lucide-react"
+import { useContext } from "react"
+import { Star, ShoppingCart, User, CheckCircle } from "lucide-react"
+import { StoreContext } from "../context/StoreContext"
 
-const ReviewEligibilityNotice = ({ type }) => {
-  const getNoticeContent = () => {
-    switch (type) {
-      case "not-logged-in":
-        return {
-          icon: <User size={48} className="text-blue-400" />,
-          title: "Cần đăng nhập để đánh giá",
-          message: "Vui lòng đăng nhập để có thể đánh giá sản phẩm này.",
-          bgColor: "bg-blue-900/30",
-          borderColor: "border-blue-700",
-          textColor: "text-blue-400",
-        }
+const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
+  const { token, user } = useContext(StoreContext)
 
-      case "not-purchased":
-        return {
-          icon: <ShoppingCart size={48} className="text-orange-400" />,
-          title: "Chưa thể đánh giá sản phẩm",
-          message: "Bạn cần mua và hoàn thành đơn hàng chứa sản phẩm này trước khi có thể đánh giá.",
-          bgColor: "bg-orange-900/30",
-          borderColor: "border-orange-700",
-          textColor: "text-orange-400",
-        }
-
-      case "already-reviewed":
-        return {
-          icon: <Star size={48} className="text-green-400 fill-green-400" />,
-          title: "Bạn đã đánh giá sản phẩm này",
-          message: "Cảm ơn bạn đã đánh giá! Bạn có thể chỉnh sửa đánh giá hiện có nếu muốn.",
-          bgColor: "bg-green-900/30",
-          borderColor: "border-green-700",
-          textColor: "text-green-400",
-        }
-
-      default:
-        return {
-          icon: <Star size={48} className="text-gray-400" />,
-          title: "Không thể đánh giá",
-          message: "Hiện tại bạn không thể đánh giá sản phẩm này.",
-          bgColor: "bg-gray-900/30",
-          borderColor: "border-gray-700",
-          textColor: "text-gray-400",
-        }
-    }
+  // Nếu chưa đăng nhập
+  if (!token || !user) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <User className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <div>
+            <h4 className="font-medium text-blue-900">Đăng nhập để đánh giá</h4>
+            <p className="text-sm text-blue-700 mt-1">Vui lòng đăng nhập để có thể viết đánh giá cho sản phẩm này.</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const { icon, title, message, bgColor, borderColor, textColor } = getNoticeContent()
+  // Nếu đã có đánh giá
+  if (eligibility?.hasReviewed && eligibility?.existingReview) {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-medium text-green-900">Bạn đã đánh giá sản phẩm này</h4>
+            <div className="mt-2 bg-white rounded-md p-3 border border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex">
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${
+                        i < eligibility.existingReview.rating ? "text-yellow-400 fill-current" : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-gray-600">{eligibility.existingReview.rating} sao</span>
+              </div>
+              <p className="text-sm text-gray-700">"{eligibility.existingReview.comment}"</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Đánh giá vào {new Date(eligibility.existingReview.createdAt).toLocaleDateString("vi-VN")}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
+  // Nếu có thể đánh giá
+  if (eligibility?.canReview) {
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Star className="w-5 h-5 text-orange-600" />
+            <div>
+              <h4 className="font-medium text-orange-900">Chia sẻ trải nghiệm của bạn</h4>
+              <p className="text-sm text-orange-700 mt-1">
+                Bạn đã mua sản phẩm này. Hãy để lại đánh giá để giúp khách hàng khác!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onWriteReview}
+            className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors flex items-center gap-2 whitespace-nowrap"
+          >
+            <Star className="w-4 h-4" />
+            Viết đánh giá
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Nếu chưa mua hàng
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`${bgColor} ${borderColor} border rounded-lg p-6 text-center`}
-    >
-      <div className="flex justify-center mb-4">{icon}</div>
-      <h3 className={`text-lg font-semibold ${textColor} mb-2`}>{title}</h3>
-      <p className="text-gray-300 text-sm">{message}</p>
-    </motion.div>
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center gap-3">
+        <ShoppingCart className="w-5 h-5 text-gray-600 flex-shrink-0" />
+        <div>
+          <h4 className="font-medium text-gray-900">Mua hàng để đánh giá</h4>
+          <p className="text-sm text-gray-600 mt-1">
+            Bạn cần mua và nhận được sản phẩm này trước khi có thể viết đánh giá.
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 

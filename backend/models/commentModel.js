@@ -11,58 +11,40 @@ const commentSchema = new mongoose.Schema({
     ref: "food",
     required: true,
   },
-  orderId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "order",
-    required: false,
+  userName: {
+    type: String,
+    required: true,
   },
   rating: {
     type: Number,
-    required: true,
     min: 1,
     max: 5,
+    required: true,
   },
   comment: {
     type: String,
     required: true,
     trim: true,
+    minlength: [10, "Nội dung đánh giá phải có ít nhất 10 ký tự"],
+    maxlength: [500, "Nội dung đánh giá không được vượt quá 500 ký tự"],
   },
   images: [
     {
       type: String,
     },
   ],
-  isVerifiedPurchase: {
-    type: Boolean,
-    default: false,
-  },
-  isVisible: {
+  isApproved: {
     type: Boolean,
     default: true,
   },
-  likes: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "user",
-    },
-  ],
-  replies: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
-        required: true,
-      },
-      message: {
-        type: String,
-        required: true,
-      },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      },
-    },
-  ],
+  adminReply: {
+    type: String,
+    default: null,
+  },
+  adminReplyAt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -73,11 +55,14 @@ const commentSchema = new mongoose.Schema({
   },
 })
 
-// Indexes
+// Compound index để đảm bảo user chỉ có thể rating một lần cho mỗi sản phẩm
+commentSchema.index({ userId: 1, foodId: 1 }, { unique: true })
+
+// Indexes for performance
 commentSchema.index({ foodId: 1, createdAt: -1 })
 commentSchema.index({ userId: 1 })
-commentSchema.index({ orderId: 1 })
 commentSchema.index({ rating: 1 })
+commentSchema.index({ isApproved: 1 })
 
 const commentModel = mongoose.models.comment || mongoose.model("comment", commentSchema)
 

@@ -503,7 +503,7 @@ const confirmDelivery = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
     }
 
-    if (order.userId !== userId) {
+    if (order.userId.toString() !== userId.toString()) {
       return res.json({ success: false, message: "Không có quyền thực hiện thao tác này" })
     }
 
@@ -826,7 +826,17 @@ const cancelOrder = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
     }
 
-    if (order.userId !== userId) {
+    console.log("Order found:", {
+      orderId: order._id,
+      orderUserId: order.userId,
+      orderUserIdType: typeof order.userId,
+      requestUserId: userId,
+      requestUserIdType: typeof userId,
+      comparison: order.userId.toString() === userId.toString(),
+    })
+
+    // So sánh userId với toString() để đảm bảo cả ObjectId và string đều được xử lý đúng
+    if (order.userId.toString() !== userId.toString()) {
       return res.json({ success: false, message: "Không có quyền thực hiện thao tác này" })
     }
 
@@ -849,6 +859,54 @@ const cancelOrder = async (req, res) => {
 
     if (!updatedOrder) {
       return res.json({ success: false, message: "Không thể cập nhật đơn hàng" })
+    }
+
+    // Hoàn lại tồn kho cho các sản phẩm trong đơn hàng bị hủy
+    try {
+      const inventoryRestorePromises = order.items.map(async (item) => {
+        const inventory = await inventoryModel.findOne({ foodId: item.foodId })
+
+        if (inventory) {
+          const newQuantity = inventory.quantity + item.quantity
+          let newStatus = "out_of_stock"
+
+          if (newQuantity > 20) {
+            newStatus = "in_stock"
+          } else if (newQuantity > 0) {
+            newStatus = "low_stock"
+          }
+
+          await inventoryModel.findByIdAndUpdate(inventory._id, {
+            quantity: newQuantity,
+            status: newStatus,
+            lastUpdated: new Date(),
+            updatedBy: `cancel_order_${orderId}`,
+          })
+
+          console.log(`Restored inventory for ${item.name}: ${inventory.quantity} -> ${newQuantity}`)
+        } else {
+          console.log(`No inventory found for product: ${item.name}`)
+        }
+      })
+
+      await Promise.all(inventoryRestorePromises)
+      console.log("Inventory restored successfully for cancelled order:", orderId)
+
+      // Emit real-time inventory update
+      if (req.io) {
+        req.io.emit("inventoryUpdated", {
+          orderId: orderId,
+          action: "restored",
+          updatedItems: order.items.map((item) => ({
+            foodId: item.foodId,
+            name: item.name,
+            quantityRestored: item.quantity,
+          })),
+        })
+      }
+    } catch (inventoryError) {
+      console.error("Error restoring inventory:", inventoryError)
+      // Không return error vì đơn hàng đã được hủy thành công
     }
 
     // Tạo notification cho admin
@@ -907,6 +965,7 @@ const cancelOrder = async (req, res) => {
     res.json({ success: false, message: "Lỗi hệ thống khi hủy đơn hàng. Vui lòng thử lại!" })
   }
 }
+
 
 export {
   placeOrder,

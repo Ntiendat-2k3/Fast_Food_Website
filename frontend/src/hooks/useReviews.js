@@ -9,6 +9,8 @@ export const useReviews = (foodItem) => {
   const { url, token, user } = useContext(StoreContext)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [reviews, setReviews] = useState([])
+  console.log("reviews:", reviews);
+
   const [ratingStats, setRatingStats] = useState({
     averageRating: 0,
     totalReviews: 0,

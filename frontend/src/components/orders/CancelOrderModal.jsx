@@ -60,14 +60,15 @@ const CancelOrderModal = ({ isOpen, onClose, onConfirm, isLoading }) => {
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-slate-800 rounded-xl shadow-2xl border border-yellow-500/30 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-slate-800 rounded-xl shadow-2xl border border-yellow-500/30 flex flex-col overflow-hidden"
+              style={{ maxHeight: "90vh" }}
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Header */}
-            <div className="bg-gradient-to-r from-red-500/20 to-red-600/20 px-6 py-4 border-b border-red-500/30">
+            <div className="bg-gradient-to-r from-red-500/20 to-red-600/20 px-6 py-4 border-b border-red-500/30 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-red-500/20 rounded-lg border border-red-500/30">
@@ -88,8 +89,8 @@ const CancelOrderModal = ({ isOpen, onClose, onConfirm, isLoading }) => {
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            {/* Content - Đã sửa để có thể scroll */}
+            <div className="p-6 overflow-y-auto flex-1 min-h-0">
               <div className="space-y-3">
                 {cancelReasons.map((reason, index) => (
                   <label
@@ -151,7 +152,7 @@ const CancelOrderModal = ({ isOpen, onClose, onConfirm, isLoading }) => {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-700/30 border-t border-slate-600/30">
+            <div className="px-6 py-4 bg-slate-700/30 border-t border-slate-600/30 shrink-0">
               <div className="flex gap-3">
                 <button
                   onClick={handleClose}
