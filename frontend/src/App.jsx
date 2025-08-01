@@ -56,7 +56,7 @@ const App = () => {
        {/* Chat button */}
        <button
             onClick={() => setIsChatOpen(true)}
-            className="fixed bottom-6 right-6 bg-gradient-to-r from-orange-500 to-red-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all z-40"
+            className="fixed bottom-6 right-6 bg-gradient-to-r from-green-400 to-green-600 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all z-40"
             aria-label="Open chat assistant"
           >
             <MessageCircle size={24} />

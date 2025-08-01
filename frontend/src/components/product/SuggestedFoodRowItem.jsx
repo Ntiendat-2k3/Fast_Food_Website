@@ -1,111 +1,83 @@
 "use client"
-
-import { useState, useContext } from "react"
 import { motion } from "framer-motion"
-import { StoreContext } from "../../context/StoreContext"
+import { ShoppingCart, Check } from "lucide-react"
 import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
 import { slugify } from "../../utils/slugify"
-import { ShoppingCart, Check } from "lucide-react"
+import { useContext } from "react"
+import { StoreContext } from "../../context/StoreContext"
+import ImageWithFallback from "../ui/ImageWithFallback"
 
-const SuggestedFoodRowItem = ({ item, url, isCompact = false }) => {
-  const { addToCart, cartItems } = useContext(StoreContext)
+const SuggestedFoodRowItem = ({ item, food }) => {
   const navigate = useNavigate()
-  const [imageError, setImageError] = useState(false)
-  const [isAdding, setIsAdding] = useState(false)
+  const { cartItems, addToCart, url } = useContext(StoreContext)
 
-  const handleAddToCart = async (e) => {
+  const foodData = item || food
+
+  if (!foodData) {
+    console.error("❌ SuggestedFoodRowItem: No food data provided")
+    return null
+  }
+
+  const handleAddToCartClick = (e) => {
     e.stopPropagation()
-    setIsAdding(true)
-    try {
-      addToCart(item.name)
-      toast.success(`Đã thêm ${item.name} vào giỏ hàng`)
-    } catch (error) {
-      toast.error("Có lỗi xảy ra khi thêm vào giỏ hàng")
-    } finally {
-      setTimeout(() => setIsAdding(false), 500)
+    addToCart(foodData.name)
+    toast.success(`Đã thêm ${foodData.name} vào giỏ hàng!`, { autoClose: 2000 })
+  }
+
+  const handleItemClick = () => {
+    if (foodData.name) {
+      navigate(`/product/${slugify(foodData.name)}`)
     }
   }
 
-  const handleViewProduct = () => {
-    const slug = slugify(item.name)
-    navigate(`/product/${slug}`)
-  }
-
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ"
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+    }).format(price)
   }
-
-  // Get purchase count with fallback
-  const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 150) + 25
 
   return (
     <motion.div
+      className="flex items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-3 border border-slate-700/50 hover:border-orange-500/50 transition-all duration-300 cursor-pointer group"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ x: 4 }}
-      className="bg-slate-700/30 backdrop-blur-sm rounded-lg p-3 border border-slate-600/50 hover:border-primary/50 transition-all duration-300 cursor-pointer group"
-      onClick={handleViewProduct}
+      transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.02 }}
+      onClick={handleItemClick}
     >
-      <div className="flex items-center gap-3">
-        {/* Product Image */}
-        <div className="relative w-12 h-12 flex-shrink-0">
-          <img
-            src={imageError ? "/placeholder.svg?height=48&width=48&query=food" : `${url}/images/${item.image}`}
-            alt={item.name}
-            className="w-full h-full object-cover rounded-lg"
-            onError={() => setImageError(true)}
+      {/* Image */}
+      <div className="relative flex-shrink-0 mr-3">
+        <div className="w-12 h-12 rounded-lg overflow-hidden">
+          <ImageWithFallback
+            src={url ? `${url}/images/${foodData.image}` : "/placeholder.svg"}
+            alt={foodData.name || "Món ăn"}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           />
         </div>
+      </div>
 
-        {/* Product Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-1">
-            <h5 className="text-white font-medium text-sm group-hover:text-primary transition-colors line-clamp-1">
-              {item.name}
-            </h5>
-            {item.category && (
-              <span className="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-xs font-medium ml-2 flex-shrink-0">
-                {item.category}
-              </span>
-            )}
-          </div>
+      {/* Content */}
+      <div className="flex-grow min-w-0">
+        <h4 className="text-white font-medium text-sm line-clamp-1 group-hover:text-orange-400 transition-colors">
+          {foodData.name || "Tên không xác định"}
+        </h4>
+        <p className="text-orange-400 font-semibold text-sm mt-0.5">{formatPrice(foodData.price)}</p>
+        {foodData.purchaseCount && (
+          <p className="text-slate-400 text-xs mt-0.5">Đã bán {foodData.purchaseCount} lần</p>
+        )}
+      </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-primary font-semibold text-sm">{formatPrice(item.price)}</span>
-              {/* Sales Count */}
-              <span className="text-gray-400 text-xs flex items-center bg-gray-500/10 px-1.5 py-0.5 rounded-full mt-1">
-                Đã bán {purchaseCount}
-              </span>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleAddToCart}
-              disabled={isAdding}
-              className={`p-2 rounded-lg font-medium text-xs transition-all duration-200 ${
-                isAdding
-                  ? "bg-green-600 text-white"
-                  : cartItems[item.name] > 0
-                    ? "bg-green-600 text-white"
-                    : "bg-primary hover:bg-primary/80 text-white hover:shadow-lg"
-              }`}
-            >
-              {isAdding ? (
-                <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : cartItems[item.name] > 0 ? (
-                <div className="flex items-center gap-1">
-                  <Check size={14} />
-                  <span className="text-xs">{cartItems[item.name]}</span>
-                </div>
-              ) : (
-                <ShoppingCart size={14} />
-              )}
-            </motion.button>
-          </div>
-        </div>
+      {/* Add to Cart Button */}
+      <div className="flex-shrink-0 ml-3">
+        <button
+          onClick={handleAddToCartClick}
+          className="bg-yellow-500 hover:bg-yellow-400 text-slate-900 w-8 h-8 rounded-full transition-colors duration-200 flex items-center justify-center shadow-lg"
+          title="Thêm vào giỏ hàng"
+        >
+          {cartItems[foodData.name] ? <Check size={14} /> : <ShoppingCart size={14} />}
+        </button>
       </div>
     </motion.div>
   )

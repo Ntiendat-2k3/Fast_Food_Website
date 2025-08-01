@@ -7,11 +7,7 @@ import { slugify } from "../../utils/slugify"
 
 const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => {
   const navigate = useNavigate()
-
-  // Use either item or drink prop (for backward compatibility)
   const drinkData = item || drink
-
-  // console.log("SuggestedDrinkRowItem props:", { item, drink, drinkData })
 
   if (!drinkData) {
     console.error("❌ SuggestedDrinkRowItem: No drink data provided")
@@ -24,7 +20,6 @@ const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => 
 
   const handleAddToCartClick = (e) => {
     e.stopPropagation()
-
     if (onAddToCart) {
       onAddToCart(drinkData.name)
     } else if (addToCart) {
@@ -44,35 +39,39 @@ const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => 
 
   return (
     <motion.div
-      className="flex items-center bg-slate-800/50 backdrop-blur-xl rounded-lg p-3 border border-slate-700 hover:border-primary/50 transition-all duration-300 cursor-pointer"
+      className="flex items-center bg-slate-800/50 backdrop-blur-xl rounded-md p-2 border border-slate-700 hover:border-primary/50 transition-all duration-300 cursor-pointer"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
-      whileHover={{ x: 5 }}
+      whileHover={{ x: 3 }}
       onClick={handleItemClick}
     >
       <img
         src={url ? `${url}/images/${drinkData.image}` : "/placeholder.svg"}
         alt={drinkData.name || "Đồ uống"}
-        className="w-16 h-16 object-cover rounded-md mr-4 flex-shrink-0"
+        className="w-12 h-12 object-cover rounded-md mr-3 flex-shrink-0"
         onError={(e) => {
-          e.target.src = "/placeholder.svg?height=64&width=64"
+          e.target.src = "/placeholder.svg?height=48&width=48"
         }}
       />
       <div className="flex-grow">
-        <h4 className="text-lg font-semibold text-white line-clamp-1">{drinkData.name || "Tên không xác định"}</h4>
-        <p className="text-primary font-bold text-md mt-1">
+        <h4 className="text-sm font-medium text-white line-clamp-1">
+          {drinkData.name || "Tên không xác định"}
+        </h4>
+        <p className="text-primary font-bold text-xs mt-0.5">
           {drinkData.price ? `${drinkData.price.toLocaleString("vi-VN")} đ` : "Giá chưa cập nhật"}
         </p>
-        {drinkData.purchaseCount && <p className="text-slate-400 text-xs mt-1">Đã bán {drinkData.purchaseCount} lần</p>}
+        {drinkData.purchaseCount && (
+          <p className="text-slate-400 text-xs mt-0.5">Đã bán {drinkData.purchaseCount} lần</p>
+        )}
       </div>
       <motion.button
         onClick={handleAddToCartClick}
-        className="bg-primary text-slate-900 p-2 rounded-full transition-colors hover:bg-primary-dark ml-4 flex-shrink-0"
+        className="bg-primary text-slate-900 p-1.5 rounded-full transition-colors hover:bg-primary-dark ml-3 flex-shrink-0"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
-        <ShoppingCart size={18} />
+        <ShoppingCart size={16} />
       </motion.button>
     </motion.div>
   )

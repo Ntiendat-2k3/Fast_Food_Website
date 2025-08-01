@@ -6,6 +6,7 @@ const createNotification = async (req, res) => {
   try {
     const { title, message, targetUser, type = "info" } = req.body
     console.log("Creating notification:", { title, message, targetUser, type })
+    console.log("Creator userId:", req.userId)
 
     if (!title || !message) {
       return res.json({ success: false, message: "Thiếu tiêu đề hoặc nội dung" })
@@ -26,12 +27,30 @@ const createNotification = async (req, res) => {
     let targetUsers = []
 
     if (targetUser === "all") {
-      // Send to all users
-      const allUsers = await userModel.find({ role: "user" }).select("_id")
+      // Send to all users (only regular users, not staff/admin)
+      const allUsers = await userModel
+        .find({
+          role: "user",
+          $or: [
+            { isActive: { $exists: false } }, // For users without isActive field
+            { isActive: true },
+          ],
+        })
+        .select("_id")
       targetUsers = allUsers.map((user) => user._id)
+      console.log(`Found ${targetUsers.length} active users to send notification`)
     } else {
       // Send to specific user
+      const specificUser = await userModel.findById(targetUser)
+      if (!specificUser) {
+        return res.json({ success: false, message: "Không tìm thấy người dùng được chỉ định" })
+      }
       targetUsers = [targetUser]
+      console.log(`Sending notification to specific user: ${specificUser.name}`)
+    }
+
+    if (targetUsers.length === 0) {
+      return res.json({ success: false, message: "Không có người dùng nào để gửi thông báo" })
     }
 
     // Create notifications for each target user
@@ -42,11 +61,13 @@ const createNotification = async (req, res) => {
       type,
       createdBy: creator.name,
       targetUser: targetUser === "all" ? "all" : targetUser,
+      read: false,
+      isRead: false,
       createdAt: new Date(),
     }))
 
     const result = await notificationModel.insertMany(notifications)
-    console.log(`Created ${result.length} notifications`)
+    console.log(`Successfully created ${result.length} notifications`)
 
     res.json({
       success: true,
@@ -62,11 +83,15 @@ const createNotification = async (req, res) => {
 // Get all notifications (admin)
 const getAllNotifications = async (req, res) => {
   try {
-    // console.log("Getting all notifications, requester role:", req.userRole)
+    console.log("Getting all notifications for admin, requester userId:", req.userId)
 
-    const notifications = await notificationModel.find({}).populate("userId", "name email").sort({ createdAt: -1 })
+    const notifications = await notificationModel
+      .find({})
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 })
+      .limit(100) // Limit to prevent too much data
 
-    // console.log(`Found ${notifications.length} notifications`)
+    console.log(`Found ${notifications.length} total notifications`)
 
     res.json({
       success: true,
@@ -74,7 +99,7 @@ const getAllNotifications = async (req, res) => {
       message: `Tìm thấy ${notifications.length} thông báo`,
     })
   } catch (error) {
-    console.error("Error getting notifications:", error)
+    console.error("Error getting all notifications:", error)
     res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
@@ -82,20 +107,26 @@ const getAllNotifications = async (req, res) => {
 // Get user notifications
 const getUserNotifications = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query
+    const { page = 1, limit = 20 } = req.query
     const userId = req.userId
 
-    // console.log("Getting user notifications for userId:", userId)
+    console.log("Getting notifications for user:", userId, "page:", page, "limit:", limit)
 
+    if (!userId) {
+      console.log("No userId found in request")
+      return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
+    }
+
+    // Get notifications for this specific user
     const notifications = await notificationModel
-      .find({ userId })
+      .find({ userId: userId })
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .limit(Number.parseInt(limit))
+      .skip((Number.parseInt(page) - 1) * Number.parseInt(limit))
 
-    const total = await notificationModel.countDocuments({ userId })
+    const total = await notificationModel.countDocuments({ userId: userId })
 
-    // console.log(`Found ${notifications.length} notifications for user ${userId}`)
+    console.log(`Found ${notifications.length} notifications for user ${userId}, total: ${total}`)
 
     res.json({
       success: true,
@@ -104,7 +135,7 @@ const getUserNotifications = async (req, res) => {
         page: Number.parseInt(page),
         limit: Number.parseInt(limit),
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / Number.parseInt(limit)),
       },
     })
   } catch (error) {
@@ -117,33 +148,77 @@ const getUserNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id, read = true } = req.body
-    // console.log("Marking notification as read:", { id, read })
+    const userId = req.userId
+
+    console.log("Marking notification as read:", { id, read, userId })
 
     if (!id) {
       return res.json({ success: false, message: "Thiếu ID thông báo" })
     }
 
-    const notification = await notificationModel.findByIdAndUpdate(
+    if (!userId) {
+      return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
+    }
+
+    // Find notification and verify it belongs to the user
+    const notification = await notificationModel.findOne({ _id: id, userId: userId })
+
+    if (!notification) {
+      return res.json({ success: false, message: "Không tìm thấy thông báo hoặc bạn không có quyền truy cập" })
+    }
+
+    // Update notification
+    const updatedNotification = await notificationModel.findByIdAndUpdate(
       id,
       {
-        read,
+        read: read,
         isRead: read,
         readAt: read ? new Date() : null,
       },
       { new: true },
     )
 
-    if (!notification) {
-      return res.json({ success: false, message: "Không tìm thấy thông báo" })
-    }
+    console.log("Notification updated successfully:", updatedNotification._id)
 
     res.json({
       success: true,
       message: read ? "Đã đánh dấu đã đọc" : "Đã đánh dấu chưa đọc",
-      data: notification,
+      data: updatedNotification,
     })
   } catch (error) {
     console.error("Error marking notification as read:", error)
+    res.json({ success: false, message: "Lỗi server: " + error.message })
+  }
+}
+
+// Mark all notifications as read for a user
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.userId
+    console.log("Marking all notifications as read for user:", userId)
+
+    if (!userId) {
+      return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
+    }
+
+    const result = await notificationModel.updateMany(
+      { userId: userId, $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }] },
+      {
+        read: true,
+        isRead: true,
+        readAt: new Date(),
+      },
+    )
+
+    console.log(`Marked ${result.modifiedCount} notifications as read`)
+
+    res.json({
+      success: true,
+      message: `Đã đánh dấu ${result.modifiedCount} thông báo là đã đọc`,
+      data: { modifiedCount: result.modifiedCount },
+    })
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error)
     res.json({ success: false, message: "Lỗi server: " + error.message })
   }
 }
@@ -152,7 +227,7 @@ const markAsRead = async (req, res) => {
 const deleteNotification = async (req, res) => {
   try {
     const { id } = req.body
-    // console.log("Deleting notification:", id)
+    console.log("Deleting notification:", id, "by user:", req.userId)
 
     if (!id) {
       return res.json({ success: false, message: "Thiếu ID thông báo" })
@@ -162,6 +237,8 @@ const deleteNotification = async (req, res) => {
     if (!notification) {
       return res.json({ success: false, message: "Không tìm thấy thông báo" })
     }
+
+    console.log("Notification deleted successfully:", id)
 
     res.json({ success: true, message: "Đã xóa thông báo thành công" })
   } catch (error) {
@@ -174,14 +251,19 @@ const deleteNotification = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.userId
-    // console.log("Getting unread count for userId:", userId)
+    console.log("Getting unread count for user:", userId)
+
+    if (!userId) {
+      console.log("No userId found in request for unread count")
+      return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
+    }
 
     const count = await notificationModel.countDocuments({
-      userId,
+      userId: userId,
       $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
 
-    // console.log(`Unread count for user ${userId}: ${count}`)
+    console.log(`Unread count for user ${userId}: ${count}`)
 
     res.json({ success: true, data: { count } })
   } catch (error) {
@@ -190,4 +272,12 @@ const getUnreadCount = async (req, res) => {
   }
 }
 
-export { createNotification, getAllNotifications, getUserNotifications, markAsRead, deleteNotification, getUnreadCount }
+export {
+  createNotification,
+  getAllNotifications,
+  getUserNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  getUnreadCount,
+}

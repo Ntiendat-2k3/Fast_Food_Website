@@ -45,9 +45,12 @@ const requireSignIn = async (req, res, next) => {
 
     console.log("User found:", { id: user._id, name: user.name, role: user.role })
 
+    // Set both req.user and req.userId for compatibility
     req.user = user
-    req.userId = user._id
+    req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role
+
+    console.log("Auth middleware completed - userId set to:", req.userId)
     next()
   } catch (error) {
     console.error("Auth middleware error:", error.message)
@@ -115,7 +118,7 @@ const verifyAdmin = async (req, res, next) => {
 
     console.log("Admin verification successful")
     req.user = user
-    req.userId = user._id
+    req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role
     next()
   } catch (error) {
@@ -150,7 +153,7 @@ const verifyStaffOrAdmin = async (req, res, next) => {
 
     console.log("Staff/Admin verification successful")
     req.user = user
-    req.userId = user._id
+    req.userId = user._id.toString() // Ensure it's a string
     req.userRole = user.role
     next()
   } catch (error) {
