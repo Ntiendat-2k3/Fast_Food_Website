@@ -38,7 +38,7 @@ const SalesCount = ({ productId, url }) => {
     return (
       <div className="absolute bottom-3 right-3 bg-green-500/80 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center">
         <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-        ...
+        {/* Loading indicator */}
       </div>
     )
   }
@@ -52,12 +52,13 @@ const SalesCount = ({ productId, url }) => {
 }
 
 function FoodItem({ name, price, description, image, index, _id, rating = 0, totalReviews = 0, viewMode = "grid" }) {
-  const { url, addToCart } = useContext(StoreContext)
+  const { url, addToCart, token } = useContext(StoreContext)
   const navigate = useNavigate()
   const [isAdding, setIsAdding] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false)
 
   const [inventory, setInventory] = useState(null)
   const [inventoryLoading, setInventoryLoading] = useState(true)
@@ -80,6 +81,27 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
       fetchInventory()
     }
   }, [_id, url])
+
+  // Check if item is in wishlist when component mounts
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!token || !_id) return
+
+      try {
+        const response = await axios.get(`${url}/api/wishlist/check/${_id}`, {
+          headers: { token },
+        })
+
+        if (response.data.success) {
+          setIsLiked(response.data.isInWishlist)
+        }
+      } catch (error) {
+        console.error("Error checking wishlist status:", error)
+      }
+    }
+
+    checkWishlistStatus()
+  }, [_id, token, url])
 
   const getStockStatus = () => {
     if (inventoryLoading) return { text: "Đang tải...", color: "text-gray-400" }
@@ -116,9 +138,47 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
     }, 1500)
   }
 
-  const handleLike = (e) => {
+  const handleLike = async (e) => {
     e.stopPropagation()
-    setIsLiked(!isLiked)
+
+    if (!token) {
+      alert("Vui lòng đăng nhập để thêm vào danh sách yêu thích")
+      return
+    }
+
+    if (isWishlistLoading) return
+
+    setIsWishlistLoading(true)
+
+    try {
+      if (isLiked) {
+        // Remove from wishlist
+        const response = await axios.post(`${url}/api/wishlist/remove`, { foodId: _id }, { headers: { token } })
+
+        if (response.data.success) {
+          setIsLiked(false)
+        } else {
+          console.error("Error removing from wishlist:", response.data.message)
+        }
+      } else {
+        // Add to wishlist
+        const response = await axios.post(`${url}/api/wishlist/add`, { foodId: _id }, { headers: { token } })
+
+        if (response.data.success) {
+          setIsLiked(true)
+        } else {
+          console.error("Error adding to wishlist:", response.data.message)
+          if (response.data.message !== "Sản phẩm đã có trong danh sách yêu thích") {
+            alert(response.data.message)
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating wishlist:", error)
+      alert("Có lỗi xảy ra khi cập nhật danh sách yêu thích")
+    } finally {
+      setIsWishlistLoading(false)
+    }
   }
 
   const handleQuickView = (e) => {
@@ -168,7 +228,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
           <div className="relative h-48 sm:h-32 sm:w-48 flex-shrink-0 overflow-hidden">
             {!imageLoaded && !imageError && (
               <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
-                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1"></div>
               </div>
             )}
             <img
@@ -193,13 +253,18 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
               <div className="absolute top-3 right-3 flex flex-col gap-2">
                 <motion.button
                   onClick={handleLike}
+                  disabled={isWishlistLoading}
                   className={`p-2 rounded-full backdrop-blur-sm border border-white/20 transition-all duration-300 ${
                     isLiked ? "bg-red-500/80 text-white" : "bg-black/30 text-white hover:bg-red-500/50"
-                  }`}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  whileHover={{ scale: isWishlistLoading ? 1 : 1.1 }}
+                  whileTap={{ scale: isWishlistLoading ? 1 : 0.9 }}
                 >
-                  <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+                  {isWishlistLoading ? (
+                    <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+                  )}
                 </motion.button>
 
                 <motion.button
@@ -258,15 +323,23 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
             {/* Add to Cart Button */}
             <motion.button
               onClick={handleAddToCart}
+              disabled={isOutOfStock}
               className={`w-full sm:w-auto self-start py-2 px-4 sm:py-3 sm:px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
-                isAdding
-                  ? "bg-green-500 text-white"
-                  : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
+                isOutOfStock
+                  ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                  : isAdding
+                    ? "bg-green-500 text-white"
+                    : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
               }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
+              whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
             >
-              {isAdding ? (
+              {isOutOfStock ? (
+                <>
+                  <AlertCircle size={18} />
+                  Hết hàng
+                </>
+              ) : isAdding ? (
                 <>
                   <Check size={18} />
                   Đã thêm!
@@ -301,7 +374,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
       <div className="relative h-48 sm:h-56 overflow-hidden">
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1"></div>
           </div>
         )}
         <motion.img
@@ -344,13 +417,18 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
         <div className="absolute top-3 left-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
           <motion.button
             onClick={handleLike}
+            disabled={isWishlistLoading}
             className={`p-2 rounded-full backdrop-blur-sm border border-white/20 transition-all duration-300 ${
               isLiked ? "bg-red-500/80 text-white" : "bg-black/30 text-white hover:bg-red-500/50"
-            }`}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            whileHover={{ scale: isWishlistLoading ? 1 : 1.1 }}
+            whileTap={{ scale: isWishlistLoading ? 1 : 0.9 }}
           >
-            <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+            {isWishlistLoading ? (
+              <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Heart className={`h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
+            )}
           </motion.button>
 
           <motion.button
