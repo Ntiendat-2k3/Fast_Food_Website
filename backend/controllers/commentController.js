@@ -7,16 +7,16 @@ import foodModel from "../models/foodModel.js"
 // Kiểm tra xem user đã mua sản phẩm này chưa
 const checkUserPurchase = async (userId, foodId) => {
   try {
-    // console.log("Checking purchase for userId:", userId, "foodId:", foodId)
+    console.log("Checking purchase for userId:", userId, "foodId:", foodId)
 
     const food = await foodModel.findById(foodId)
     if (!food) {
-      // console.log("Food not found")
+      console.log("Food not found")
       return false
     }
 
     const allOrders = await orderModel.find({ userId: userId })
-    // console.log("Total orders found:", allOrders.length)
+    console.log("Total orders found:", allOrders.length)
 
     if (allOrders.length === 0) {
       return false
@@ -162,7 +162,7 @@ const getCommentsByFood = async (req, res) => {
   try {
     const { foodId } = req.params
 
-    // console.log("Getting comments for foodId:", foodId)
+    console.log("Getting comments for foodId:", foodId)
 
     if (!mongoose.Types.ObjectId.isValid(foodId)) {
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
@@ -170,7 +170,7 @@ const getCommentsByFood = async (req, res) => {
 
     const comments = await commentModel.find({ foodId }).populate("userId", "name email").sort({ createdAt: -1 })
 
-    // console.log("Found comments:", comments.length)
+    console.log("Found comments:", comments.length)
 
     const formattedComments = comments.map((comment) => ({
       _id: comment._id,
@@ -238,7 +238,7 @@ const checkCanReview = async (req, res) => {
   try {
     const { userId, foodId } = req.params
 
-    // console.log("Checking review eligibility for userId:", userId, "foodId:", foodId)
+    console.log("Checking review eligibility for userId:", userId, "foodId:", foodId)
 
     if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(foodId)) {
       return res.json({ success: false, message: "ID không hợp lệ" })
@@ -272,7 +272,7 @@ const checkCanReview = async (req, res) => {
         : null,
     }
 
-    // console.log("Review eligibility result:", result)
+    console.log("Review eligibility result:", result)
 
     res.json({
       success: true,

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Star, Trash2, User, Calendar, Search, RefreshCw } from "lucide-react"
+import { MessageSquare, Star, Trash2, Calendar, Search } from "lucide-react"
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
@@ -14,8 +14,10 @@ const Comments = ({ url }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, id: null, message: "" })
   const [foodList, setFoodList] = useState([])
+  const [categories, setCategories] = useState([])
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -68,6 +70,11 @@ const Comments = ({ url }) => {
 
       if (response.data.success) {
         setFoodList(response.data.data)
+
+        // Extract unique categories from food list
+        const uniqueCategories = [...new Set(response.data.data.map((food) => food.category))]
+        setCategories(uniqueCategories.sort())
+        console.log("Extracted categories:", uniqueCategories)
       } else {
         console.error("API returned error:", response.data.message)
         toast.error("Lỗi khi tải danh sách sản phẩm")
@@ -156,6 +163,13 @@ const Comments = ({ url }) => {
   }
 
   const filteredComments = comments.filter((comment) => {
+    // Filter by category
+    if (categoryFilter !== "all") {
+      const foodCategory = getFoodCategory(comment.foodId)
+      if (foodCategory !== categoryFilter) return false
+    }
+
+    // Filter by search term
     if (searchTerm) {
       const foodName = getFoodName(comment.foodId)
       return (
@@ -165,6 +179,7 @@ const Comments = ({ url }) => {
         (comment.userEmail && comment.userEmail.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
+
     return true
   })
 
@@ -186,22 +201,14 @@ const Comments = ({ url }) => {
   return (
     <div className="w-full min-h-screen bg-slate-900">
       <div className="bg-slate-800 md:rounded-2xl md:shadow-2xl p-3 md:p-6 mb-4 md:mb-8 border border-slate-700">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
-            <Star className="mr-2 text-yellow-400" size={24} />
-            Quản lý đánh giá sản phẩm
-          </h1>
-          <button
-            onClick={fetchComments}
-            className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Làm mới
-          </button>
-        </div>
+        <h1 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center">
+          <Star className="mr-2 text-yellow-400" size={24} />
+          Quản lý đánh giá sản phẩm
+        </h1>
 
-        {/* Search */}
-        <div className="mb-6">
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
             <input
@@ -212,42 +219,20 @@ const Comments = ({ url }) => {
               className="w-full pl-10 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
             />
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-slate-700 p-4 rounded-lg">
-            <div className="flex items-center">
-              <MessageSquare className="text-yellow-400 mr-3" size={24} />
-              <div>
-                <p className="text-slate-400 text-sm">Tổng đánh giá</p>
-                <p className="text-white text-xl font-bold">{comments.length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-slate-700 p-4 rounded-lg">
-            <div className="flex items-center">
-              <Star className="text-yellow-400 mr-3" size={24} />
-              <div>
-                <p className="text-slate-400 text-sm">Đánh giá trung bình</p>
-                <p className="text-white text-xl font-bold">
-                  {comments.length > 0
-                    ? (comments.reduce((sum, c) => sum + c.rating, 0) / comments.length).toFixed(1)
-                    : "0.0"}{" "}
-                  / 5
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-slate-700 p-4 rounded-lg">
-            <div className="flex items-center">
-              <User className="text-yellow-400 mr-3" size={24} />
-              <div>
-                <p className="text-slate-400 text-sm">Kết quả tìm kiếm</p>
-                <p className="text-white text-xl font-bold">{filteredComments.length}</p>
-              </div>
-            </div>
-          </div>
+          {/* Category Filter */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+          >
+            <option value="all">Tất cả danh mục</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Comments List */}
@@ -264,10 +249,12 @@ const Comments = ({ url }) => {
           <div className="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
             <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">
-              {searchTerm ? "Không tìm thấy đánh giá nào" : "Chưa có đánh giá nào"}
+              {searchTerm || categoryFilter !== "all" ? "Không tìm thấy đánh giá nào" : "Chưa có đánh giá nào"}
             </h3>
             <p className="text-slate-400">
-              {searchTerm ? "Thử thay đổi từ khóa tìm kiếm" : "Chưa có đánh giá nào từ khách hàng"}
+              {searchTerm || categoryFilter !== "all"
+                ? "Thử thay đổi bộ lọc tìm kiếm"
+                : "Chưa có đánh giá nào từ khách hàng"}
             </p>
           </div>
         ) : (
