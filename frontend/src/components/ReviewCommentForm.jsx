@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useContext } from "react"
-import { Star, Send, X } from "lucide-react"
+import { motion } from "framer-motion"
+import { Star, X } from "lucide-react"
 import { StoreContext } from "../context/StoreContext"
 import axios from "axios"
 import { toast } from "react-toastify"
@@ -21,18 +22,13 @@ const ReviewCommentForm = ({ foodItem, onSubmitted, onCancel }) => {
       return
     }
 
-    if (!comment.trim()) {
-      toast.error("Vui lòng nhập nội dung đánh giá")
-      return
-    }
-
-    if (comment.trim().length < 10) {
+    if (!comment.trim() || comment.trim().length < 10) {
       toast.error("Nội dung đánh giá phải có ít nhất 10 ký tự")
       return
     }
 
-    if (comment.trim().length > 500) {
-      toast.error("Nội dung đánh giá không được vượt quá 500 ký tự")
+    if (!token || !user) {
+      toast.error("Vui lòng đăng nhập để đánh giá")
       return
     }
 
@@ -40,25 +36,25 @@ const ReviewCommentForm = ({ foodItem, onSubmitted, onCancel }) => {
       setIsSubmitting(true)
 
       const response = await axios.post(
-        `${url}/api/comment/add-comment`,
+        `${url}/api/comment/add`,
         {
           userId: user._id,
           foodId: foodItem._id,
-          rating: rating,
+          rating,
           comment: comment.trim(),
         },
         {
-          headers: { token },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       )
 
       if (response.data.success) {
-        toast.success("Đánh giá của bạn đã được gửi thành công!")
-        setRating(0)
-        setComment("")
+        toast.success("Đánh giá thành công!")
         onSubmitted()
       } else {
-        toast.error(response.data.message || "Có lỗi xảy ra khi gửi đánh giá")
+        toast.error(response.data.message || "Có lỗi xảy ra")
       }
     } catch (error) {
       console.error("Error submitting review:", error)
@@ -68,95 +64,92 @@ const ReviewCommentForm = ({ foodItem, onSubmitted, onCancel }) => {
     }
   }
 
-  const renderStars = () => {
-    return Array.from({ length: 5 }, (_, index) => {
-      const starValue = index + 1
-      return (
-        <button
-          key={index}
-          type="button"
-          onClick={() => setRating(starValue)}
-          onMouseEnter={() => setHoveredRating(starValue)}
-          onMouseLeave={() => setHoveredRating(0)}
-          className="focus:outline-none transition-transform hover:scale-110"
-        >
-          <Star
-            className={`w-8 h-8 ${
-              starValue <= (hoveredRating || rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-            }`}
-          />
-        </button>
-      )
-    })
-  }
-
   return (
-    <div className="bg-white border rounded-lg p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Viết đánh giá cho {foodItem?.name}</h3>
-        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition-colors">
-          <X className="w-5 h-5" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gray-800 rounded-xl p-6 border border-yellow-500"
+    >
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold text-yellow-300">Đánh giá sản phẩm</h3>
+        <button onClick={onCancel} className="text-gray-400 hover:text-white transition-colors">
+          <X size={24} />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Rating Stars */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Đánh giá của bạn *</label>
-          <div className="flex items-center gap-1">
-            {renderStars()}
-            {rating > 0 && <span className="ml-2 text-sm text-gray-600">({rating} sao)</span>}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="text-center">
+          <p className="text-gray-300 mb-4">Bạn cảm thấy sản phẩm này như thế nào?</p>
+
+          <div className="flex justify-center items-center gap-2 mb-4">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <motion.button
+                key={star}
+                type="button"
+                onClick={() => setRating(star)}
+                onMouseEnter={() => setHoveredRating(star)}
+                onMouseLeave={() => setHoveredRating(0)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-1"
+              >
+                <Star
+                  size={40}
+                  className={`transition-colors ${
+                    star <= (hoveredRating || rating) ? "text-yellow-400 fill-yellow-400" : "text-gray-500"
+                  }`}
+                />
+              </motion.button>
+            ))}
           </div>
+
+          {rating > 0 && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-yellow-400 font-medium mb-4">
+              {rating === 1 && "Rất không hài lòng"}
+              {rating === 2 && "Không hài lòng"}
+              {rating === 3 && "Bình thường"}
+              {rating === 4 && "Hài lòng"}
+              {rating === 5 && "Rất hài lòng"}
+            </motion.p>
+          )}
         </div>
 
-        {/* Comment */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Nội dung đánh giá *</label>
+          <label className="block text-gray-300 mb-2">Nhận xét</label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+            className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500 resize-none"
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-            maxLength={500}
+            required
           />
-          <div className="flex justify-between items-center mt-1">
-            <div className="text-xs text-gray-500">Tối thiểu 10 ký tự</div>
-            <div className={`text-xs ${comment.length > 450 ? "text-red-500" : "text-gray-500"}`}>
-              {comment.length}/500
-            </div>
-          </div>
+          <div className="text-right text-sm text-gray-400 mt-1">{comment.length}/500 ký tự</div>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex gap-3 pt-2">
-          <button
+        <div className="flex gap-3 justify-center">
+          <motion.button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Hủy
-          </button>
-          <button
+          </motion.button>
+
+          <motion.button
             type="submit"
-            disabled={isSubmitting || !rating || !comment.trim() || comment.trim().length < 10}
-            className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            disabled={!rating || !comment.trim() || comment.trim().length < 10 || isSubmitting}
+            className="px-6 py-2 bg-yellow-500 text-black rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-yellow-400"
+            whileHover={{ scale: rating && comment.trim().length >= 10 ? 1.05 : 1 }}
+            whileTap={{ scale: rating && comment.trim().length >= 10 ? 0.95 : 1 }}
           >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Đang gửi...
-              </>
-            ) : (
-              <>
-                <Send className="w-4 h-4" />
-                Gửi đánh giá
-              </>
-            )}
-          </button>
+            {isSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+          </motion.button>
         </div>
       </form>
-    </div>
+    </motion.div>
   )
 }
 

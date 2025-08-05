@@ -4,11 +4,9 @@ import wishlistModel from "../models/wishlistModel.js"
 const addToWishlist = async (req, res) => {
   try {
     const { foodId } = req.body
-    const userId = req.body.userId || req.userId
+    const userId = req.userId
 
     console.log("Add to wishlist - userId:", userId, "foodId:", foodId)
-    console.log("req.body:", req.body)
-    console.log("req.userId:", req.userId)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })
@@ -33,6 +31,12 @@ const addToWishlist = async (req, res) => {
     res.json({ success: true, message: "Đã thêm vào danh sách yêu thích" })
   } catch (error) {
     console.log("Error adding to wishlist:", error)
+
+    // Kiểm tra lỗi duplicate key
+    if (error.code === 11000) {
+      return res.json({ success: false, message: "Sản phẩm đã có trong danh sách yêu thích" })
+    }
+
     res.json({ success: false, message: "Error adding to wishlist" })
   }
 }
@@ -41,11 +45,9 @@ const addToWishlist = async (req, res) => {
 const removeFromWishlist = async (req, res) => {
   try {
     const { foodId } = req.body
-    const userId = req.body.userId || req.userId
+    const userId = req.userId
 
     console.log("Remove from wishlist - userId:", userId, "foodId:", foodId)
-    console.log("req.body:", req.body)
-    console.log("req.userId:", req.userId)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })
@@ -71,11 +73,9 @@ const removeFromWishlist = async (req, res) => {
 // Get user wishlist
 const getWishlist = async (req, res) => {
   try {
-    const userId = req.body.userId || req.userId
+    const userId = req.userId
 
     console.log("Get wishlist - userId:", userId)
-    console.log("req.body:", req.body)
-    console.log("req.userId:", req.userId)
 
     if (!userId) {
       return res.json({ success: false, message: "User ID is required" })
@@ -97,13 +97,9 @@ const getWishlist = async (req, res) => {
 const checkWishlist = async (req, res) => {
   try {
     const { foodId } = req.params
-    // For GET requests, userId is set by middleware in req.userId (not req.body.userId because body is empty)
-    const userId = req.userId || req.body.userId
+    const userId = req.userId
 
     console.log("Check wishlist - userId:", userId, "foodId:", foodId)
-    console.log("req.body:", req.body)
-    console.log("req.userId:", req.userId)
-    console.log("req.params:", req.params)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })

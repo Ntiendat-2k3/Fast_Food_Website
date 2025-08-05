@@ -28,28 +28,7 @@ const commentSchema = new mongoose.Schema({
     minlength: [10, "Nội dung đánh giá phải có ít nhất 10 ký tự"],
     maxlength: [500, "Nội dung đánh giá không được vượt quá 500 ký tự"],
   },
-  images: [
-    {
-      type: String,
-    },
-  ],
-  isApproved: {
-    type: Boolean,
-    default: true,
-  },
-  adminReply: {
-    type: String,
-    default: null,
-  },
-  adminReplyAt: {
-    type: Date,
-    default: null,
-  },
   createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
     type: Date,
     default: Date.now,
   },
@@ -62,7 +41,6 @@ commentSchema.index({ userId: 1, foodId: 1 }, { unique: true })
 commentSchema.index({ foodId: 1, createdAt: -1 })
 commentSchema.index({ userId: 1 })
 commentSchema.index({ rating: 1 })
-commentSchema.index({ isApproved: 1 })
 
 const commentModel = mongoose.models.comment || mongoose.model("comment", commentSchema)
 

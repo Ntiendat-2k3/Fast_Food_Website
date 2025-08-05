@@ -3,29 +3,19 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Star, Check, X, Trash2, Reply, Edit, Send } from "lucide-react"
+import { MessageSquare, Star, Trash2, User, Calendar, Search, RefreshCw } from "lucide-react"
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
 import Pagination from "../../components/Pagination"
-import CommentFilters from "../../components/comments/CommentFilters"
 
 const Comments = ({ url }) => {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [categoryFilter, setCategoryFilter] = useState("all")
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, id: null, message: "" })
   const [foodList, setFoodList] = useState([])
-  const [categories, setCategories] = useState([])
-
-  // Reply to comment form
-  const [replyForm, setReplyForm] = useState({
-    commentId: null,
-    message: "",
-  })
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -78,11 +68,6 @@ const Comments = ({ url }) => {
 
       if (response.data.success) {
         setFoodList(response.data.data)
-
-        // Extract unique categories from food list
-        const uniqueCategories = [...new Set(response.data.data.map((food) => food.category))]
-        setCategories(uniqueCategories.sort())
-        console.log("Extracted categories:", uniqueCategories)
       } else {
         console.error("API returned error:", response.data.message)
         toast.error("Lỗi khi tải danh sách sản phẩm")
@@ -98,43 +83,6 @@ const Comments = ({ url }) => {
     fetchFoodList()
   }, [])
 
-  const handleStatusChange = async (commentId, isApproved) => {
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại để tiếp tục")
-        return
-      }
-
-      console.log("Updating comment status:", { id: commentId, isApproved })
-      const response = await axios.post(
-        `${url}/api/comment/status`,
-        {
-          id: commentId,
-          isApproved,
-        },
-        {
-          headers: {
-            token: token,
-          },
-        },
-      )
-
-      console.log("Status update response:", response.data)
-
-      if (response.data.success) {
-        toast.success("Cập nhật trạng thái đánh giá thành công")
-        fetchComments()
-      } else {
-        console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi cập nhật trạng thái đánh giá")
-      }
-    } catch (error) {
-      console.error("Error updating comment status:", error)
-      toast.error("Lỗi kết nối đến máy chủ")
-    }
-  }
-
   const handleDeleteClick = (commentId) => {
     setConfirmModal({
       isOpen: true,
@@ -142,69 +90,6 @@ const Comments = ({ url }) => {
       id: commentId,
       message: "Bạn có chắc chắn muốn xóa đánh giá này? Hành động này không thể hoàn tác.",
     })
-  }
-
-  const handleReplyToComment = async () => {
-    if (!replyForm.message || !replyForm.commentId) {
-      toast.error("Vui lòng nhập nội dung phản hồi")
-      return
-    }
-
-    try {
-      const token = localStorage.getItem("token")
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại để tiếp tục")
-        return
-      }
-
-      console.log("Sending reply:", { id: replyForm.commentId, message: replyForm.message })
-
-      const response = await axios.post(
-        `${url}/api/comment/reply`,
-        {
-          id: replyForm.commentId,
-          message: replyForm.message,
-        },
-        {
-          headers: {
-            token: token,
-          },
-        },
-      )
-
-      if (response.data.success) {
-        // Update local state for immediate feedback
-        const updatedComments = comments.map((item) => {
-          if (item._id === replyForm.commentId) {
-            return {
-              ...item,
-              adminReply: {
-                message: replyForm.message,
-                createdAt: new Date(),
-              },
-            }
-          }
-          return item
-        })
-
-        setComments(updatedComments)
-
-        // Reset form
-        setReplyForm({
-          commentId: null,
-          message: "",
-        })
-
-        toast.success("Đã gửi phản hồi thành công")
-        fetchComments()
-      } else {
-        console.error("API returned error:", response.data.message)
-        toast.error(response.data.message || "Lỗi khi gửi phản hồi")
-      }
-    } catch (error) {
-      console.error("Error replying to comment:", error)
-      toast.error("Lỗi kết nối đến máy chủ khi gửi phản hồi")
-    }
   }
 
   const handleConfirmAction = async () => {
@@ -271,26 +156,15 @@ const Comments = ({ url }) => {
   }
 
   const filteredComments = comments.filter((comment) => {
-    // Filter by status
-    if (statusFilter === "approved" && !comment.isApproved) return false
-    if (statusFilter === "pending" && comment.isApproved) return false
-
-    // Filter by category
-    if (categoryFilter !== "all") {
-      const foodCategory = comment.foodCategory || getFoodCategory(comment.foodId)
-      if (foodCategory !== categoryFilter) return false
-    }
-
-    // Filter by search term
     if (searchTerm) {
-      const foodName = comment.foodName || getFoodName(comment.foodId)
+      const foodName = getFoodName(comment.foodId)
       return (
         comment.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (comment.comment && comment.comment.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        foodName.toLowerCase().includes(searchTerm.toLowerCase())
+        foodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (comment.userEmail && comment.userEmail.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
-
     return true
   })
 
@@ -312,22 +186,69 @@ const Comments = ({ url }) => {
   return (
     <div className="w-full min-h-screen bg-slate-900">
       <div className="bg-slate-800 md:rounded-2xl md:shadow-2xl p-3 md:p-6 mb-4 md:mb-8 border border-slate-700">
-        <h1 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 flex items-center">
-          <Star className="mr-2 text-yellow-400" size={24} />
-          Quản lý đánh giá sản phẩm
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center">
+            <Star className="mr-2 text-yellow-400" size={24} />
+            Quản lý đánh giá sản phẩm
+          </h1>
+          <button
+            onClick={fetchComments}
+            className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Làm mới
+          </button>
+        </div>
 
-        {/* Filters */}
-        <CommentFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          categories={categories}
-          fetchComments={fetchComments}
-        />
+        {/* Search */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tên người dùng, email, nội dung đánh giá hoặc tên sản phẩm..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-slate-700 p-4 rounded-lg">
+            <div className="flex items-center">
+              <MessageSquare className="text-yellow-400 mr-3" size={24} />
+              <div>
+                <p className="text-slate-400 text-sm">Tổng đánh giá</p>
+                <p className="text-white text-xl font-bold">{comments.length}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-700 p-4 rounded-lg">
+            <div className="flex items-center">
+              <Star className="text-yellow-400 mr-3" size={24} />
+              <div>
+                <p className="text-slate-400 text-sm">Đánh giá trung bình</p>
+                <p className="text-white text-xl font-bold">
+                  {comments.length > 0
+                    ? (comments.reduce((sum, c) => sum + c.rating, 0) / comments.length).toFixed(1)
+                    : "0.0"}{" "}
+                  / 5
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-700 p-4 rounded-lg">
+            <div className="flex items-center">
+              <User className="text-yellow-400 mr-3" size={24} />
+              <div>
+                <p className="text-slate-400 text-sm">Kết quả tìm kiếm</p>
+                <p className="text-white text-xl font-bold">{filteredComments.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Comments List */}
         {loading ? (
@@ -342,57 +263,38 @@ const Comments = ({ url }) => {
         ) : currentComments.length === 0 ? (
           <div className="text-center py-12 bg-slate-800 rounded-xl border border-slate-700">
             <MessageSquare className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">Không có đánh giá nào</h3>
-            <p className="text-slate-400">Chưa có đánh giá nào phù hợp với bộ lọc hiện tại</p>
+            <h3 className="text-lg font-medium text-white mb-2">
+              {searchTerm ? "Không tìm thấy đánh giá nào" : "Chưa có đánh giá nào"}
+            </h3>
+            <p className="text-slate-400">
+              {searchTerm ? "Thử thay đổi từ khóa tìm kiếm" : "Chưa có đánh giá nào từ khách hàng"}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {currentComments.map((comment) => (
               <div
                 key={comment._id}
-                className={`bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border ${
-                  comment.isApproved ? "border-green-600/30" : "border-yellow-600/30"
-                } p-4`}
+                className="bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-700 p-6"
               >
                 <div className="flex flex-col sm:flex-row justify-between mb-4">
                   <div className="flex items-center mb-3 sm:mb-0">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 font-bold text-lg ${
-                        comment.isApproved
-                          ? "bg-gradient-to-br from-green-400 to-green-500 text-slate-900"
-                          : "bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900"
-                      }`}
-                    >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mr-4 font-bold text-lg bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900">
                       {getInitials(comment.userName)}
                     </div>
                     <div>
                       <p className="font-medium text-white text-sm">{comment.userName}</p>
                       {comment.userEmail && <p className="text-xs text-slate-400">{comment.userEmail}</p>}
-                      <p className="text-xs text-slate-400">{formatDate(comment.createdAt)}</p>
+                      <div className="flex items-center mt-1">
+                        <Calendar className="text-slate-400 mr-1" size={12} />
+                        <p className="text-xs text-slate-400">{formatDate(comment.createdAt)}</p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {!comment.isApproved && (
-                      <button
-                        onClick={() => handleStatusChange(comment._id, true)}
-                        className="p-1.5 bg-green-600/20 text-green-400 rounded-full hover:bg-green-600/30 transition-colors"
-                        title="Duyệt đánh giá"
-                      >
-                        <Check size={16} />
-                      </button>
-                    )}
-                    {comment.isApproved && (
-                      <button
-                        onClick={() => handleStatusChange(comment._id, false)}
-                        className="p-1.5 bg-yellow-600/20 text-yellow-400 rounded-full hover:bg-yellow-600/30 transition-colors"
-                        title="Hủy duyệt"
-                      >
-                        <X size={16} />
-                      </button>
-                    )}
                     <button
                       onClick={() => handleDeleteClick(comment._id)}
-                      className="p-1.5 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
+                      className="p-2 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
                       title="Xóa đánh giá"
                     >
                       <Trash2 size={16} />
@@ -400,9 +302,9 @@ const Comments = ({ url }) => {
                   </div>
                 </div>
 
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
-                    <div className="flex items-center mr-2">
+                <div className="bg-slate-700/30 rounded-lg p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                    <div className="flex items-center">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
@@ -412,88 +314,19 @@ const Comments = ({ url }) => {
                       ))}
                       <span className="ml-2 text-sm font-medium text-yellow-400">{comment.rating}/5 sao</span>
                     </div>
-                    <span className="text-xs font-medium text-slate-300">
-                      Đánh giá cho: {comment.foodName || getFoodName(comment.foodId)}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded-full">
-                      {comment.foodCategory || getFoodCategory(comment.foodId)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-slate-300">
+                        Sản phẩm: {getFoodName(comment.foodId)}
+                      </span>
+                      <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300 rounded-full">
+                        {getFoodCategory(comment.foodId)}
+                      </span>
+                    </div>
                   </div>
 
-                  {comment.comment && comment.comment !== "Đánh giá sao" && (
-                    <p className="text-slate-300 text-sm mb-3">{comment.comment}</p>
-                  )}
-
-                  {/* Admin Reply Section */}
-                  {comment.adminReply && comment.adminReply.message && replyForm.commentId !== comment._id ? (
-                    <div className="mt-3 bg-yellow-900/20 p-2.5 rounded-lg border border-yellow-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center text-xs font-medium text-yellow-300 mb-1">
-                          <Reply size={12} className="mr-1" />
-                          Phản hồi của quản trị viên:
-                        </div>
-                        <button
-                          onClick={() => setReplyForm({ commentId: comment._id, message: comment.adminReply.message })}
-                          className="p-1 text-yellow-400 hover:text-yellow-300"
-                          title="Chỉnh sửa phản hồi"
-                        >
-                          <Edit size={12} />
-                        </button>
-                      </div>
-                      <p className="text-slate-300 text-xs whitespace-pre-line">{comment.adminReply.message}</p>
-                      {comment.adminReply.createdAt && (
-                        <p className="text-xs text-slate-400 mt-1">{formatDate(comment.adminReply.createdAt)}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mt-3">
-                      <div className="flex items-center text-xs font-medium text-slate-300 mb-1.5">
-                        <Reply size={12} className="mr-1" />
-                        {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
-                          ? "Chỉnh sửa phản hồi:"
-                          : "Thêm phản hồi:"}
-                      </div>
-                      <textarea
-                        placeholder="Nhập phản hồi của bạn..."
-                        rows={2}
-                        value={replyForm.commentId === comment._id ? replyForm.message : ""}
-                        onChange={(e) => setReplyForm({ commentId: comment._id, message: e.target.value })}
-                        onClick={() => {
-                          if (replyForm.commentId !== comment._id) {
-                            setReplyForm({
-                              commentId: comment._id,
-                              message: comment.adminReply?.message || "",
-                            })
-                          }
-                        }}
-                        className="block w-full rounded-lg border border-slate-600 bg-slate-700 py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 text-xs"
-                      />
-                      <div className="flex justify-end mt-2 gap-2">
-                        {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message && (
-                          <button
-                            onClick={() => setReplyForm({ commentId: null, message: "" })}
-                            className="px-2.5 py-1 rounded-lg text-xs flex items-center bg-slate-600 text-slate-300 hover:bg-slate-500"
-                          >
-                            Hủy
-                          </button>
-                        )}
-                        <button
-                          onClick={handleReplyToComment}
-                          disabled={!replyForm.message || replyForm.commentId !== comment._id}
-                          className={`px-2.5 py-1 rounded-lg text-xs flex items-center ${
-                            !replyForm.message || replyForm.commentId !== comment._id
-                              ? "bg-slate-600 text-slate-400 cursor-not-allowed"
-                              : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-slate-900 hover:from-yellow-500 hover:to-yellow-600"
-                          }`}
-                        >
-                          <Send size={12} className="mr-1" />
-                          {replyForm.commentId === comment._id && comment.adminReply && comment.adminReply.message
-                            ? "Cập nhật"
-                            : "Gửi phản hồi"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="bg-slate-600/30 rounded-lg p-3">
+                    <p className="text-slate-300 text-sm leading-relaxed">{comment.comment}</p>
+                  </div>
                 </div>
               </div>
             ))}

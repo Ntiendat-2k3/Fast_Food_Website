@@ -4,8 +4,6 @@ import ReviewCommentForm from "../ReviewCommentForm"
 import ReviewEligibilityNotice from "../ReviewEligibilityNotice"
 
 const ReviewsTab = ({ foodItem }) => {
-  console.log(foodItem);
-
   const {
     showReviewForm,
     setShowReviewForm,
@@ -29,10 +27,7 @@ const ReviewsTab = ({ foodItem }) => {
 
   const renderStars = (rating) => {
     return Array.from({ length: 5 }, (_, index) => (
-      <Star
-        key={index}
-        className={`w-4 h-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-600"}`}
-      />
+      <Star key={index} className={`w-4 h-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-600"}`} />
     ))
   }
 
@@ -46,8 +41,8 @@ const ReviewsTab = ({ foodItem }) => {
           const percentage = ratingStats.totalReviews > 0 ? (count / ratingStats.totalReviews) * 100 : 0
 
           return (
-            <div key={star} className="flex items-center gap-2 text-sm text-gray-200">
-              <span className="w-3">{star}</span>
+            <div key={star} className="flex items-center gap-2 text-sm text-gray-300">
+              <span className="w-3 text-yellow-400">{star}</span>
               <Star className="w-4 h-4 text-yellow-400 fill-current" />
               <div className="flex-1 bg-gray-700 rounded-full h-2">
                 <div
@@ -55,7 +50,7 @@ const ReviewsTab = ({ foodItem }) => {
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="w-8">{count}</span>
+              <span className="w-8 text-gray-300">{count}</span>
             </div>
           )
         })}
@@ -65,7 +60,7 @@ const ReviewsTab = ({ foodItem }) => {
 
   if (isLoadingReviews || isLoadingStats) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-900 p-6 rounded-lg">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -79,18 +74,24 @@ const ReviewsTab = ({ foodItem }) => {
   }
 
   return (
-    <div className="space-y-6 text-gray-200">
+    <div className="space-y-6 text-gray-200 bg-gray-900 p-6 rounded-lg">
       {/* Rating Overview */}
       <div className="bg-gray-800 rounded-lg p-6 border border-yellow-500">
         <div className="grid md:grid-cols-2 gap-6">
           <div className="text-center">
-            <div className="text-4xl font-bold text-yellow-400 mb-2">{ratingStats.averageRating.toFixed(1)}</div>
-            <div className="flex justify-center mb-2">{renderStars(Math.round(ratingStats.averageRating))}</div>
-            <div className="text-gray-300">{ratingStats.totalReviews} đánh giá</div>
+            <div className="text-4xl font-bold text-yellow-400 mb-2">
+              {ratingStats.averageRating ? ratingStats.averageRating.toFixed(1) : "0.0"}
+            </div>
+            <div className="flex justify-center mb-2">{renderStars(Math.round(ratingStats.averageRating || 0))}</div>
+            <div className="text-gray-300">{ratingStats.totalReviews || 0} đánh giá</div>
           </div>
           <div>
             <h4 className="font-medium text-yellow-300 mb-3">Phân bố đánh giá</h4>
-            {renderRatingDistribution()}
+            {ratingStats.totalReviews > 0 ? (
+              renderRatingDistribution()
+            ) : (
+              <div className="text-gray-400 text-sm">Chưa có đánh giá nào</div>
+            )}
           </div>
         </div>
       </div>
@@ -105,10 +106,7 @@ const ReviewsTab = ({ foodItem }) => {
         ) : (
           <>
             {!showReviewForm ? (
-              <ReviewEligibilityNotice
-                eligibility={reviewEligibility}
-                onWriteReview={handleWriteReview}
-              />
+              <ReviewEligibilityNotice eligibility={reviewEligibility} onWriteReview={handleWriteReview} />
             ) : (
               <ReviewCommentForm
                 foodItem={foodItem}
@@ -127,16 +125,34 @@ const ReviewsTab = ({ foodItem }) => {
           Đánh giá từ khách hàng ({reviews.length})
         </h3>
 
-        {reviews.length === 0 ? (
+        {isLoadingReviews ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-4 animate-pulse">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-700 rounded w-1/4"></div>
+                    <div className="h-3 bg-gray-700 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-700 rounded w-full"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : reviews.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-            <p>Chưa có đánh giá nào cho sản phẩm này</p>
-            <p className="text-sm">Hãy là người đầu tiên đánh giá!</p>
+            <p className="text-gray-400">Chưa có đánh giá nào cho sản phẩm này</p>
+            <p className="text-sm text-gray-500">Hãy là người đầu tiên đánh giá!</p>
           </div>
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => (
-              <div key={review._id} className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:shadow-lg transition-shadow">
+              <div
+                key={review._id}
+                className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:shadow-lg transition-shadow"
+              >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-yellow-700 rounded-full flex items-center justify-center flex-shrink-0">
                     <User className="w-5 h-5 text-white" />
@@ -144,7 +160,7 @@ const ReviewsTab = ({ foodItem }) => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-white">{review.userName || "Khách hàng"}</span>
+                      <span className="font-medium text-yellow-300">{review.userName || "Khách hàng"}</span>
                       <div className="flex items-center gap-1">{renderStars(review.rating)}</div>
                     </div>
 
@@ -154,18 +170,6 @@ const ReviewsTab = ({ foodItem }) => {
                     </div>
 
                     <p className="text-gray-100 leading-relaxed">{review.comment}</p>
-
-                    {review.adminReply && (
-                      <div className="mt-3 bg-yellow-900/20 rounded-lg p-3 border-l-4 border-yellow-600">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-yellow-300">Phản hồi từ cửa hàng</span>
-                        </div>
-                        <p className="text-sm text-yellow-200">{review.adminReply}</p>
-                        {review.adminReplyAt && (
-                          <div className="text-xs text-yellow-400 mt-1">{formatDate(review.adminReplyAt)}</div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

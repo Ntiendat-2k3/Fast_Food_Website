@@ -1,7 +1,6 @@
 import jwt from "jsonwebtoken"
 import userModel from "../models/userModel.js"
 
-// Basic auth middleware
 const authMiddleware = async (req, res, next) => {
   const { token } = req.headers
   if (!token) {
