@@ -1,4 +1,4 @@
-import { Eye, Edit, Trash2, UserCheck, UserX, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
+import { Eye, Edit, Trash2, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
 
 const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }) => {
   if (loading) {
@@ -23,7 +23,7 @@ const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }
     return (
       <div className="bg-white dark:bg-dark-light rounded-xl p-8 text-center">
         <div className="w-16 h-16 bg-gray-100 dark:bg-dark-lighter rounded-full flex items-center justify-center mx-auto mb-4">
-          <UserCheck size={32} className="text-gray-400" />
+          <Briefcase size={32} className="text-gray-400" />
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Chưa có nhân viên</h3>
         <p className="text-gray-500 dark:text-gray-400">Thêm nhân viên đầu tiên để bắt đầu quản lý.</p>
@@ -47,9 +47,6 @@ const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }
                 Vị trí
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Trạng thái
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Ngày tạo
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -65,15 +62,32 @@ const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }
                     <div className="flex-shrink-0 h-10 w-10">
                       {member.avatar ? (
                         <img
-                          src={`${import.meta.env.VITE_API_URL}/images/${member.avatar}`}
+                          src={`${import.meta.env.VITE_API_URL}/images/${member.avatar}?t=${Date.now()}`}
                           alt={member.name}
                           className="h-10 w-10 rounded-full object-cover border-2 border-golden-200"
+                          onError={(e) => {
+                            // Nếu ảnh lỗi, ẩn img và hiển thị div fallback
+                            e.target.style.display = 'none';
+                            const fallbackDiv = e.target.parentNode.querySelector('.avatar-fallback');
+                            if (fallbackDiv) {
+                              fallbackDiv.style.display = 'flex';
+                            }
+                          }}
+                          onLoad={(e) => {
+                            // Nếu ảnh load thành công, hiển thị img và ẩn div fallback
+                            e.target.style.display = 'block';
+                            const fallbackDiv = e.target.parentNode.querySelector('.avatar-fallback');
+                            if (fallbackDiv) {
+                              fallbackDiv.style.display = 'none';
+                            }
+                          }}
                         />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-golden flex items-center justify-center">
-                          <span className="text-white font-medium text-sm">{member.name.charAt(0).toUpperCase()}</span>
-                        </div>
-                      )}
+                      ) : null}
+                      <div
+                        className={`avatar-fallback h-10 w-10 rounded-full bg-gradient-golden flex items-center justify-center ${member.avatar ? 'hidden' : 'flex'}`}
+                      >
+                        <span className="text-white font-medium text-sm">{member.name.charAt(0).toUpperCase()}</span>
+                      </div>
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</div>
@@ -105,28 +119,6 @@ const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }
                     <Briefcase size={12} className="mr-1 text-gray-400" />
                     {member.position || "Nhân viên"}
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => onStatusToggle(member._id, member.isActive)}
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                      member.isActive
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800"
-                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800"
-                    }`}
-                  >
-                    {member.isActive ? (
-                      <>
-                        <UserCheck size={12} className="mr-1" />
-                        Hoạt động
-                      </>
-                    ) : (
-                      <>
-                        <UserX size={12} className="mr-1" />
-                        Không hoạt động
-                      </>
-                    )}
-                  </button>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   {new Date(member.createdAt).toLocaleDateString("vi-VN")}

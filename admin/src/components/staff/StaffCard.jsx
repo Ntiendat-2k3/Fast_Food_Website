@@ -1,6 +1,6 @@
 // "use client"
 
-// import { Eye, Edit, Trash2, UserCheck, UserX, Phone, Mail, MapPin, Calendar, MoreVertical } from "lucide-react"
+// import { Eye, Edit, Trash2, UserCheck, UserX, Phone, Mail, MapPin, Calendar, MoreVertical } from 'lucide-react'
 // import { useState } from "react"
 
 // const StaffCard = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }) => {
@@ -56,7 +56,20 @@
 //             <div className="flex items-start justify-between mb-4">
 //               <div className="flex items-center space-x-3">
 //                 <div className="relative">
-//                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg">
+//                   {member.avatar ? (
+//                     <img
+//                       src={`${import.meta.env.VITE_API_URL}/images/${member.avatar}`}
+//                       alt={member.name}
+//                       className="w-12 h-12 rounded-full object-cover shadow-lg border-2 border-white dark:border-gray-800"
+//                       onError={(e) => {
+//                         e.target.style.display = 'none';
+//                         e.target.nextSibling.style.display = 'flex';
+//                       }}
+//                     />
+//                   ) : null}
+//                   <div
+//                     className={`w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-lg ${member.avatar ? 'hidden' : ''}`}
+//                   >
 //                     <span className="text-white font-bold text-lg">{member.name.charAt(0).toUpperCase()}</span>
 //                   </div>
 //                   <div

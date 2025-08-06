@@ -184,7 +184,6 @@ const Staff = ({ url }) => {
               title="Gửi thông báo"
             >
               <Bell size={20} />
-              <span className="hidden sm:inline">Gửi thông báo</span>
             </button>
 
             {/* Add Staff Button */}
@@ -199,7 +198,7 @@ const Staff = ({ url }) => {
         </div>
 
         {/* Stats */}
-        <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} />
+        {/* <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} /> */}
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
