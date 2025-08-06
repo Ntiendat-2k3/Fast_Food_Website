@@ -9,6 +9,7 @@ import {
   replyComment,
   deleteReply,
   updateReply,
+  updateComment,
 } from "../controllers/commentController.js"
 import authMiddleware from "../middleware/auth.js"
 
@@ -21,6 +22,7 @@ commentRouter.get("/food/:foodId/stats", getFoodRatingStats)
 // Protected routes
 commentRouter.post("/add", authMiddleware, addComment)
 commentRouter.get("/check/:userId/:foodId", authMiddleware, checkCanReview)
+commentRouter.put("/update", authMiddleware, updateComment) // Added update comment route for users
 
 // Admin routes
 commentRouter.get("/all", authMiddleware, getAllComments)

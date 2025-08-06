@@ -9,7 +9,7 @@ import { toast } from "react-toastify"
 import axios from "axios"
 
 const ReviewsTab = ({ foodItem }) => {
-  const { url, token } = useContext(StoreContext)
+  const { url, token, user } = useContext(StoreContext)
   const [editingReview, setEditingReview] = useState(null)
 
   const {
@@ -24,6 +24,9 @@ const ReviewsTab = ({ foodItem }) => {
     isCheckingEligibility,
     handleReviewSubmitted,
     handleWriteReview,
+    updateReviewInList,
+    removeReviewFromList,
+    fetchRatingStats
   } = useReviews(foodItem)
 
   const formatDate = (dateString) => {
@@ -45,13 +48,14 @@ const ReviewsTab = ({ foodItem }) => {
   }
 
   const handleSaveEdit = (updatedReview) => {
-    // Update the review in the list
-    setReviews(prevReviews =>
-      prevReviews.map(review =>
-        review._id === updatedReview._id ? updatedReview : review
-      )
-    )
+    // Update the review in the list using the hook function
+    updateReviewInList(updatedReview)
     setEditingReview(null)
+
+    // Refresh rating stats
+    fetchRatingStats()
+
+    toast.success('Cập nhật đánh giá thành công!')
   }
 
   const handleCancelEdit = () => {
@@ -64,13 +68,16 @@ const ReviewsTab = ({ foodItem }) => {
     }
 
     try {
-      const response = await axios.delete(`${url}/api/comment/user/${reviewId}`, {
+      const response = await axios.post(`${url}/api/comment/delete`, {
+        id: reviewId
+      }, {
         headers: { token }
       })
 
       if (response.data.success) {
         toast.success("Xóa đánh giá thành công")
-        setReviews(prevReviews => prevReviews.filter(review => review._id !== reviewId))
+        removeReviewFromList(reviewId)
+        fetchRatingStats()
       } else {
         toast.error(response.data.message || "Có lỗi xảy ra khi xóa đánh giá")
       }
@@ -225,7 +232,7 @@ const ReviewsTab = ({ foodItem }) => {
                           </div>
 
                           {/* Action buttons for user's own review */}
-                          {token && reviewEligibility?.existingReview?._id === review._id && (
+                          {token && user && review.userId === user._id && (
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => handleEditReview(review)}

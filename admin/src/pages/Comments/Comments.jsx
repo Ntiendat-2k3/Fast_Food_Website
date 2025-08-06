@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Star, Trash2, Calendar, Search, Reply, Send, X } from 'lucide-react'
+import { MessageSquare, Star, Trash2, Calendar, Search, Reply, Send, X, Edit, Save } from 'lucide-react'
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
@@ -21,6 +21,9 @@ const Comments = ({ url }) => {
   const [replyingTo, setReplyingTo] = useState(null)
   const [replyText, setReplyText] = useState("")
   const [submittingReply, setSubmittingReply] = useState(false)
+  const [editingReply, setEditingReply] = useState(null)
+  const [editReplyText, setEditReplyText] = useState("")
+  const [submittingEditReply, setSubmittingEditReply] = useState(false)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -232,6 +235,65 @@ const Comments = ({ url }) => {
     }
   }
 
+  const handleEditReplyClick = (comment) => {
+    setEditingReply(comment._id)
+    setEditReplyText(comment.adminReply || "")
+  }
+
+  const handleCancelEditReply = () => {
+    setEditingReply(null)
+    setEditReplyText("")
+  }
+
+  const handleSubmitEditReply = async (commentId) => {
+    if (!editReplyText.trim()) {
+      toast.error("Vui lòng nhập nội dung phản hồi")
+      return
+    }
+
+    if (editReplyText.trim().length < 5) {
+      toast.error("Phản hồi phải có ít nhất 5 ký tự")
+      return
+    }
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại để tiếp tục")
+      return
+    }
+
+    try {
+      setSubmittingEditReply(true)
+      const response = await axios.put(
+        `${url}/api/comment/admin/${commentId}/reply`,
+        {
+          adminReply: editReplyText.trim(),
+          adminName: "Admin",
+        },
+        {
+          headers: {
+            token: token,
+          },
+        },
+      )
+
+      if (response.data.success) {
+        toast.success("Cập nhật phản hồi thành công")
+        setEditingReply(null)
+        setEditReplyText("")
+        fetchComments()
+      } else {
+        console.error("API returned error:", response.data.message)
+        toast.error(response.data.message || "Lỗi khi cập nhật phản hồi")
+      }
+    } catch (error) {
+      console.error("Error updating reply:", error)
+      toast.error("Lỗi kết nối đến máy chủ")
+    } finally {
+      setSubmittingEditReply(false)
+    }
+  }
+
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString("vi-VN", {
@@ -431,16 +493,67 @@ const Comments = ({ url }) => {
                   {/* Admin Reply */}
                   {comment.adminReply && (
                     <div className="bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                      <div className="flex items-center mb-2">
-                        <Reply className="w-4 h-4 mr-2 text-blue-400" />
-                        <span className="text-sm font-medium text-blue-300">
-                          Phản hồi từ {comment.adminReplyBy || "Admin"}
-                        </span>
-                        {comment.adminReplyAt && (
-                          <span className="text-xs ml-2 text-blue-400">• {formatDate(comment.adminReplyAt)}</span>
-                        )}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <Reply className="w-4 h-4 mr-2 text-blue-400" />
+                          <span className="text-sm font-medium text-blue-300">
+                            Phản hồi từ {comment.adminReplyBy || "Admin"}
+                          </span>
+                          {comment.adminReplyAt && (
+                            <span className="text-xs ml-2 text-blue-400">• {formatDate(comment.adminReplyAt)}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleEditReplyClick(comment)}
+                          className="p-1 bg-yellow-600/20 text-yellow-400 rounded-full hover:bg-yellow-600/30 transition-colors"
+                          title="Chỉnh sửa phản hồi"
+                        >
+                          <Edit size={14} />
+                        </button>
                       </div>
-                      <p className="text-sm text-slate-300">{comment.adminReply}</p>
+
+                      {editingReply === comment._id ? (
+                        <div className="space-y-3">
+                          <textarea
+                            value={editReplyText}
+                            onChange={(e) => setEditReplyText(e.target.value)}
+                            placeholder="Chỉnh sửa phản hồi..."
+                            className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                            rows={3}
+                            maxLength={500}
+                          />
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-slate-400">{editReplyText.length}/500 ký tự</span>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={handleCancelEditReply}
+                                className="px-3 py-1 text-sm text-slate-400 hover:text-white transition-colors"
+                              >
+                                Hủy
+                              </button>
+                              <button
+                                onClick={() => handleSubmitEditReply(comment._id)}
+                                disabled={submittingEditReply || !editReplyText.trim()}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+                              >
+                                {submittingEditReply ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                    Đang cập nhật...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save size={14} className="mr-2" />
+                                    Cập nhật
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-300">{comment.adminReply}</p>
+                      )}
                     </div>
                   )}
 

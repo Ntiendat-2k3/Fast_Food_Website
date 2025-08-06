@@ -427,10 +427,6 @@ const updateReply = async (req, res) => {
       return res.json({ success: false, message: "Bình luận không tồn tại" })
     }
 
-    if (!comment.adminReply) {
-      return res.json({ success: false, message: "Không có phản hồi để cập nhật" })
-    }
-
     // Update admin reply
     comment.adminReply = adminReply.trim()
     comment.adminReplyAt = new Date()
@@ -484,6 +480,79 @@ const deleteReply = async (req, res) => {
   }
 }
 
+// User: Update own comment
+const updateComment = async (req, res) => {
+  try {
+    const { commentId, userId, rating, comment } = req.body
+
+    console.log("User updating comment:", { commentId, userId, rating, comment })
+
+    if (!commentId || !userId || !rating || !comment) {
+      return res.json({
+        success: false,
+        message: "Thiếu thông tin bắt buộc",
+      })
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(commentId) || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.json({ success: false, message: "ID không hợp lệ" })
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.json({ success: false, message: "Đánh giá phải từ 1 đến 5 sao" })
+    }
+
+    if (comment.trim().length < 10) {
+      return res.json({ success: false, message: "Nội dung đánh giá phải có ít nhất 10 ký tự" })
+    }
+
+    if (comment.trim().length > 500) {
+      return res.json({ success: false, message: "Nội dung đánh giá không được vượt quá 500 ký tự" })
+    }
+
+    const existingComment = await commentModel.findById(commentId)
+    if (!existingComment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    // Check if user owns this comment
+    if (existingComment.userId.toString() !== userId.toString()) {
+      return res.json({ success: false, message: "Bạn không có quyền chỉnh sửa đánh giá này" })
+    }
+
+    // Update comment
+    existingComment.rating = Number(rating)
+    existingComment.comment = comment.trim()
+    existingComment.updatedAt = new Date()
+
+    const updatedComment = await existingComment.save()
+
+    res.json({
+      success: true,
+      message: "Cập nhật đánh giá thành công",
+      data: {
+        _id: updatedComment._id,
+        userId: updatedComment.userId,
+        userName: updatedComment.userName,
+        foodId: updatedComment.foodId,
+        rating: updatedComment.rating,
+        comment: updatedComment.comment,
+        createdAt: updatedComment.createdAt,
+        updatedAt: updatedComment.updatedAt,
+        adminReply: updatedComment.adminReply,
+        adminReplyAt: updatedComment.adminReplyAt,
+        adminReplyBy: updatedComment.adminReplyBy,
+      },
+    })
+  } catch (error) {
+    console.error("Error updating comment:", error)
+    res.json({
+      success: false,
+      message: "Lỗi khi cập nhật đánh giá: " + error.message,
+    })
+  }
+}
+
 export {
   addComment,
   getCommentsByFood,
@@ -493,5 +562,6 @@ export {
   deleteComment,
   replyComment,
   updateReply,
-  deleteReply
+  deleteReply,
+  updateComment
 }
