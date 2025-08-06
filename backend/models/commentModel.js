@@ -28,6 +28,17 @@ const commentSchema = new mongoose.Schema({
     minlength: [10, "Nội dung đánh giá phải có ít nhất 10 ký tự"],
     maxlength: [500, "Nội dung đánh giá không được vượt quá 500 ký tự"],
   },
+  adminReply: {
+    type: String,
+    trim: true,
+    maxlength: [500, "Phản hồi không được vượt quá 500 ký tự"],
+  },
+  adminReplyAt: {
+    type: Date,
+  },
+  adminReplyBy: {
+    type: String, // Tên admin reply
+  },
   createdAt: {
     type: Date,
     default: Date.now,

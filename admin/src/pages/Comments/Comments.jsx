@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { MessageSquare, Star, Trash2, Calendar, Search } from "lucide-react"
+import { MessageSquare, Star, Trash2, Calendar, Search, Reply, Send, X } from 'lucide-react'
 
 // Import components
 import ConfirmModal from "../../components/ConfirmModal"
@@ -18,6 +18,9 @@ const Comments = ({ url }) => {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, id: null, message: "" })
   const [foodList, setFoodList] = useState([])
   const [categories, setCategories] = useState([])
+  const [replyingTo, setReplyingTo] = useState(null)
+  const [replyText, setReplyText] = useState("")
+  const [submittingReply, setSubmittingReply] = useState(false)
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -99,6 +102,15 @@ const Comments = ({ url }) => {
     })
   }
 
+  const handleDeleteReplyClick = (commentId) => {
+    setConfirmModal({
+      isOpen: true,
+      type: "deleteReply",
+      id: commentId,
+      message: "Bạn có chắc chắn muốn xóa phản hồi này?",
+    })
+  }
+
   const handleConfirmAction = async () => {
     const { type, id } = confirmModal
     const token = localStorage.getItem("token")
@@ -132,9 +144,92 @@ const Comments = ({ url }) => {
         console.error("Error deleting comment:", error)
         toast.error("Lỗi kết nối đến máy chủ")
       }
+    } else if (type === "deleteReply") {
+      try {
+        const response = await axios.post(
+          `${url}/api/comment/delete-reply`,
+          { commentId: id },
+          {
+            headers: {
+              token: token,
+            },
+          },
+        )
+
+        if (response.data.success) {
+          toast.success("Xóa phản hồi thành công")
+          fetchComments()
+        } else {
+          console.error("API returned error:", response.data.message)
+          toast.error(response.data.message || "Lỗi khi xóa phản hồi")
+        }
+      } catch (error) {
+        console.error("Error deleting reply:", error)
+        toast.error("Lỗi kết nối đến máy chủ")
+      }
     }
 
     setConfirmModal({ isOpen: false, type: null, id: null, message: "" })
+  }
+
+  const handleReplyClick = (commentId) => {
+    setReplyingTo(commentId)
+    setReplyText("")
+  }
+
+  const handleCancelReply = () => {
+    setReplyingTo(null)
+    setReplyText("")
+  }
+
+  const handleSubmitReply = async (commentId) => {
+    if (!replyText.trim()) {
+      toast.error("Vui lòng nhập nội dung phản hồi")
+      return
+    }
+
+    if (replyText.trim().length < 5) {
+      toast.error("Phản hồi phải có ít nhất 5 ký tự")
+      return
+    }
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại để tiếp tục")
+      return
+    }
+
+    try {
+      setSubmittingReply(true)
+      const response = await axios.post(
+        `${url}/api/comment/reply`,
+        {
+          commentId,
+          adminReply: replyText.trim(),
+          adminName: "Admin", // Có thể lấy từ user context
+        },
+        {
+          headers: {
+            token: token,
+          },
+        },
+      )
+
+      if (response.data.success) {
+        toast.success("Phản hồi thành công")
+        setReplyingTo(null)
+        setReplyText("")
+        fetchComments()
+      } else {
+        console.error("API returned error:", response.data.message)
+        toast.error(response.data.message || "Lỗi khi phản hồi")
+      }
+    } catch (error) {
+      console.error("Error submitting reply:", error)
+      toast.error("Lỗi kết nối đến máy chủ")
+    } finally {
+      setSubmittingReply(false)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -279,6 +374,24 @@ const Comments = ({ url }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
+                    {!comment.adminReply && (
+                      <button
+                        onClick={() => handleReplyClick(comment._id)}
+                        className="p-2 bg-blue-600/20 text-blue-400 rounded-full hover:bg-blue-600/30 transition-colors"
+                        title="Phản hồi đánh giá"
+                      >
+                        <Reply size={16} />
+                      </button>
+                    )}
+                    {comment.adminReply && (
+                      <button
+                        onClick={() => handleDeleteReplyClick(comment._id)}
+                        className="p-2 bg-orange-600/20 text-orange-400 rounded-full hover:bg-orange-600/30 transition-colors"
+                        title="Xóa phản hồi"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDeleteClick(comment._id)}
                       className="p-2 bg-red-600/20 text-red-400 rounded-full hover:bg-red-600/30 transition-colors"
@@ -311,9 +424,71 @@ const Comments = ({ url }) => {
                     </div>
                   </div>
 
-                  <div className="bg-slate-600/30 rounded-lg p-3">
+                  <div className="bg-slate-600/30 rounded-lg p-3 mb-4">
                     <p className="text-slate-300 text-sm leading-relaxed">{comment.comment}</p>
                   </div>
+
+                  {/* Admin Reply */}
+                  {comment.adminReply && (
+                    <div className="bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                      <div className="flex items-center mb-2">
+                        <Reply className="w-4 h-4 mr-2 text-blue-400" />
+                        <span className="text-sm font-medium text-blue-300">
+                          Phản hồi từ {comment.adminReplyBy || "Admin"}
+                        </span>
+                        {comment.adminReplyAt && (
+                          <span className="text-xs ml-2 text-blue-400">• {formatDate(comment.adminReplyAt)}</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-300">{comment.adminReply}</p>
+                    </div>
+                  )}
+
+                  {/* Reply Form */}
+                  {replyingTo === comment._id && (
+                    <div className="mt-4 p-4 bg-slate-600/20 rounded-lg border border-slate-600">
+                      <div className="flex items-center mb-3">
+                        <Reply className="w-4 h-4 mr-2 text-blue-400" />
+                        <span className="text-sm font-medium text-blue-300">Phản hồi đánh giá</span>
+                      </div>
+                      <textarea
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder="Nhập phản hồi của bạn..."
+                        className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                        rows={3}
+                        maxLength={500}
+                      />
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-xs text-slate-400">{replyText.length}/500 ký tự</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={handleCancelReply}
+                            className="px-3 py-1 text-sm text-slate-400 hover:text-white transition-colors"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            onClick={() => handleSubmitReply(comment._id)}
+                            disabled={submittingReply || !replyText.trim()}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
+                          >
+                            {submittingReply ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                                Đang gửi...
+                              </>
+                            ) : (
+                              <>
+                                <Send size={14} className="mr-2" />
+                                Gửi phản hồi
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -333,9 +508,9 @@ const Comments = ({ url }) => {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null, id: null, message: "" })}
         onConfirm={handleConfirmAction}
-        title="Xóa đánh giá"
+        title={confirmModal.type === "deleteReply" ? "Xóa phản hồi" : "Xóa đánh giá"}
         message={confirmModal.message}
-        confirmText="Xóa"
+        confirmText={confirmModal.type === "deleteReply" ? "Xóa phản hồi" : "Xóa"}
         confirmButtonClass="bg-red-600 hover:bg-red-700"
       />
     </div>

@@ -6,6 +6,9 @@ import {
   checkCanReview,
   getAllComments,
   deleteComment,
+  replyComment,
+  deleteReply,
+  updateReply,
 } from "../controllers/commentController.js"
 import authMiddleware from "../middleware/auth.js"
 
@@ -22,5 +25,8 @@ commentRouter.get("/check/:userId/:foodId", authMiddleware, checkCanReview)
 // Admin routes
 commentRouter.get("/all", authMiddleware, getAllComments)
 commentRouter.post("/delete", authMiddleware, deleteComment)
+commentRouter.post("/reply", authMiddleware, replyComment)
+commentRouter.put("/admin/:commentId/reply", authMiddleware, updateReply);
+commentRouter.post("/delete-reply", authMiddleware, deleteReply)
 
 export default commentRouter

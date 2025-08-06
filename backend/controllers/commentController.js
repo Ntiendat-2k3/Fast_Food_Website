@@ -179,6 +179,9 @@ const getCommentsByFood = async (req, res) => {
       userEmail: comment.userId?.email,
       rating: comment.rating,
       comment: comment.comment,
+      adminReply: comment.adminReply,
+      adminReplyAt: comment.adminReplyAt,
+      adminReplyBy: comment.adminReplyBy,
       createdAt: comment.createdAt,
     }))
 
@@ -304,6 +307,9 @@ const getAllComments = async (req, res) => {
       foodCategory: comment.foodId?.category,
       rating: comment.rating,
       comment: comment.comment,
+      adminReply: comment.adminReply,
+      adminReplyAt: comment.adminReplyAt,
+      adminReplyBy: comment.adminReplyBy,
       createdAt: comment.createdAt,
     }))
 
@@ -342,4 +348,150 @@ const deleteComment = async (req, res) => {
   }
 }
 
-export { addComment, getCommentsByFood, getFoodRatingStats, checkCanReview, getAllComments, deleteComment }
+// Admin: Reply đánh giá
+const replyComment = async (req, res) => {
+  try {
+    const { commentId, adminReply, adminName } = req.body
+
+    console.log("Admin replying to comment:", { commentId, adminReply, adminName })
+
+    if (!commentId || !adminReply || !adminName) {
+      return res.json({
+        success: false,
+        message: "Thiếu thông tin bắt buộc",
+      })
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    }
+
+    if (adminReply.trim().length < 5) {
+      return res.json({ success: false, message: "Phản hồi phải có ít nhất 5 ký tự" })
+    }
+
+    if (adminReply.trim().length > 500) {
+      return res.json({ success: false, message: "Phản hồi không được vượt quá 500 ký tự" })
+    }
+
+    const comment = await commentModel.findById(commentId)
+    if (!comment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    // Cập nhật reply
+    comment.adminReply = adminReply.trim()
+    comment.adminReplyAt = new Date()
+    comment.adminReplyBy = adminName
+
+    const updatedComment = await comment.save()
+
+    res.json({
+      success: true,
+      message: "Phản hồi thành công",
+      data: {
+        _id: updatedComment._id,
+        adminReply: updatedComment.adminReply,
+        adminReplyAt: updatedComment.adminReplyAt,
+        adminReplyBy: updatedComment.adminReplyBy,
+      },
+    })
+  } catch (error) {
+    console.error("Error replying to comment:", error)
+    res.json({
+      success: false,
+      message: "Lỗi khi phản hồi đánh giá: " + error.message,
+    })
+  }
+}
+
+const updateReply = async (req, res) => {
+  try {
+    const { commentId } = req.params
+    const { adminReply, adminName } = req.body
+
+    console.log("Admin updating reply:", { commentId, adminReply, adminName })
+
+    // Validate required fields
+    if (!adminReply || !adminName) {
+      return res.json({ success: false, message: "Vui lòng điền đầy đủ thông tin" })
+    }
+
+    // Validate reply length
+    if (adminReply.trim().length < 5 || adminReply.trim().length > 500) {
+      return res.json({ success: false, message: "Phản hồi phải từ 5 đến 500 ký tự" })
+    }
+
+    const comment = await commentModel.findById(commentId)
+    if (!comment) {
+      return res.json({ success: false, message: "Bình luận không tồn tại" })
+    }
+
+    if (!comment.adminReply) {
+      return res.json({ success: false, message: "Không có phản hồi để cập nhật" })
+    }
+
+    // Update admin reply
+    comment.adminReply = adminReply.trim()
+    comment.adminReplyAt = new Date()
+    comment.adminReplyBy = adminName
+
+    await comment.save()
+
+    res.json({
+      success: true,
+      message: "Cập nhật phản hồi thành công",
+      data: {
+        adminReply: comment.adminReply,
+        adminReplyAt: comment.adminReplyAt,
+        adminReplyBy: comment.adminReplyBy
+      }
+    })
+  } catch (error) {
+    console.error("Error updating reply:", error)
+    res.json({ success: false, message: "Lỗi khi cập nhật phản hồi: " + error.message })
+  }
+}
+
+// Admin: Xóa reply
+const deleteReply = async (req, res) => {
+  try {
+    const { commentId } = req.body
+
+    if (!mongoose.Types.ObjectId.isValid(commentId)) {
+      return res.json({ success: false, message: "ID đánh giá không hợp lệ" })
+    }
+
+    const comment = await commentModel.findById(commentId)
+    if (!comment) {
+      return res.json({ success: false, message: "Không tìm thấy đánh giá" })
+    }
+
+    // Xóa reply
+    comment.adminReply = undefined
+    comment.adminReplyAt = undefined
+    comment.adminReplyBy = undefined
+
+    await comment.save()
+
+    res.json({
+      success: true,
+      message: "Đã xóa phản hồi thành công",
+    })
+  } catch (error) {
+    console.error("Error deleting reply:", error)
+    res.json({ success: false, message: "Lỗi khi xóa phản hồi" })
+  }
+}
+
+export {
+  addComment,
+  getCommentsByFood,
+  getFoodRatingStats,
+  checkCanReview,
+  getAllComments,
+  deleteComment,
+  replyComment,
+  updateReply,
+  deleteReply
+}

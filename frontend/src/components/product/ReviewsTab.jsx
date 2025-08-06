@@ -1,13 +1,22 @@
-import { Star, MessageCircle, User, Calendar } from "lucide-react"
+import { Star, MessageCircle, User, Calendar, Reply, Edit, Trash2 } from 'lucide-react'
+import { useState, useContext } from 'react'
 import { useReviews } from "../../hooks/useReviews"
 import ReviewCommentForm from "../ReviewCommentForm"
 import ReviewEligibilityNotice from "../ReviewEligibilityNotice"
+import EditCommentForm from "../EditCommentForm"
+import { StoreContext } from "../../context/StoreContext"
+import { toast } from "react-toastify"
+import axios from "axios"
 
 const ReviewsTab = ({ foodItem }) => {
+  const { url, token } = useContext(StoreContext)
+  const [editingReview, setEditingReview] = useState(null)
+
   const {
     showReviewForm,
     setShowReviewForm,
     reviews,
+    setReviews,
     ratingStats,
     isLoadingReviews,
     isLoadingStats,
@@ -29,6 +38,46 @@ const ReviewsTab = ({ foodItem }) => {
     return Array.from({ length: 5 }, (_, index) => (
       <Star key={index} className={`w-4 h-4 ${index < rating ? "text-yellow-400 fill-current" : "text-gray-600"}`} />
     ))
+  }
+
+  const handleEditReview = (review) => {
+    setEditingReview(review)
+  }
+
+  const handleSaveEdit = (updatedReview) => {
+    // Update the review in the list
+    setReviews(prevReviews =>
+      prevReviews.map(review =>
+        review._id === updatedReview._id ? updatedReview : review
+      )
+    )
+    setEditingReview(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingReview(null)
+  }
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) {
+      return
+    }
+
+    try {
+      const response = await axios.delete(`${url}/api/comment/user/${reviewId}`, {
+        headers: { token }
+      })
+
+      if (response.data.success) {
+        toast.success("Xóa đánh giá thành công")
+        setReviews(prevReviews => prevReviews.filter(review => review._id !== reviewId))
+      } else {
+        toast.error(response.data.message || "Có lỗi xảy ra khi xóa đánh giá")
+      }
+    } catch (error) {
+      console.error("Error deleting review:", error)
+      toast.error("Có lỗi xảy ra khi xóa đánh giá")
+    }
   }
 
   const renderRatingDistribution = () => {
@@ -153,25 +202,78 @@ const ReviewsTab = ({ foodItem }) => {
                 key={review._id}
                 className="bg-gray-800 border border-gray-700 rounded-lg p-4 hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-yellow-700 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
+                {editingReview && editingReview._id === review._id ? (
+                  <EditCommentForm
+                    comment={editingReview}
+                    onSave={handleSaveEdit}
+                    onCancel={handleCancelEdit}
+                    url={url}
+                    token={token}
+                  />
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-yellow-700 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-yellow-300">{review.userName || "Khách hàng"}</span>
-                      <div className="flex items-center gap-1">{renderStars(review.rating)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-yellow-300">{review.userName || "Khách hàng"}</span>
+                            <div className="flex items-center gap-1">{renderStars(review.rating)}</div>
+                          </div>
+
+                          {/* Action buttons for user's own review */}
+                          {token && reviewEligibility?.existingReview?._id === review._id && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleEditReview(review)}
+                                className="p-1 text-blue-400 hover:text-blue-300 transition-colors"
+                                title="Chỉnh sửa đánh giá"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteReview(review._id)}
+                                className="p-1 text-red-400 hover:text-red-300 transition-colors"
+                                title="Xóa đánh giá"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(review.createdAt)}
+                          {review.updatedAt && review.updatedAt !== review.createdAt && (
+                            <span className="text-xs text-gray-500">(đã chỉnh sửa)</span>
+                          )}
+                        </div>
+
+                        <p className="text-gray-100 leading-relaxed mb-3">{review.comment}</p>
+
+                        {/* Admin Reply */}
+                        {review.adminReply && (
+                          <div className="border-l-4 border-blue-400 bg-blue-900/20 p-4 mt-4 rounded-r-lg">
+                            <div className="flex items-center mb-2">
+                              <Reply className="w-4 h-4 mr-2 text-blue-400" />
+                              <span className="text-sm font-medium text-blue-300">Phản hồi từ cửa hàng</span>
+                              {review.adminReplyAt && (
+                                <span className="text-xs ml-2 text-blue-400">
+                                  • {formatDate(review.adminReplyAt)}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-blue-100 leading-relaxed">{review.adminReply}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(review.createdAt)}
-                    </div>
-
-                    <p className="text-gray-100 leading-relaxed">{review.comment}</p>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

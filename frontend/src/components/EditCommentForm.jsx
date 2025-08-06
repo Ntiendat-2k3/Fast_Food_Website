@@ -1,7 +1,5 @@
-"use client"
-
 import { useState } from "react"
-import { Star, Save, X, Edit3 } from "lucide-react"
+import { Star, Save, X, Edit3 } from 'lucide-react'
 import { toast } from "react-toastify"
 import axios from "axios"
 
@@ -14,8 +12,13 @@ const EditCommentForm = ({ comment, onSave, onCancel, url, token }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (commentText.trim().length < 5) {
-      toast.error("Vui lòng nhập nội dung đánh giá (ít nhất 5 ký tự)")
+    if (commentText.trim().length < 10) {
+      toast.error("Vui lòng nhập nội dung đánh giá (ít nhất 10 ký tự)")
+      return
+    }
+
+    if (commentText.trim().length > 500) {
+      toast.error("Nội dung đánh giá không được vượt quá 500 ký tự")
       return
     }
 
@@ -31,9 +34,9 @@ const EditCommentForm = ({ comment, onSave, onCancel, url, token }) => {
         `${url}/api/comment/update`,
         {
           commentId: comment._id,
+          userId: comment.userId,
           rating: Number(rating),
           comment: commentText.trim(),
-          userId: comment.userId,
         },
         {
           headers: {
@@ -135,21 +138,22 @@ const EditCommentForm = ({ comment, onSave, onCancel, url, token }) => {
               placeholder="Chia sẻ trải nghiệm chi tiết của bạn về sản phẩm này..."
               className="w-full px-4 py-3 border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 bg-gray-700/50 text-gray-200 placeholder-gray-500 resize-none transition-all duration-200 backdrop-blur-sm"
               required
-              minLength={5}
+              minLength={10}
+              maxLength={500}
             />
 
             {/* Character Counter */}
             <div className="absolute bottom-3 right-3 flex items-center gap-2">
-              <span className={`text-xs font-medium ${commentText.length >= 5 ? "text-green-400" : "text-red-400"}`}>
-                {commentText.length}/5
+              <span className={`text-xs font-medium ${commentText.length >= 10 ? "text-green-400" : "text-red-400"}`}>
+                {commentText.length}/500
               </span>
-              {commentText.length >= 5 && <div className="w-2 h-2 bg-green-400 rounded-full shadow-lg"></div>}
+              {commentText.length >= 10 && <div className="w-2 h-2 bg-green-400 rounded-full shadow-lg"></div>}
             </div>
           </div>
 
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
-            Tối thiểu 5 ký tự để đảm bảo đánh giá có ý nghĩa
+            Tối thiểu 10 ký tự để đảm bảo đánh giá có ý nghĩa
           </p>
         </div>
 
@@ -166,7 +170,7 @@ const EditCommentForm = ({ comment, onSave, onCancel, url, token }) => {
 
           <button
             type="submit"
-            disabled={isSubmitting || commentText.trim().length < 5}
+            disabled={isSubmitting || commentText.trim().length < 10}
             className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2 shadow-lg hover:shadow-orange-500/25 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transform hover:scale-105 disabled:hover:scale-100"
           >
             <Save size={16} />
