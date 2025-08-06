@@ -1,11 +1,13 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Heart, ShoppingCart } from "lucide-react"
+import { Heart, ShoppingCart } from 'lucide-react'
 import { useNavigate } from "react-router-dom"
 
-const WishlistActions = ({ onAddAllToCart }) => {
+const WishlistActions = ({ onAddAllToCart, isAddingAll, itemCount }) => {
   const navigate = useNavigate()
+
+  if (itemCount === 0) return null
 
   return (
     <motion.div
@@ -22,10 +24,22 @@ const WishlistActions = ({ onAddAllToCart }) => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             onClick={onAddAllToCart}
-            className="bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 flex items-center justify-center font-medium hover:scale-105"
+            disabled={isAddingAll}
+            className={`bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 flex items-center justify-center font-medium hover:scale-105 ${
+              isAddingAll ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <ShoppingCart size={18} className="mr-2" />
-            Thêm tất cả vào giỏ hàng
+            {isAddingAll ? (
+              <>
+                <div className="animate-spin h-5 w-5 border-2 border-slate-900 border-t-transparent rounded-full mr-2"></div>
+                Đang thêm...
+              </>
+            ) : (
+              <>
+                <ShoppingCart size={18} className="mr-2" />
+                Thêm tất cả vào giỏ hàng
+              </>
+            )}
           </button>
           <button
             onClick={() => navigate("/foods")}

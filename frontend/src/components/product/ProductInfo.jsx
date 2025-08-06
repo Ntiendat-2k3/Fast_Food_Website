@@ -1,22 +1,12 @@
 "use client"
 
 import { motion } from "framer-motion"
-import {
-  Star,
-  Check,
-  Minus,
-  Plus,
-  CreditCard,
-  ShoppingCart,
-  Truck,
-  ShieldCheck,
-  RefreshCw,
-  AlertTriangle,
-  X,
-} from "lucide-react"
+import { Star, Check, Minus, Plus, CreditCard, ShoppingCart, Truck, ShieldCheck, RefreshCw, AlertTriangle, X, Heart } from 'lucide-react'
 import SuggestedDrinks from "./SuggestedDrinks"
 import SuggestedFoods from "./SuggestedFoods"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
+import { StoreContext } from "../../context/StoreContext"
+import { toast } from "react-toastify"
 import axios from "axios"
 
 // Stock Status Component
@@ -115,11 +105,83 @@ const ProductInfo = ({
   stock = 50, // Add stock prop with default value
   url, // Add url prop for API calls
 }) => {
+  const { token } = useContext(StoreContext)
+  const [isLiked, setIsLiked] = useState(false)
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false)
+
   const isOutOfStock = stock <= 0
   const isLowStock = stock > 0 && stock <= 20 // Changed from 10 to 20
 
   // Check if current product is a drink
   const isDrink = product && product.category && product.category.toLowerCase().includes("uống")
+
+  // Check if item is in wishlist when component mounts
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      if (!token || !product?._id) return
+
+      try {
+        const response = await axios.get(`${url}/api/wishlist/check/${product._id}`, {
+          headers: { token },
+        })
+
+        if (response.data.success) {
+          setIsLiked(response.data.isInWishlist)
+        }
+      } catch (error) {
+        console.error("Error checking wishlist status:", error)
+      }
+    }
+
+    checkWishlistStatus()
+  }, [product?._id, token, url])
+
+  const handleWishlistToggle = async () => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để thêm vào danh sách yêu thích")
+      return
+    }
+
+    if (isWishlistLoading) return
+
+    setIsWishlistLoading(true)
+
+    try {
+      if (isLiked) {
+        // Remove from wishlist
+        const response = await axios.post(`${url}/api/wishlist/remove`, { foodId: product._id }, { headers: { token } })
+
+        if (response.data.success) {
+          setIsLiked(false)
+          toast.success("Đã xóa khỏi danh sách yêu thích")
+        } else {
+          console.error("Error removing from wishlist:", response.data.message)
+          toast.error(response.data.message || "Lỗi khi xóa khỏi danh sách yêu thích")
+        }
+      } else {
+        // Add to wishlist
+        const response = await axios.post(`${url}/api/wishlist/add`, { foodId: product._id }, { headers: { token } })
+
+        if (response.data.success) {
+          setIsLiked(true)
+          toast.success("Đã thêm vào danh sách yêu thích")
+        } else {
+          console.error("Error adding to wishlist:", response.data.message)
+          if (response.data.message === "Sản phẩm đã có trong danh sách yêu thích") {
+            setIsLiked(true)
+            toast.info("Sản phẩm đã có trong danh sách yêu thích")
+          } else {
+            toast.error(response.data.message || "Lỗi khi thêm vào danh sách yêu thích")
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error updating wishlist:", error)
+      toast.error("Có lỗi xảy ra khi cập nhật danh sách yêu thích")
+    } finally {
+      setIsWishlistLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -147,15 +209,32 @@ const ProductInfo = ({
         <SalesCount productId={product._id} url={url} />
       </motion.div>
 
-      {/* Product Name */}
-      <motion.h1
+      {/* Product Name and Wishlist */}
+      <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-3xl lg:text-4xl font-bold text-white leading-tight"
+        className="flex items-start justify-between gap-4"
       >
-        {product.name}
-      </motion.h1>
+        <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight flex-1">{product.name}</h1>
+
+        {/* Wishlist Button */}
+        <motion.button
+          onClick={handleWishlistToggle}
+          disabled={isWishlistLoading}
+          className={`p-3 rounded-full backdrop-blur-sm border border-slate-600 transition-all duration-300 ${
+            isLiked ? "bg-red-500/80 text-white border-red-500/50" : "bg-slate-700/50 text-white hover:bg-red-500/50"
+          } ${isWishlistLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+          whileHover={{ scale: isWishlistLoading ? 1 : 1.1 }}
+          whileTap={{ scale: isWishlistLoading ? 1 : 0.9 }}
+        >
+          {isWishlistLoading ? (
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Heart className={`h-6 w-6 ${isLiked ? "fill-current" : ""}`} />
+          )}
+        </motion.button>
+      </motion.div>
 
       {/* Price */}
       <motion.div

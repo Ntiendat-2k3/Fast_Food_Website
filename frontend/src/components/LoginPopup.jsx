@@ -3,7 +3,7 @@
 import { useContext, useState, useEffect } from "react"
 import { StoreContext } from "../context/StoreContext"
 import axios from "axios"
-import { X, Mail, Lock, User, KeyRound } from "lucide-react"
+import { X, Mail, Lock, User, KeyRound } from 'lucide-react'
 
 const LoginPopup = ({ setShowLogin }) => {
   const { url, setToken, setUser } = useContext(StoreContext)
@@ -428,6 +428,26 @@ const LoginPopup = ({ setShowLogin }) => {
     }
   }
 
+  // Function to get button text based on current state
+  const getButtonText = () => {
+    if (loading) return "Đang xử lý..."
+
+    switch (currState) {
+      case "Login":
+        return "Đăng nhập"
+      case "Sign Up":
+        return "Tạo tài khoản"
+      case "Verify Email":
+        return "Xác minh"
+      case "ForgotPasswordEmail":
+        return "Gửi mã xác nhận"
+      case "ForgotPasswordCode":
+        return isCodeEnteredForReset ? "Đặt lại mật khẩu" : "Xác nhận mã"
+      default:
+        return "Đăng nhập"
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 px-4">
       <div className="bg-zinc-900 rounded-xl shadow-lg shadow-yellow-500/30 border border-yellow-500/50 w-full max-w-md overflow-hidden animate-fadeIn transition-all duration-300 ease-in-out">
@@ -582,19 +602,7 @@ const LoginPopup = ({ setShowLogin }) => {
               disabled={loading}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-zinc-900 py-3 rounded-lg transition-all duration-300 ease-in-out hover:scale-[1.02] disabled:opacity-50"
             >
-              {loading
-                ? "Đang xử lý..."
-                : currState === "Sign Up"
-                  ? "Tạo tài khoản"
-                  : currState === "Verify Email"
-                    ? "Xác minh"
-                    : currState === "ForgotPasswordEmail"
-                      ? "Gửi mã xác nhận"
-                      : currState === "ForgotPasswordCode"
-                        ? isCodeEnteredForReset
-                          ? "Đặt lại mật khẩu"
-                          : "Xác nhận mã"
-                        : "Đặt lại mật khẩu"}
+              {getButtonText()}
             </button>
 
             {(currState === "Verify Email" || (currState === "ForgotPasswordCode" && !isCodeEnteredForReset)) && (

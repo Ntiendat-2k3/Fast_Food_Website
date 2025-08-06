@@ -3,9 +3,10 @@
 import { useContext, useState, useEffect } from "react"
 import { StoreContext } from "../context/StoreContext"
 import { useNavigate } from "react-router-dom"
-import { Star, Check, Heart, Eye, Plus, AlertCircle, Package } from "lucide-react"
+import { Star, Check, Heart, Eye, Plus, AlertCircle, Package } from 'lucide-react'
 import { motion } from "framer-motion"
 import { slugify } from "../utils/slugify"
+import { toast } from "react-toastify"
 import axios from "axios"
 
 // Sales Count Component
@@ -142,7 +143,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
     e.stopPropagation()
 
     if (!token) {
-      alert("Vui lòng đăng nhập để thêm vào danh sách yêu thích")
+      toast.error("Vui lòng đăng nhập để thêm vào danh sách yêu thích")
       return
     }
 
@@ -157,8 +158,10 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
         if (response.data.success) {
           setIsLiked(false)
+          toast.success("Đã xóa khỏi danh sách yêu thích")
         } else {
           console.error("Error removing from wishlist:", response.data.message)
+          toast.error(response.data.message || "Lỗi khi xóa khỏi danh sách yêu thích")
         }
       } else {
         // Add to wishlist
@@ -166,16 +169,20 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
         if (response.data.success) {
           setIsLiked(true)
+          toast.success("Đã thêm vào danh sách yêu thích")
         } else {
           console.error("Error adding to wishlist:", response.data.message)
-          if (response.data.message !== "Sản phẩm đã có trong danh sách yêu thích") {
-            alert(response.data.message)
+          if (response.data.message === "Sản phẩm đã có trong danh sách yêu thích") {
+            setIsLiked(true)
+            toast.info("Sản phẩm đã có trong danh sách yêu thích")
+          } else {
+            toast.error(response.data.message || "Lỗi khi thêm vào danh sách yêu thích")
           }
         }
       }
     } catch (error) {
       console.error("Error updating wishlist:", error)
-      alert("Có lỗi xảy ra khi cập nhật danh sách yêu thích")
+      toast.error("Có lỗi xảy ra khi cập nhật danh sách yêu thích")
     } finally {
       setIsWishlistLoading(false)
     }

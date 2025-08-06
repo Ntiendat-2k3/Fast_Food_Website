@@ -32,7 +32,7 @@ const addToWishlist = async (req, res) => {
   } catch (error) {
     console.log("Error adding to wishlist:", error)
 
-    // Kiểm tra lỗi duplicate key
+    // Check for duplicate key error
     if (error.code === 11000) {
       return res.json({ success: false, message: "Sản phẩm đã có trong danh sách yêu thích" })
     }
