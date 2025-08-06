@@ -12,7 +12,7 @@ import WishlistLoading from "../../components/wishlist/WishlistLoading"
 
 const Wishlist = () => {
   const { token } = useContext(StoreContext)
-  const { wishlistItems, loading, ratings, removeFromWishlist, addAllToCart } = useWishlist()
+  const { wishlistItems, loading, ratings, removeFromWishlist, addAllToCart, isAddingAll } = useWishlist()
 
   if (!token) {
     return null
@@ -37,7 +37,11 @@ const Wishlist = () => {
             <WishlistGrid items={wishlistItems} onRemove={removeFromWishlist} ratings={ratings} />
 
             {/* Quick Actions */}
-            <WishlistActions onAddAllToCart={addAllToCart} />
+            <WishlistActions
+              onAddAllToCart={addAllToCart}
+              isAddingAll={isAddingAll}
+              itemCount={wishlistItems.length}
+            />
           </>
         )}
       </div>

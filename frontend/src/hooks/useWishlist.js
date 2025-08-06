@@ -12,6 +12,7 @@ const useWishlist = () => {
   const [wishlistItems, setWishlistItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [ratings, setRatings] = useState({})
+  const [isAddingAll, setIsAddingAll] = useState(false)
 
   useEffect(() => {
     if (!token) {
@@ -83,11 +84,46 @@ const useWishlist = () => {
     }
   }
 
-  const addAllToCart = () => {
-    wishlistItems.forEach((item) => {
-      addToCart(item.foodId.name, 1)
-    })
-    toast.success("Đã thêm tất cả vào giỏ hàng")
+  const addAllToCart = async () => {
+    if (wishlistItems.length === 0) {
+      toast.warning("Danh sách yêu thích trống")
+      return
+    }
+
+    setIsAddingAll(true)
+
+    try {
+      let successCount = 0
+      let errorCount = 0
+
+      // Thêm từng sản phẩm vào giỏ hàng
+      for (const item of wishlistItems) {
+        try {
+          if (item.foodId && item.foodId._id) {
+            await addToCart(item.foodId._id)
+            successCount++
+          }
+        } catch (error) {
+          console.error(`Error adding ${item.foodId?.name} to cart:`, error)
+          errorCount++
+        }
+      }
+
+      // Hiển thị thông báo kết quả
+      if (successCount > 0) {
+        toast.success(`Đã thêm ${successCount} sản phẩm vào giỏ hàng thành công!`)
+      }
+
+      if (errorCount > 0) {
+        toast.warning(`${errorCount} sản phẩm không thể thêm vào giỏ hàng`)
+      }
+
+    } catch (error) {
+      console.error("Error adding all items to cart:", error)
+      toast.error("Có lỗi xảy ra khi thêm sản phẩm vào giỏ hàng")
+    } finally {
+      setIsAddingAll(false)
+    }
   }
 
   return {
@@ -96,6 +132,7 @@ const useWishlist = () => {
     ratings,
     removeFromWishlist,
     addAllToCart,
+    isAddingAll,
   }
 }
 

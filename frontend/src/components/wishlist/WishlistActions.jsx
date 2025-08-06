@@ -26,7 +26,7 @@ const WishlistActions = ({ onAddAllToCart, isAddingAll, itemCount }) => {
             onClick={onAddAllToCart}
             disabled={isAddingAll}
             className={`bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 flex items-center justify-center font-medium hover:scale-105 ${
-              isAddingAll ? 'opacity-50 cursor-not-allowed' : ''
+              isAddingAll ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
             }`}
           >
             {isAddingAll ? (
@@ -43,7 +43,10 @@ const WishlistActions = ({ onAddAllToCart, isAddingAll, itemCount }) => {
           </button>
           <button
             onClick={() => navigate("/foods")}
-            className="border border-primary text-primary hover:bg-primary hover:text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 font-medium"
+            disabled={isAddingAll}
+            className={`border border-primary text-primary hover:bg-primary hover:text-slate-900 py-3 px-8 rounded-xl transition-all duration-300 font-medium ${
+              isAddingAll ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
+            }`}
           >
             Tiếp tục mua sắm
           </button>
