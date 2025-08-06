@@ -30,7 +30,7 @@ const ProductTabs = ({
   const tabs = [
     { id: "description", label: "Mô tả chi tiết" },
     { id: "specifications", label: "Thông tin sản phẩm" },
-    { id: "reviews", label: `Đánh giá (${ratingStats.totalReviews})` },
+    { id: "reviews", label: "Đánh giá" },
   ]
 
   return (

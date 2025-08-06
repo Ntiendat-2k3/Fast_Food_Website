@@ -186,7 +186,7 @@ const ProductInfo = ({
   return (
     <div className="space-y-6">
       {/* Rating and Reviews */}
-      <motion.div
+      {/* <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
@@ -207,7 +207,7 @@ const ProductInfo = ({
             : "Chưa có đánh giá"}
         </span>
         <SalesCount productId={product._id} url={url} />
-      </motion.div>
+      </motion.div> */}
 
       {/* Product Name and Wishlist */}
       <motion.div

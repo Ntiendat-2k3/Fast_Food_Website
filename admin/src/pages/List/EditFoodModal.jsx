@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { X, Upload, Tag, DollarSign, FileText, Save, ImageIcon } from "lucide-react"
+import { X, Upload, Tag, DollarSign, FileText, Save, ImageIcon } from 'lucide-react'
 
 const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   const [image, setImage] = useState(null)
@@ -80,28 +80,54 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
     event.preventDefault()
     setLoading(true)
 
-    const formData = new FormData()
-    formData.append("id", data.id)
-    formData.append("name", data.name)
-    formData.append("description", data.description)
-    formData.append("price", Number(data.price))
-    formData.append("category", data.category)
-
-    if (image) {
-      formData.append("image", image)
-    }
-
     try {
-      const response = await axios.post(`${url}/api/food/update`, formData)
+      const formData = new FormData()
+      formData.append("id", data.id)
+      formData.append("name", data.name)
+      formData.append("description", data.description)
+      formData.append("price", Number(data.price))
+      formData.append("category", data.category)
+
+      if (image) {
+        formData.append("image", image)
+      }
+
+      console.log("Sending update request with data:", {
+        id: data.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        category: data.category,
+        hasImage: !!image
+      })
+
+      const response = await axios.put(`${url}/api/food/update`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      console.log("Update response:", response.data)
+
       if (response.data.success) {
-        toast.success(response.data.message)
+        toast.success(response.data.message || "Cập nhật sản phẩm thành công")
         onSuccess()
       } else {
+        console.error("Update failed:", response.data)
         toast.error(response.data.message || "Lỗi khi cập nhật sản phẩm")
       }
     } catch (error) {
       console.error("Error updating product:", error)
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật sản phẩm. Vui lòng thử lại sau.")
+      console.error("Error response:", error.response?.data)
+      console.error("Error status:", error.response?.status)
+
+      if (error.response?.status === 404) {
+        toast.error("API endpoint không tìm thấy. Kiểm tra đường dẫn API.")
+      } else if (error.response?.status === 500) {
+        toast.error("Lỗi server. Vui lòng kiểm tra backend.")
+      } else {
+        toast.error(error.response?.data?.message || "Lỗi khi cập nhật sản phẩm. Vui lòng thử lại sau.")
+      }
     } finally {
       setLoading(false)
     }
