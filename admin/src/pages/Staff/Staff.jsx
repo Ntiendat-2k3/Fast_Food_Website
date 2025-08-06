@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { Plus, Search, Users } from "lucide-react"
+import { Plus, Search, Users, Bell } from 'lucide-react'
 import StaffModal from "./StaffModal"
 import StaffTable from "../../components/staff/StaffTable"
 import StaffFilters from "../../components/staff/StaffFilters"
 import StaffStats from "../../components/staff/StaffStats"
 import ConfirmModal from "../../components/ConfirmModal"
+import NotificationModal from "../../components/staff/NotificationModal"
 
 const Staff = ({ url }) => {
   const [staff, setStaff] = useState([])
@@ -24,6 +25,7 @@ const Staff = ({ url }) => {
   const [modalMode, setModalMode] = useState("add") // add, edit, view
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, staffId: null, staffName: "" })
+  const [notificationModal, setNotificationModal] = useState(false)
 
   const itemsPerPage = 10
 
@@ -150,14 +152,14 @@ const Staff = ({ url }) => {
     fetchStaff(currentPage, searchTerm, statusFilter)
   }
 
-  // Calculate stats - Fixed logic to properly count active/inactive staff
+  // Handle notification modal success
+  const handleNotificationSuccess = () => {
+    setNotificationModal(false)
+  }
+
+  // Calculate stats
   const activeStaff = staff.filter((s) => s.isActive === true).length
   const inactiveStaff = staff.filter((s) => s.isActive === false).length
-
-  console.log("Staff data:", staff)
-  console.log("Active staff count:", activeStaff)
-  console.log("Inactive staff count:", inactiveStaff)
-  console.log("Total records:", totalRecords)
 
   return (
     <div className="w-full">
@@ -174,17 +176,30 @@ const Staff = ({ url }) => {
             </div>
           </div>
 
-          <button
-            onClick={handleAddStaff}
-            className="flex items-center space-x-2 bg-gradient-golden text-white px-4 py-2 rounded-xl hover:shadow-golden/20 transition-all duration-300"
-          >
-            <Plus size={20} />
-            <span>Thêm nhân viên</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Notification Button */}
+            <button
+              onClick={() => setNotificationModal(true)}
+              className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-blue-500/20"
+              title="Gửi thông báo"
+            >
+              <Bell size={20} />
+              <span className="hidden sm:inline">Gửi thông báo</span>
+            </button>
+
+            {/* Add Staff Button */}
+            <button
+              onClick={handleAddStaff}
+              className="flex items-center space-x-2 bg-gradient-golden text-white px-4 py-2 rounded-xl hover:shadow-golden/20 transition-all duration-300"
+            >
+              <Plus size={20} />
+              <span>Thêm nhân viên</span>
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
-        {/* <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} /> */}
+        <StaffStats total={totalRecords} active={activeStaff} inactive={inactiveStaff} />
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -246,6 +261,17 @@ const Staff = ({ url }) => {
           onSuccess={handleModalSuccess}
           mode={modalMode}
           staff={selectedStaff}
+          url={url}
+        />
+      )}
+
+      {/* Notification Modal */}
+      {notificationModal && (
+        <NotificationModal
+          isOpen={notificationModal}
+          onClose={() => setNotificationModal(false)}
+          onSuccess={handleNotificationSuccess}
+          staff={staff.filter(s => s.isActive)} // Only active staff
           url={url}
         />
       )}

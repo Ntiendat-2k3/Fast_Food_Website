@@ -1,6 +1,4 @@
-"use client"
-
-import { Eye, Edit, Trash2, UserCheck, UserX, Phone, Mail, MapPin, Briefcase } from "lucide-react"
+import { Eye, Edit, Trash2, UserCheck, UserX, Phone, Mail, MapPin, Briefcase } from 'lucide-react'
 
 const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }) => {
   if (loading) {
@@ -65,9 +63,17 @@ const StaffTable = ({ staff, loading, onEdit, onView, onDelete, onStatusToggle }
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-gradient-golden flex items-center justify-center">
-                        <span className="text-white font-medium text-sm">{member.name.charAt(0).toUpperCase()}</span>
-                      </div>
+                      {member.avatar ? (
+                        <img
+                          src={`${import.meta.env.VITE_API_URL}/images/${member.avatar}`}
+                          alt={member.name}
+                          className="h-10 w-10 rounded-full object-cover border-2 border-golden-200"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-gradient-golden flex items-center justify-center">
+                          <span className="text-white font-medium text-sm">{member.name.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</div>
