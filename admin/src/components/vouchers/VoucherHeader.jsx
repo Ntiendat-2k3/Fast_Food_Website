@@ -8,7 +8,7 @@ const VoucherHeader = ({ onAddClick }) => {
       <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Quản lý mã giảm giá</h1>
       <button
         onClick={onAddClick}
-        className="bg-primary hover:bg-primary-light text-dark py-2 px-4 rounded-lg flex items-center transition-colors"
+        className="bg-green-800 text-gray-300 py-2 px-4 rounded-lg flex items-center transition-colors"
       >
         <Plus size={20} className="mr-2" />
         Thêm mã giảm giá

@@ -117,7 +117,7 @@ const Categories = ({ url }) => {
           </div>
           <button
             onClick={handleAddCategory}
-            className="bg-primary hover:bg-primary-dark text-dark font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center gap-2"
+            className="bg-gray-900 hover:bg-gray-800 text-gray-300 font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center gap-2"
           >
             <Plus size={20} />
             Thêm danh mục

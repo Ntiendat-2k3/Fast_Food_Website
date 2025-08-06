@@ -86,7 +86,7 @@ const ProductForm = ({ data, onChangeHandler, onImageChange, onSubmit, url }) =>
       <div className="mt-4 md:mt-6">
         <button
           type="submit"
-          className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-dark font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center"
+          className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-gray-300 font-medium py-2.5 px-6 rounded-lg transition-colors flex items-center justify-center"
         >
           <Save className="mr-2" size={20} />
           Thêm sản phẩm
