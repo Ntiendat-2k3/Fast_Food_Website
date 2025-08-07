@@ -1,11 +1,15 @@
 "use client"
 
 import { useContext } from "react"
-import { Star, ShoppingCart, User, CheckCircle } from "lucide-react"
+import { Star, ShoppingCart, User, CheckCircle, AlertCircle } from 'lucide-react'
 import { StoreContext } from "../context/StoreContext"
 
 const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
   const { token, user } = useContext(StoreContext)
+
+  console.log('ReviewEligibilityNotice - eligibility:', eligibility)
+  console.log('ReviewEligibilityNotice - user:', user)
+  console.log('ReviewEligibilityNotice - token:', !!token)
 
   // Nếu chưa đăng nhập
   if (!token || !user) {
@@ -22,8 +26,22 @@ const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
     )
   }
 
+  // Nếu đang kiểm tra quyền
+  if (!eligibility) {
+    return (
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-400"></div>
+          <div>
+            <h4 className="font-medium text-gray-300">Đang kiểm tra quyền đánh giá...</h4>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Nếu đã có đánh giá
-  if (eligibility?.hasReviewed === true) {
+  if (eligibility.hasReviewed === true) {
     return (
       <div className="bg-gray-800 border border-yellow-500 rounded-lg p-4">
         <div className="flex items-center gap-3">
@@ -31,8 +49,13 @@ const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
           <div>
             <h4 className="font-medium text-yellow-300">Bạn đã đánh giá sản phẩm này</h4>
             <p className="text-sm text-gray-300 mt-1">
-              Cảm ơn bạn đã chia sẻ đánh giá. Bạn có thể xem đánh giá của mình trong danh sách bên dưới.
+              Cảm ơn bạn đã chia sẻ đánh giá. Bạn có thể chỉnh sửa đánh giá của mình trong danh sách bên dưới.
             </p>
+            {eligibility.existingReview && (
+              <div className="mt-2 text-xs text-gray-400">
+                Đánh giá của bạn: {eligibility.existingReview.rating} sao - {eligibility.existingReview.comment}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -40,7 +63,7 @@ const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
   }
 
   // Nếu có thể đánh giá
-  if (eligibility?.canReview === true) {
+  if (eligibility.canReview === true) {
     return (
       <div className="bg-gray-800 border border-yellow-500 rounded-lg p-4">
         <div className="flex items-center justify-between">
@@ -65,16 +88,25 @@ const ReviewEligibilityNotice = ({ eligibility, onWriteReview }) => {
     )
   }
 
-  // Nếu chưa mua hàng
+  // Nếu chưa mua hàng hoặc chưa nhận hàng
   return (
     <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
       <div className="flex items-center gap-3">
         <ShoppingCart className="w-5 h-5 text-gray-400 flex-shrink-0" />
         <div>
-          <h4 className="font-medium text-gray-300">Mua hàng để đánh giá</h4>
+          <h4 className="font-medium text-gray-300">
+            {eligibility.hasPurchased === false ? "Mua hàng để đánh giá" : "Chưa thể đánh giá"}
+          </h4>
           <p className="text-sm text-gray-400 mt-1">
-            Bạn cần mua và nhận được sản phẩm này trước khi có thể viết đánh giá.
+            {eligibility.hasPurchased === false
+              ? "Bạn cần mua và nhận được sản phẩm này trước khi có thể viết đánh giá."
+              : "Đơn hàng của bạn chưa được giao hoặc chưa hoàn thành thanh toán."
+            }
           </p>
+          {/* Debug info - remove in production */}
+          {/* <div className="mt-2 text-xs text-gray-500">
+            Debug: hasPurchased={String(eligibility.hasPurchased)}, hasReviewed={String(eligibility.hasReviewed)}, canReview={String(eligibility.canReview)}
+          </div> */}
         </div>
       </div>
     </div>

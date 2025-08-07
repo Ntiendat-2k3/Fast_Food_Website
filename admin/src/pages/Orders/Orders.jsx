@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
 import axios from "axios"
-import { Package, TrendingUp, Clock, CheckCircle, RefreshCw, Download, DollarSign } from "lucide-react"
+import { Package, TrendingUp, Clock, CheckCircle, RefreshCw, Download, DollarSign } from 'lucide-react'
 import OrderCard from "../../components/orders/OrderCard"
 import OrderSearchBar from "../../components/orders/OrderSearchBar"
 import OrderStatusFilter from "../../components/orders/OrderStatusFilter"
@@ -50,8 +50,10 @@ const Orders = ({ url }) => {
       pending: ordersData.filter((order) => order.status === "Đang xử lý").length,
       processing: ordersData.filter((order) => order.status === "Đang giao hàng").length,
       delivered: ordersData.filter((order) => order.status === "Đã giao").length,
-      // Chỉ tính doanh thu từ đơn hàng đã giao
-      revenue: ordersData.filter((order) => order.status === "Đã giao").reduce((sum, order) => sum + order.amount, 0),
+      // Tính doanh thu từ đơn hàng đã giao và đã hoàn thành
+      revenue: ordersData.filter((order) =>
+        order.status === "Đã giao" || order.status === "Đã hoàn thành"
+      ).reduce((sum, order) => sum + order.amount, 0),
     }
     setStats(stats)
   }

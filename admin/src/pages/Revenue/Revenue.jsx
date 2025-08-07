@@ -75,7 +75,9 @@ const Revenue = ({ url }) => {
         setOrders(allOrders)
 
         // Filter only completed orders for time stats
-        const completed = allOrders.filter((order) => order.status === "Đã giao")
+        const completed = allOrders.filter((order) =>
+          order.status === "Đã giao" || order.status === "Đã hoàn thành"
+        )
         setCompletedOrders(completed)
       }
     } catch (error) {
@@ -93,7 +95,10 @@ const Revenue = ({ url }) => {
       for (let day = 1; day <= daysInMonth; day++) {
         const dayOrders = completedOrders.filter((order) => {
           const orderDate = new Date(order.date)
-          return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === month && orderDate.getDate() === day
+          return orderDate.getFullYear() === year &&
+            orderDate.getMonth() + 1 === month &&
+            orderDate.getDate() === day &&
+            (order.status === "Đã giao" || order.status === "Đã hoàn thành")
         })
 
         const revenue = dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0)
@@ -332,7 +337,7 @@ const Revenue = ({ url }) => {
             </div>
 
             {/* Debug Information */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* {process.env.NODE_ENV === 'development' && (
               <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <h4 className="font-bold mb-2">Debug Info:</h4>
                 <div className="text-xs space-y-1">
@@ -341,7 +346,7 @@ const Revenue = ({ url }) => {
                   <div>Category Revenue: {JSON.stringify(categoryRevenue, null, 2).substring(0, 200)}...</div>
                 </div>
               </div>
-            )}
+            )} */}
           </>
         )}
       </div>

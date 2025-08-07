@@ -259,7 +259,12 @@ const getRevenueStats = async (req, res) => {
   try {
     const { period = "month", year, month } = req.query
 
-    let matchStage = { status: "Đã giao" } // Only completed orders
+    let matchStage = {
+      $or: [
+        { status: "Đã giao" },
+        { status: "Đã hoàn thành" }
+      ]
+    } // Only completed orders
     let groupStage = {}
     let sortStage = {}
 
@@ -347,14 +352,15 @@ const getRevenueStats = async (req, res) => {
   }
 }
 
-// Get detailed revenue breakdown by category and product
 const getRevenueBreakdown = async (req, res) => {
   try {
-    console.log("Getting revenue breakdown...")
-
     // Get all completed orders
-    const completedOrders = await orderModel.find({ status: "Đã giao" }).sort({ date: -1 })
-    console.log(`Found ${completedOrders.length} completed orders`)
+    const completedOrders = await orderModel.find({
+      $or: [
+        { status: "Đã giao" },
+        { status: "Đã hoàn thành" }
+      ]
+    }).sort({ date: -1 })
 
     // Get all categories and foods for mapping
     const [categories, foods] = await Promise.all([
@@ -362,24 +368,31 @@ const getRevenueBreakdown = async (req, res) => {
       foodModel.find({}).populate('categoryId', 'name')
     ])
 
-    console.log(`Loaded ${categories.length} categories and ${foods.length} foods`)
-
-    // Create mapping objects for faster lookup
-    const categoryMap = new Map(categories.map(cat => [cat._id.toString(), cat.name]))
+    // Create comprehensive mapping objects
+    const categoryMap = new Map()
     const foodCategoryMap = new Map()
+    const foodNameToCategoryMap = new Map()
 
-    // Build food to category mapping
-    foods.forEach(food => {
-      if (food.categoryId && food.categoryId.name) {
-        foodCategoryMap.set(food.name, food.categoryId.name)
-        foodCategoryMap.set(food._id.toString(), food.categoryId.name)
-      } else if (food.category) {
-        foodCategoryMap.set(food.name, food.category)
-        foodCategoryMap.set(food._id.toString(), food.category)
-      }
+    // Build category mapping by ID and name
+    categories.forEach(cat => {
+      categoryMap.set(cat._id.toString(), cat.name)
+      categoryMap.set(cat.name, cat.name) // Also map name to name for direct lookup
     })
 
-    console.log("Food category mapping:", Array.from(foodCategoryMap.entries()).slice(0, 10))
+    // Build food to category mapping with multiple lookup methods
+    foods.forEach(food => {
+      const categoryName = food.categoryId ? food.categoryId.name : food.category
+
+      if (categoryName) {
+        // Map by food ID
+        foodCategoryMap.set(food._id.toString(), categoryName)
+        // Map by food name (case insensitive)
+        foodNameToCategoryMap.set(food.name.toLowerCase(), categoryName)
+
+        // Also try exact name match
+        foodCategoryMap.set(food.name, categoryName)
+      }
+    })
 
     // Calculate revenue by category and product
     const categoryRevenue = {}
@@ -387,6 +400,7 @@ const getRevenueBreakdown = async (req, res) => {
     let totalRevenue = 0
     let totalVoucherDiscount = 0
     let totalShippingFee = 0
+    let unmappedItems = []
 
     completedOrders.forEach(order => {
       totalRevenue += order.amount || 0
@@ -397,32 +411,42 @@ const getRevenueBreakdown = async (req, res) => {
         order.items.forEach(item => {
           if (item.name && item.price && item.quantity) {
             const itemRevenue = (item.price || 0) * (item.quantity || 0)
+            let categoryName = null
 
-            // Get category name with multiple fallback methods
-            let categoryName = 'Khác'
-
-            // Method 1: Use categoryName from enriched order item
-            if (item.categoryName) {
+            // Method 1: Use categoryName from enriched order item (most reliable)
+            if (item.categoryName && item.categoryName !== 'Khác') {
               categoryName = item.categoryName
             }
-            // Method 2: Look up by foodId
-            else if (item.foodId && foodCategoryMap.has(item.foodId)) {
-              categoryName = foodCategoryMap.get(item.foodId)
+            // Method 2: Look up by foodId in foodCategoryMap
+            else if (item.foodId && foodCategoryMap.has(item.foodId.toString())) {
+              categoryName = foodCategoryMap.get(item.foodId.toString())
             }
-            // Method 3: Look up by food name
+            // Method 3: Look up by exact food name
             else if (foodCategoryMap.has(item.name)) {
               categoryName = foodCategoryMap.get(item.name)
             }
-            // Method 4: Use category field directly
-            else if (item.category) {
-              if (categoryMap.has(item.category)) {
-                categoryName = categoryMap.get(item.category)
-              } else {
-                categoryName = item.category
-              }
+            // Method 4: Look up by food name (case insensitive)
+            else if (foodNameToCategoryMap.has(item.name.toLowerCase())) {
+              categoryName = foodNameToCategoryMap.get(item.name.toLowerCase())
+            }
+            // Method 5: Use category field directly if it exists and is valid
+            else if (item.category && categoryMap.has(item.category)) {
+              categoryName = categoryMap.get(item.category)
             }
 
-            console.log(`Item: ${item.name}, FoodId: ${item.foodId}, Category: ${categoryName}, Revenue: ${itemRevenue}`)
+            // If still no category found, try to find food in database
+            if (!categoryName) {
+              // This will be handled by a separate lookup if needed
+              unmappedItems.push({
+                name: item.name,
+                foodId: item.foodId,
+                category: item.category,
+                categoryName: item.categoryName
+              })
+
+              // For now, skip items that can't be mapped instead of using "Khác"
+              return
+            }
 
             // Accumulate revenue by category
             if (!categoryRevenue[categoryName]) {
@@ -440,8 +464,53 @@ const getRevenueBreakdown = async (req, res) => {
       }
     })
 
-    console.log("Final category revenue:", categoryRevenue)
-    console.log("Final product revenue:", Object.keys(productRevenue).length, "products")
+    // Handle unmapped items by doing database lookup
+    if (unmappedItems.length > 0) {
+      for (const unmappedItem of unmappedItems) {
+        try {
+          let food = null
+
+          // Try to find by foodId first
+          if (unmappedItem.foodId) {
+            food = await foodModel.findById(unmappedItem.foodId).populate('categoryId', 'name')
+          }
+
+          // If not found, try by name
+          if (!food) {
+            food = await foodModel.findOne({
+              name: { $regex: new RegExp(`^${unmappedItem.name}$`, 'i') }
+            }).populate('categoryId', 'name')
+          }
+
+          if (food && food.categoryId) {
+            const categoryName = food.categoryId.name
+
+            // Find the item in orders and recalculate
+            completedOrders.forEach(order => {
+              if (order.items) {
+                order.items.forEach(item => {
+                  if (item.name === unmappedItem.name) {
+                    const itemRevenue = (item.price || 0) * (item.quantity || 0)
+
+                    if (!categoryRevenue[categoryName]) {
+                      categoryRevenue[categoryName] = 0
+                    }
+                    categoryRevenue[categoryName] += itemRevenue
+
+                    if (!productRevenue[item.name]) {
+                      productRevenue[item.name] = 0
+                    }
+                    productRevenue[item.name] += itemRevenue
+                  }
+                })
+              }
+            })
+          }
+        } catch (error) {
+          console.error(`Error resolving unmapped item ${unmappedItem.name}:`, error)
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -455,7 +524,8 @@ const getRevenueBreakdown = async (req, res) => {
         summary: {
           totalCategories: Object.keys(categoryRevenue).length,
           totalProducts: Object.keys(productRevenue).length,
-          netRevenue: totalRevenue - totalVoucherDiscount - totalShippingFee
+          netRevenue: totalRevenue - totalVoucherDiscount - totalShippingFee,
+          unmappedItemsCount: unmappedItems.length
         }
       }
     })
@@ -808,7 +878,10 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const query = {
       userId,
-      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }, { status: "Đã hoàn thành" }],
+      $or: [
+        { status: "Đã giao" },
+        { status: "Đã hoàn thành" }
+      ],
     }
 
     if (search) {
@@ -885,7 +958,10 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const allCompletedOrders = await orderModel.find({
       userId,
-      $or: [{ status: "Đã giao hàng" }, { status: "Đã giao" }, { status: "Đã hoàn thành" }],
+      $or: [
+        { status: "Đã giao" },
+        { status: "Đã hoàn thành" }
+      ],
     })
 
     const totalSpent = allCompletedOrders.reduce((sum, order) => sum + order.amount, 0)

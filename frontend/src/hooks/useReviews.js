@@ -53,28 +53,57 @@ export const useReviews = (foodItem) => {
     }
   }
 
-  // Check review eligibility
+  // Check review eligibility - sửa lại URL endpoint
   const checkReviewEligibility = async () => {
     if (!token || !user) {
-      setReviewEligibility({ canReview: false, reason: 'not_logged_in' })
+      setReviewEligibility({
+        canReview: false,
+        hasPurchased: false,
+        hasReviewed: false,
+        reason: 'not_logged_in'
+      })
       return
     }
 
     try {
       setIsCheckingEligibility(true)
+      console.log('Checking eligibility for user:', user._id, 'food:', foodItem._id)
+
+      // Sửa lại URL endpoint để match với backend route
       const response = await axios.get(
-        `${url}/api/comment/eligibility/${foodItem._id}`,
+        `${url}/api/comment/check/${user._id}/${foodItem._id}`,
         { headers: { token } }
       )
 
+      console.log('Eligibility response:', response.data)
+
       if (response.data.success) {
-        setReviewEligibility(response.data.data)
+        const eligibilityData = response.data.data
+        setReviewEligibility({
+          canReview: eligibilityData.canReview,
+          hasPurchased: eligibilityData.hasPurchased,
+          hasReviewed: eligibilityData.hasReviewed,
+          existingReview: eligibilityData.existingReview,
+          reason: !eligibilityData.hasPurchased ? 'not_purchased' :
+                  eligibilityData.hasReviewed ? 'already_reviewed' : 'can_review'
+        })
       } else {
-        setReviewEligibility({ canReview: false, reason: 'error' })
+        console.error('Eligibility check failed:', response.data.message)
+        setReviewEligibility({
+          canReview: false,
+          hasPurchased: false,
+          hasReviewed: false,
+          reason: 'error'
+        })
       }
     } catch (error) {
       console.error('Error checking review eligibility:', error)
-      setReviewEligibility({ canReview: false, reason: 'error' })
+      setReviewEligibility({
+        canReview: false,
+        hasPurchased: false,
+        hasReviewed: false,
+        reason: 'error'
+      })
     } finally {
       setIsCheckingEligibility(false)
     }
@@ -96,16 +125,24 @@ export const useReviews = (foodItem) => {
 
   // Handle write review
   const handleWriteReview = () => {
+    console.log('Handle write review, eligibility:', reviewEligibility)
+
+    if (!token || !user) {
+      toast.error('Vui lòng đăng nhập để đánh giá sản phẩm')
+      return
+    }
+
     if (!reviewEligibility?.canReview) {
-      if (reviewEligibility?.reason === 'not_logged_in') {
-        toast.error('Vui lòng đăng nhập để đánh giá sản phẩm')
-      } else if (reviewEligibility?.reason === 'not_purchased') {
-        toast.error('Bạn cần mua sản phẩm này trước khi đánh giá')
-      } else if (reviewEligibility?.reason === 'already_reviewed') {
+      if (!reviewEligibility?.hasPurchased) {
+        toast.error('Bạn cần mua và nhận được sản phẩm này trước khi đánh giá')
+      } else if (reviewEligibility?.hasReviewed) {
         toast.error('Bạn đã đánh giá sản phẩm này rồi')
+      } else {
+        toast.error('Không thể đánh giá sản phẩm này')
       }
       return
     }
+
     setShowReviewForm(true)
   }
 

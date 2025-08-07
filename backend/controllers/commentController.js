@@ -22,14 +22,27 @@ const checkUserPurchase = async (userId, foodId) => {
       return false
     }
 
-    // Kiểm tra đơn hàng đã hoàn thành
+    // Kiểm tra đơn hàng đã hoàn thành - sửa lại logic này
     const validOrders = allOrders.filter((order) => {
-      const isPaid = order.payment === true || order.paymentStatus === "Đã thanh toán" || order.paymentStatus === "paid"
-      const isDelivered = order.status === "Đã giao" || order.status === "Delivered"
-      const validStatus = order.status && !["Hủy", "Cancelled", "Canceled"].includes(order.status)
+      // Kiểm tra trạng thái đơn hàng đã giao hoặc hoàn thành
+      const isDelivered = ["Đã giao", "Đã giao hàng", "Delivered", "Đã hoàn thành"].includes(order.status)
 
-      return isPaid && (isDelivered || validStatus)
+      // Kiểm tra thanh toán (COD có thể chưa thanh toán nhưng đã giao)
+      const isValidPayment = order.paymentMethod === "COD" ||
+                           order.payment === true ||
+                           order.paymentStatus === "Đã thanh toán" ||
+                           order.paymentStatus === "paid"
+
+      // Đơn hàng không bị hủy
+      const notCancelled = !["Hủy", "Cancelled", "Canceled", "Đã hủy"].includes(order.status)
+
+      console.log(`Order ${order._id}: status=${order.status}, payment=${order.paymentStatus}, method=${order.paymentMethod}`)
+      console.log(`Checks: delivered=${isDelivered}, validPayment=${isValidPayment}, notCancelled=${notCancelled}`)
+
+      return isDelivered && isValidPayment && notCancelled
     })
+
+    console.log(`Valid orders found: ${validOrders.length}`)
 
     if (validOrders.length === 0) {
       return false
@@ -40,15 +53,20 @@ const checkUserPurchase = async (userId, foodId) => {
       if (!order.items || order.items.length === 0) continue
 
       for (const item of order.items) {
+        // Kiểm tra theo foodId
         if (item.foodId && item.foodId.toString() === foodId.toString()) {
+          console.log(`Found product by foodId in order ${order._id}`)
           return true
         }
+        // Kiểm tra theo tên sản phẩm (fallback)
         if (item.name && food.name && item.name.toLowerCase().trim() === food.name.toLowerCase().trim()) {
+          console.log(`Found product by name in order ${order._id}`)
           return true
         }
       }
     }
 
+    console.log("Product not found in any valid order")
     return false
   } catch (error) {
     console.error("Error checking user purchase:", error)
@@ -268,6 +286,7 @@ const checkCanReview = async (req, res) => {
       hasReviewed: !!existingComment,
       existingReview: existingComment
         ? {
+            _id: existingComment._id,
             rating: existingComment.rating,
             comment: existingComment.comment,
             createdAt: existingComment.createdAt,

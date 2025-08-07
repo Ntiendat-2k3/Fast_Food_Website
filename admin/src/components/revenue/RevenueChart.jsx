@@ -209,7 +209,7 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
       </div>
 
       {/* Chart Statistics */}
-      <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+      {/* <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 dark:text-white">{chartData.length}</p>
@@ -230,7 +230,7 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
             <p className="text-xs text-gray-500 dark:text-gray-400">Tổng cộng</p>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }
