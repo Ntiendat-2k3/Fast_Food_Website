@@ -63,38 +63,38 @@ const Cart = () => {
     }
   }
 
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) {
-      toast.error("Vui lòng nhập mã giảm giá")
-      return
-    }
+  // const handleApplyVoucher = async () => {
+  //   if (!voucherCode.trim()) {
+  //     toast.error("Vui lòng nhập mã giảm giá")
+  //     return
+  //   }
 
-    setIsApplyingVoucher(true)
-    try {
-      const response = await axios.post(`${url}/api/voucher/apply`, {
-        code: voucherCode,
-        orderAmount: getSelectedCartAmount(),
-      })
+  //   setIsApplyingVoucher(true)
+  //   try {
+  //     const response = await axios.post(`${url}/api/voucher/apply`, {
+  //       code: voucherCode,
+  //       orderAmount: getSelectedCartAmount(),
+  //     })
 
-      if (response.data.success) {
-        setAppliedVoucher(response.data.data)
-        toast.success("Áp dụng mã giảm giá thành công")
-      } else {
-        toast.error(response.data.message || "Mã giảm giá không hợp lệ")
-      }
-    } catch (error) {
-      console.error("Error applying voucher:", error)
-      toast.error("Đã xảy ra lỗi khi áp dụng mã giảm giá")
-    } finally {
-      setIsApplyingVoucher(false)
-    }
-  }
+  //     if (response.data.success) {
+  //       setAppliedVoucher(response.data.data)
+  //       toast.success("Áp dụng mã giảm giá thành công")
+  //     } else {
+  //       toast.error(response.data.message || "Mã giảm giá không hợp lệ")
+  //     }
+  //   } catch (error) {
+  //     console.error("Error applying voucher:", error)
+  //     toast.error("Đã xảy ra lỗi khi áp dụng mã giảm giá")
+  //   } finally {
+  //     setIsApplyingVoucher(false)
+  //   }
+  // }
 
-  const handleRemoveVoucher = () => {
-    setAppliedVoucher(null)
-    setVoucherCode("")
-    toast.info("Đã xóa mã giảm giá")
-  }
+  // const handleRemoveVoucher = () => {
+  //   setAppliedVoucher(null)
+  //   setVoucherCode("")
+  //   toast.info("Đã xóa mã giảm giá")
+  // }
 
   const getSelectedCartAmount = () => {
     let totalAmount = 0
@@ -242,15 +242,15 @@ const Cart = () => {
                   onRemoveFromCartAll={removeFromCartAll}
                 />
 
-                <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <VoucherSection
+                <div className="mt-8">
+                  {/* <VoucherSection
                     voucherCode={voucherCode}
                     setVoucherCode={setVoucherCode}
                     appliedVoucher={appliedVoucher}
                     onApplyVoucher={handleApplyVoucher}
                     onRemoveVoucher={handleRemoveVoucher}
                     isApplying={isApplyingVoucher}
-                  />
+                  /> */}
 
                   <CartSummary
                     selectedItemsCount={getSelectedItemsCount()}

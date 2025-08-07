@@ -217,7 +217,7 @@ const Staff = ({ url }) => {
           </form>
 
           {/* Status Filter */}
-          <StaffFilters statusFilter={statusFilter} onFilterChange={handleFilterChange} />
+          {/* <StaffFilters statusFilter={statusFilter} onFilterChange={handleFilterChange} /> */}
         </div>
 
         {/* Staff Table */}

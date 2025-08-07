@@ -6,7 +6,7 @@ const addToWishlist = async (req, res) => {
     const { foodId } = req.body
     const userId = req.userId
 
-    console.log("Add to wishlist - userId:", userId, "foodId:", foodId)
+    // console.log("Add to wishlist - userId:", userId, "foodId:", foodId)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })
@@ -30,7 +30,7 @@ const addToWishlist = async (req, res) => {
     await wishlistItem.save()
     res.json({ success: true, message: "Đã thêm vào danh sách yêu thích" })
   } catch (error) {
-    console.log("Error adding to wishlist:", error)
+    // console.log("Error adding to wishlist:", error)
 
     // Check for duplicate key error
     if (error.code === 11000) {
@@ -47,7 +47,7 @@ const removeFromWishlist = async (req, res) => {
     const { foodId } = req.body
     const userId = req.userId
 
-    console.log("Remove from wishlist - userId:", userId, "foodId:", foodId)
+    // console.log("Remove from wishlist - userId:", userId, "foodId:", foodId)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })
@@ -75,7 +75,7 @@ const getWishlist = async (req, res) => {
   try {
     const userId = req.userId
 
-    console.log("Get wishlist - userId:", userId)
+    // console.log("Get wishlist - userId:", userId)
 
     if (!userId) {
       return res.json({ success: false, message: "User ID is required" })
@@ -99,7 +99,7 @@ const checkWishlist = async (req, res) => {
     const { foodId } = req.params
     const userId = req.userId
 
-    console.log("Check wishlist - userId:", userId, "foodId:", foodId)
+    // console.log("Check wishlist - userId:", userId, "foodId:", foodId)
 
     if (!foodId) {
       return res.json({ success: false, message: "Food ID is required" })

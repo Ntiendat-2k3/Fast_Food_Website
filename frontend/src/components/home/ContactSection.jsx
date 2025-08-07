@@ -8,7 +8,7 @@ const ContactSection = () => {
     {
       icon: <MapPin className="w-8 h-8 text-yellow-400" />,
       title: "Địa Chỉ",
-      content: "123 Đường Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
+      content: "123 Trần Phú, TP. Hà Nội",
     },
     {
       icon: <Phone className="w-8 h-8 text-yellow-400" />,
