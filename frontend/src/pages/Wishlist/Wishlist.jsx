@@ -7,7 +7,7 @@ import AnimatedBackground from "../../components/common/AnimatedBackground"
 import WishlistHeader from "../../components/wishlist/WishlistHeader"
 import WishlistEmpty from "../../components/wishlist/WishlistEmpty"
 import WishlistGrid from "../../components/wishlist/WishlistGrid"
-import WishlistActions from "../../components/wishlist/WishlistActions"
+// import WishlistActions from "../../components/wishlist/WishlistActions"
 import WishlistLoading from "../../components/wishlist/WishlistLoading"
 
 const Wishlist = () => {
@@ -37,11 +37,11 @@ const Wishlist = () => {
             <WishlistGrid items={wishlistItems} onRemove={removeFromWishlist} ratings={ratings} />
 
             {/* Quick Actions */}
-            <WishlistActions
+            {/* <WishlistActions
               onAddAllToCart={addAllToCart}
               isAddingAll={isAddingAll}
               itemCount={wishlistItems.length}
-            />
+            /> */}
           </>
         )}
       </div>

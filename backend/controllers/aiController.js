@@ -23,6 +23,15 @@ const chatWithAI = async (req, res) => {
       })
     }
 
+    // Kiểm tra xem câu hỏi có liên quan đến trang web đồ ăn nhanh không
+    const isRelevant = await isRelevantQuestion(message)
+    if (!isRelevant) {
+      return res.json({
+        success: true,
+        reply: "Xin lỗi, tôi chỉ có thể trả lời các câu hỏi liên quan đến dịch vụ đồ ăn nhanh GreenEats. Vui lòng hỏi về thực đơn, đặt hàng, thanh toán, giao hàng, khuyến mãi hoặc các dịch vụ khác của chúng tôi.",
+      })
+    }
+
     // Lấy thông tin context chi tiết từ database
     const contextData = await getEnhancedContextData(userId)
 
@@ -63,6 +72,95 @@ const chatWithAI = async (req, res) => {
   }
 }
 
+// Kiểm tra xem câu hỏi có liên quan đến trang web đồ ăn nhanh không
+const isRelevantQuestion = async (message) => {
+  try {
+    // Nếu không có OpenAI API key, mặc định cho phép tất cả câu hỏi
+    if (!OPENAI_API_KEY) return true
+
+    // Danh sách từ khóa liên quan đến đồ ăn nhanh
+    const relevantKeywords = [
+      // Thực đơn và món ăn
+      "đồ ăn", "thức ăn", "món ăn", "thực đơn", "menu", "đặt đồ", "đặt món", "gọi món",
+      "burger", "pizza", "gà", "chicken", "khoai tây", "kfc", "mcdonald", "jollibee", "lotteria",
+      "combo", "set", "phần ăn", "suất ăn", "nước uống", "đồ uống", "thức uống", "đồ ngọt",
+      "salad", "pasta", "mì", "bún", "cơm", "sandwich", "bánh mì", "hotdog", "xúc xích",
+      "tráng miệng", "dessert", "kem", "bánh ngọt", "bánh", "kẹo", "snack", "đồ ăn vặt",
+
+      // Đặt hàng và giao hàng
+      "đặt hàng", "order", "giao hàng", "delivery", "ship", "vận chuyển", "freeship",
+      "thời gian giao", "phí giao hàng", "phí ship", "miễn phí giao", "giao nhanh",
+      "đơn hàng", "đơn đặt", "theo dõi đơn", "hủy đơn", "trạng thái đơn",
+
+      // Thanh toán
+      "thanh toán", "payment", "tiền mặt", "cod", "thẻ", "ví điện tử", "momo", "zalopay",
+      "vnpay", "banking", "chuyển khoản", "atm", "visa", "mastercard", "hoàn tiền",
+
+      // Khuyến mãi và giảm giá
+      "khuyến mãi", "ưu đãi", "giảm giá", "voucher", "coupon", "mã giảm", "code",
+      "sale", "flash sale", "deal", "combo", "quà tặng", "tích điểm", "đổi điểm",
+
+      // Dịch vụ và hỗ trợ
+      "dịch vụ", "hỗ trợ", "support", "liên hệ", "contact", "hotline", "số điện thoại",
+      "email", "chat", "góp ý", "phản hồi", "khiếu nại", "complaint", "đánh giá", "review",
+
+      // Tài khoản và đăng nhập
+      "tài khoản", "account", "đăng ký", "đăng nhập", "login", "signup", "register",
+      "mật khẩu", "password", "quên mật khẩu", "thông tin cá nhân", "profile",
+
+      // Tên thương hiệu
+      "greeneats", "green eats", "cửa hàng", "nhà hàng", "quán", "shop",
+
+      // Địa điểm
+      "địa chỉ", "chi nhánh", "cơ sở", "vị trí", "location", "bản đồ", "map",
+
+      // Thời gian
+      "giờ mở cửa", "giờ đóng cửa", "thời gian hoạt động", "ngày nghỉ", "lịch",
+
+      // Chất lượng và an toàn thực phẩm
+      "chất lượng", "vệ sinh", "an toàn", "thành phần", "nguyên liệu", "dinh dưỡng",
+      "calories", "calo", "chay", "vegetarian", "vegan", "organic", "tươi", "ngon",
+
+      // Từ khóa chung
+      "bao nhiêu", "giá", "price", "cách", "làm sao", "như thế nào", "khi nào", "ở đâu"
+    ]
+
+    // Chuyển message về chữ thường để dễ so sánh
+    const lowerMessage = message.toLowerCase()
+
+    // Kiểm tra xem message có chứa từ khóa liên quan không
+    for (const keyword of relevantKeywords) {
+      if (lowerMessage.includes(keyword.toLowerCase())) {
+        return true
+      }
+    }
+
+    // Nếu có OpenAI API key, sử dụng AI để phân tích nội dung câu hỏi
+    const { text } = await generateText({
+      model: openai("gpt-4o-mini"),
+      messages: [
+        {
+          role: "system",
+          content: `Bạn là một hệ thống phân loại câu hỏi. Nhiệm vụ của bạn là xác định xem câu hỏi có liên quan đến dịch vụ đồ ăn nhanh, nhà hàng, thực đơn, đặt hàng, giao hàng, thanh toán, khuyến mãi, hoặc bất kỳ chủ đề nào liên quan đến GreenEats - một cửa hàng đồ ăn nhanh hay không. Trả lời "yes" nếu liên quan và "no" nếu không liên quan.`
+        },
+        {
+          role: "user",
+          content: message
+        }
+      ],
+      temperature: 0.1,
+      maxTokens: 10,
+      apiKey: OPENAI_API_KEY,
+    })
+
+    return text.toLowerCase().includes("yes")
+  } catch (error) {
+    console.error("Error checking question relevance:", error)
+    // Nếu có lỗi, mặc định cho phép câu hỏi để tránh từ chối câu hỏi hợp lệ
+    return true
+  }
+}
+
 // Tạo system prompt nâng cao với thông tin chi tiết
 const createEnhancedSystemPrompt = async (contextData, userContext, userId) => {
   let userSpecificInfo = ""
@@ -96,6 +194,8 @@ ${
   }
 
   return `Bạn là GreenEats AI Assistant - trợ lý ảo thông minh và chuyên nghiệp của ứng dụng đặt đồ ăn nhanh GreenEats tại Việt Nam.
+
+🚫 **GIỚI HẠN QUAN TRỌNG:** Bạn CHỈ trả lời các câu hỏi liên quan đến dịch vụ đồ ăn nhanh GreenEats. Nếu người dùng hỏi về chủ đề không liên quan, hãy lịch sự từ chối và hướng họ quay lại với các câu hỏi về thực đơn, đặt hàng, thanh toán, giao hàng, khuyến mãi hoặc các dịch vụ khác của GreenEats.
 
 🏪 **THÔNG TIN DOANH NGHIỆP GREENEATS:**
 - Tên thương hiệu: GreenEats
@@ -179,14 +279,16 @@ ${userSpecificInfo}
 👤 **THÔNG TIN NGƯỜI DÙNG HIỆN TẠI:** ${userContext || "Khách chưa đăng nhập"}
 
 📋 **NGUYÊN TẮC TRẢ LỜI QUAN TRỌNG:**
-1. **LUÔN sử dụng thông tin CHÍNH XÁC** từ database thực tế
-2. **ƯU TIÊN câu trả lời CỤ THỂ, CHI TIẾT** thay vì chung chung
-3. **HƯỚNG DẪN TỪNG BƯỚC** cho các thao tác phức tạp
-4. **GỢI Ý THÊM** các món ăn, combo, hoặc dịch vụ phù hợp
-5. **SỬ DỤNG EMOJI** phù hợp để tạo cảm giác thân thiện
-6. **KẾT THÚC bằng câu hỏi** để tiếp tục hỗ trợ
-7. **NHẮC NHỞ** về các chương trình khuyến mãi khi phù hợp
-8. **XỬ LÝ KHIẾU NẠI** một cách chuyên nghiệp và đề xuất giải pháp
+1. **CHỈ TRẢ LỜI CÂU HỎI LIÊN QUAN ĐẾN GREENEATS** và dịch vụ đồ ăn nhanh
+2. **LUÔN sử dụng thông tin CHÍNH XÁC** từ database thực tế
+3. **ƯU TIÊN câu trả lời CỤ THỂ, CHI TIẾT** thay vì chung chung
+4. **HƯỚNG DẪN TỪNG BƯỚC** cho các thao tác phức tạp
+5. **GỢI Ý THÊM** các món ăn, combo, hoặc dịch vụ phù hợp
+6. **SỬ DỤNG EMOJI** phù hợp để tạo cảm giác thân thiện
+7. **KẾT THÚC bằng câu hỏi** để tiếp tục hỗ trợ
+8. **NHẮC NHỞ** về các chương trình khuyến mãi khi phù hợp
+9. **XỬ LÝ KHIẾU NẠI** một cách chuyên nghiệp và đề xuất giải pháp
+10. **TỪ CHỐI LỊCH SỰ** các câu hỏi không liên quan đến GreenEats
 
 🎯 **NHIỆM VỤ CHÍNH:**
 - Tư vấn món ăn dựa trên sở thích và ngân sách
@@ -195,6 +297,7 @@ ${userSpecificInfo}
 - Hỗ trợ xử lý vấn đề và khiếu nại
 - Giới thiệu chương trình khuyến mãi phù hợp
 - Tạo trải nghiệm khách hàng tích cực
+- Từ chối trả lời các câu hỏi không liên quan đến GreenEats
 
 **LƯU Ý ĐẶC BIỆT:** Nếu khách hàng hỏi về vấn đề kỹ thuật phức tạp hoặc khiếu nại nghiêm trọng, hãy hướng dẫn họ liên hệ trực tiếp với admin qua chat hoặc hotline để được hỗ trợ tốt nhất.`
 }
@@ -347,6 +450,12 @@ const formatChatHistory = (history) => {
 
 // Fallback reply nâng cao khi OpenAI lỗi
 const getFallbackReply = async (message, userId) => {
+  // Kiểm tra xem câu hỏi có liên quan đến trang web đồ ăn nhanh không
+  const isRelevant = await isSimpleRelevantCheck(message)
+  if (!isRelevant) {
+    return "Xin lỗi, tôi chỉ có thể trả lời các câu hỏi liên quan đến dịch vụ đồ ăn nhanh GreenEats. Vui lòng hỏi về thực đơn, đặt hàng, thanh toán, giao hàng, khuyến mãi hoặc các dịch vụ khác của chúng tôi."
+  }
+
   const intent = await analyzeIntentAdvanced(message.toLowerCase(), userId)
 
   switch (intent.type) {
@@ -380,6 +489,41 @@ const getFallbackReply = async (message, userId) => {
     default:
       return await generateDefaultReply(intent.context, message)
   }
+}
+
+// Kiểm tra đơn giản xem câu hỏi có liên quan đến trang web đồ ăn nhanh không (cho fallback mode)
+const isSimpleRelevantCheck = async (message) => {
+  // Danh sách từ khóa liên quan đến đồ ăn nhanh
+  const relevantKeywords = [
+    "đồ ăn", "thức ăn", "món ăn", "thực đơn", "menu", "đặt đồ", "đặt món", "gọi món",
+    "burger", "pizza", "gà", "chicken", "khoai tây", "kfc", "mcdonald", "jollibee", "lotteria",
+    "combo", "set", "phần ăn", "suất ăn", "nước uống", "đồ uống", "thức uống", "đồ ngọt",
+    "salad", "pasta", "mì", "bún", "cơm", "sandwich", "bánh mì", "hotdog", "xúc xích",
+    "tráng miệng", "dessert", "kem", "bánh ngọt", "bánh", "kẹo", "snack", "đồ ăn vặt",
+    "đặt hàng", "order", "giao hàng", "delivery", "ship", "vận chuyển", "freeship",
+    "thanh toán", "payment", "tiền mặt", "cod", "thẻ", "ví điện tử", "momo", "zalopay",
+    "khuyến mãi", "ưu đãi", "giảm giá", "voucher", "coupon", "mã giảm", "code",
+    "dịch vụ", "hỗ trợ", "support", "liên hệ", "contact", "hotline", "số điện thoại",
+    "tài khoản", "account", "đăng ký", "đăng nhập", "login", "signup", "register",
+    "greeneats", "green eats", "cửa hàng", "nhà hàng", "quán", "shop",
+    "địa chỉ", "chi nhánh", "cơ sở", "vị trí", "location", "bản đồ", "map",
+    "giờ mở cửa", "giờ đóng cửa", "thời gian hoạt động", "ngày nghỉ", "lịch",
+    "chất lượng", "vệ sinh", "an toàn", "thành phần", "nguyên liệu", "dinh dưỡng",
+    "bao nhiêu", "giá", "price", "cách", "làm sao", "như thế nào", "khi nào", "ở đâu"
+  ]
+
+  // Chuyển message về chữ thường để dễ so sánh
+  const lowerMessage = message.toLowerCase()
+
+  // Kiểm tra xem message có chứa từ khóa liên quan không
+  for (const keyword of relevantKeywords) {
+    if (lowerMessage.includes(keyword.toLowerCase())) {
+      return true
+    }
+  }
+
+  // Nếu không tìm thấy từ khóa liên quan, giả định là không liên quan
+  return false
 }
 
 // Phân tích intent nâng cao
@@ -513,7 +657,7 @@ const generateGreetingReply = async (context, userId) => {
 • Giải đáp mọi thắc mắc về dịch vụ
 
 🎯 **Gợi ý nhanh:**
-- "Tôi muốn xem thực đơn" 
+- "Tôi muốn xem thực đơn"
 - "Có mã giảm giá nào không?"
 - "Hướng dẫn đặt hàng"
 - "Thời gian giao hàng bao lâu?"
@@ -680,7 +824,7 @@ Xin lỗi, tôi không tìm thấy món ăn phù hợp với "${originalMessage}
 
 🔥 **CÁC DANH MỤC PHỔ BIẾN:**
 • **Burger** - Hamburger bò, gà, chay đa dạng
-• **Chicken** - Gà rán, nướng, sốt cay Hàn Quốc  
+• **Chicken** - Gà rán, nướng, sốt cay Hàn Quốc
 • **Pasta** - Mì Ý carbonara, bolognese, pesto
 • **Salad** - Salad Caesar, Hy Lạp, trái cây
 • **Sandwich** - Bánh mì kẹp thịt, chay, hải sản
@@ -849,7 +993,7 @@ ${
 • Nhà hàng đang xem xét và xác nhận
 • Có thể hủy miễn phí trong giai đoạn này
 
-👨‍🍳 **"Đang chuẩn bị"** (15-25 phút)  
+👨‍🍳 **"Đang chuẩn bị"** (15-25 phút)
 • Nhà hàng đã xác nhận và bắt đầu nấu
 • Không thể hủy đơn (trừ trường hợp đặc biệt)
 • Thời gian tùy thuộc độ phức tạp món ăn
@@ -899,7 +1043,7 @@ Chúng tôi rất tiếc khi bạn không hài lòng với dịch vụ. GreenEat
 
 🎯 **CAM KẾT XỬ LÝ:**
 • ⚡ Phản hồi trong 30 phút
-• 💰 Hoàn tiền 100% nếu lỗi từ chúng tôi  
+• 💰 Hoàn tiền 100% nếu lỗi từ chúng tôi
 • 🎁 Bồi thường bằng voucher/món ăn miễn phí
 • 📞 Gọi lại để xác nhận hài lòng
 
