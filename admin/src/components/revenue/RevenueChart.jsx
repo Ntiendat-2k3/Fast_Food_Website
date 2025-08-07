@@ -14,7 +14,7 @@ import {
   CartesianGrid,
 } from "recharts"
 import { useState } from "react"
-import { BarChart3, PieChartIcon, TrendingUp } from "lucide-react"
+import { BarChart3, PieChartIcon, TrendingUp } from 'lucide-react'
 
 const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
   const [chartType, setChartType] = useState("pie")
@@ -30,13 +30,14 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
     // Convert to array and sort by revenue
     const sortedData = Object.entries(data)
       .map(([name, revenue]) => ({
-        name: name.length > 12 ? `${name.substring(0, 12)}...` : name,
+        name: name.length > 15 ? `${name.substring(0, 15)}...` : name,
         fullName: name,
-        value: revenue,
-        revenue: revenue,
+        value: Number(revenue) || 0,
+        revenue: Number(revenue) || 0,
       }))
+      .filter(item => item.value > 0) // Only include items with revenue > 0
       .sort((a, b) => b.value - a.value)
-      .slice(0, 6) // Top 6 items for compact view
+      .slice(0, 8) // Top 8 items for better visibility
 
     return sortedData
   }
@@ -51,6 +52,8 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
     "#96CEB4", // Mint Green
     "#FFEAA7", // Warm Yellow
     "#DDA0DD", // Plum
+    "#FFB347", // Peach
+    "#87CEEB", // Sky Blue Light
   ]
 
   // Custom tooltip for pie chart
@@ -58,13 +61,13 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
     if (active && payload && payload.length) {
       const data = payload[0]
       const total = chartData.reduce((sum, item) => sum + item.value, 0)
-      const percentage = ((data.value / total) * 100).toFixed(1)
+      const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : "0"
 
       return (
-        <div className="bg-white dark:bg-dark-light p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
           <p className="font-semibold text-gray-800 dark:text-white mb-1 text-sm">{data.payload.fullName}</p>
           <div className="space-y-1">
-            <p className="text-primary font-bold">{data.value.toLocaleString("vi-VN")} đ</p>
+            <p className="text-orange-600 font-bold">{Number(data.value).toLocaleString("vi-VN")} đ</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">{percentage}% tổng doanh thu</p>
           </div>
         </div>
@@ -77,9 +80,9 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
   const CustomBarTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-dark-light p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
           <p className="font-semibold text-gray-800 dark:text-white mb-1 text-sm">{label}</p>
-          <p className="text-primary font-bold">{payload[0].value.toLocaleString("vi-VN")} đ</p>
+          <p className="text-orange-600 font-bold">{Number(payload[0].value).toLocaleString("vi-VN")} đ</p>
         </div>
       )
     }
@@ -102,9 +105,9 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-white dark:bg-dark-light rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-          <TrendingUp className="mr-2 text-primary" size={18} />
+          <TrendingUp className="mr-2 text-orange-600" size={18} />
           Biểu đồ doanh thu theo {activeTab === "category" ? "danh mục" : "sản phẩm"}
         </h3>
         <div className="flex items-center justify-center h-48">
@@ -123,20 +126,20 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-dark-light rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
       {/* Header with Chart Type Toggle */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base font-bold text-gray-800 dark:text-white flex items-center">
-          <TrendingUp className="mr-2 text-primary" size={18} />
+          <TrendingUp className="mr-2 text-orange-600" size={18} />
           Biểu đồ doanh thu theo {activeTab === "category" ? "danh mục" : "sản phẩm"}
         </h3>
 
-        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+        <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
           <button
             onClick={() => setChartType("pie")}
             className={`flex items-center px-2 py-1 rounded-md transition-all duration-200 ${
               chartType === "pie"
-                ? "bg-white dark:bg-dark text-primary shadow-md"
+                ? "bg-white dark:bg-gray-800 text-orange-600 shadow-md"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
@@ -147,7 +150,7 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
             onClick={() => setChartType("bar")}
             className={`flex items-center px-2 py-1 rounded-md transition-all duration-200 ${
               chartType === "bar"
-                ? "bg-white dark:bg-dark text-primary shadow-md"
+                ? "bg-white dark:bg-gray-800 text-orange-600 shadow-md"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             }`}
           >
@@ -181,8 +184,19 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
           ) : (
             <BarChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#666" />
-              <YAxis tick={{ fontSize: 10 }} stroke="#666" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10 }}
+                stroke="#666"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis
+                tick={{ fontSize: 10 }}
+                stroke="#666"
+                tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+              />
               <Tooltip content={<CustomBarTooltip />} />
               <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (
@@ -205,13 +219,13 @@ const RevenueChart = ({ activeTab, categoryRevenue, productRevenue }) => {
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 dark:text-white">
-              {chartData.length > 0 ? chartData[0].value.toLocaleString("vi-VN") : 0}đ
+              {chartData.length > 0 ? Number(chartData[0].value).toLocaleString("vi-VN") : 0}đ
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Cao nhất</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-gray-800 dark:text-white">
-              {chartData.reduce((sum, item) => sum + item.value, 0).toLocaleString("vi-VN")}đ
+              {chartData.reduce((sum, item) => sum + Number(item.value), 0).toLocaleString("vi-VN")}đ
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Tổng cộng</p>
           </div>

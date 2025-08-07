@@ -8,6 +8,7 @@ import {
   updatePaymentStatus,
   getUserPurchaseHistory,
   getRevenueStats,
+  getRevenueBreakdown,
   exportInvoice,
   confirmDelivery,
   autoCompleteOrders,
@@ -30,6 +31,7 @@ orderRouter.get("/list", verifyStaffOrAdmin, listOrders)
 orderRouter.post("/status", verifyStaffOrAdmin, updateStatus)
 orderRouter.post("/payment-status", verifyStaffOrAdmin, updatePaymentStatus)
 orderRouter.get("/revenue-stats", verifyStaffOrAdmin, getRevenueStats)
+orderRouter.get("/revenue-breakdown", verifyStaffOrAdmin, getRevenueBreakdown)
 orderRouter.get("/export-invoice/:orderId", verifyStaffOrAdmin, exportInvoice)
 
 export default orderRouter

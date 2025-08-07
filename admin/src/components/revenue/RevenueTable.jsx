@@ -1,4 +1,4 @@
-import { TrendingUp, Package, Users, Calculator, Crown, Star, Award } from "lucide-react"
+import { TrendingUp, Package, Users, Calculator, Crown, Star, Award } from 'lucide-react'
 
 const RevenueTable = ({
   activeTab,
@@ -21,11 +21,12 @@ const RevenueTable = ({
     const sortedData = Object.entries(data)
       .map(([name, revenue]) => ({
         name,
-        revenue,
-        percentage: ((revenue / totalRevenue) * 100).toFixed(1),
+        revenue: Number(revenue) || 0,
+        percentage: totalRevenue > 0 ? ((Number(revenue) / totalRevenue) * 100).toFixed(1) : "0",
       }))
+      .filter(item => item.revenue > 0) // Only include items with revenue > 0
       .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 6) // Top 6 items for compact view
+      .slice(0, 8) // Top 8 items for better display
 
     return sortedData
   }
@@ -63,9 +64,9 @@ const RevenueTable = ({
 
   if (tableData.length === 0) {
     return (
-      <div className="bg-white dark:bg-dark-light rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-          <TrendingUp className="mr-2 text-primary" size={18} />
+          <TrendingUp className="mr-2 text-orange-600" size={18} />
           Bảng xếp hạng {activeTab === "category" ? "danh mục" : "sản phẩm"}
         </h3>
         <div className="flex items-center justify-center h-48">
@@ -84,9 +85,9 @@ const RevenueTable = ({
   }
 
   return (
-    <div className="bg-white dark:bg-dark-light rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg border border-gray-200 dark:border-gray-700">
       <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-        <TrendingUp className="mr-2 text-primary" size={18} />
+        <TrendingUp className="mr-2 text-orange-600" size={18} />
         Top {activeTab === "category" ? "danh mục" : "sản phẩm"} bán chạy
       </h3>
 
@@ -94,7 +95,7 @@ const RevenueTable = ({
       <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600">
               <tr>
                 <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300">Hạng</th>
                 <th className="text-left py-2 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300">
@@ -106,11 +107,11 @@ const RevenueTable = ({
                 <th className="text-right py-2 px-3 text-xs font-semibold text-gray-600 dark:text-gray-300">Tỷ lệ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
               {tableData.map((item, index) => (
                 <tr
                   key={index}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200 group"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 group"
                 >
                   <td className="py-2 px-3">
                     <div
@@ -122,8 +123,8 @@ const RevenueTable = ({
                   <td className="py-2 px-3">
                     <div className="flex items-center">
                       <div>
-                        <p className="font-semibold text-gray-800 dark:text-white group-hover:text-primary transition-colors text-sm">
-                          {item.name.length > 20 ? `${item.name.substring(0, 20)}...` : item.name}
+                        <p className="font-semibold text-gray-800 dark:text-white group-hover:text-orange-600 transition-colors text-sm">
+                          {item.name.length > 25 ? `${item.name.substring(0, 25)}...` : item.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {activeTab === "category" ? "Danh mục" : "Sản phẩm"}
@@ -133,15 +134,15 @@ const RevenueTable = ({
                   </td>
                   <td className="py-2 px-3 text-right">
                     <div className="font-bold text-sm text-gray-800 dark:text-white">
-                      {item.revenue.toLocaleString("vi-VN")} đ
+                      {Number(item.revenue).toLocaleString("vi-VN")} đ
                     </div>
                   </td>
                   <td className="py-2 px-3 text-right">
                     <div className="flex items-center justify-end space-x-2">
-                      <div className="w-12 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div className="w-12 bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
                         <div
-                          className="bg-gradient-to-r from-primary to-primary-dark h-1.5 rounded-full transition-all duration-1000"
-                          style={{ width: `${item.percentage}%` }}
+                          className="bg-gradient-to-r from-orange-500 to-orange-600 h-1.5 rounded-full transition-all duration-1000"
+                          style={{ width: `${Math.min(Number(item.percentage), 100)}%` }}
                         />
                       </div>
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 w-8">
@@ -157,9 +158,9 @@ const RevenueTable = ({
       </div>
 
       {/* Financial Summary */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-lg p-3">
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg p-3">
         <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-3 flex items-center">
-          <Calculator className="mr-2 text-primary" size={16} />
+          <Calculator className="mr-2 text-orange-600" size={16} />
           Tổng Kết Tài Chính
         </h4>
 
@@ -173,7 +174,7 @@ const RevenueTable = ({
               <span className="font-semibold text-blue-700 dark:text-blue-300 text-xs">Doanh thu sản phẩm</span>
             </div>
             <span className="text-sm font-bold text-blue-700 dark:text-blue-300">
-              {totalRevenue.toLocaleString("vi-VN")} đ
+              {Number(totalRevenue).toLocaleString("vi-VN")} đ
             </span>
           </div>
 
@@ -187,7 +188,7 @@ const RevenueTable = ({
                 <span className="font-semibold text-red-700 dark:text-red-300 text-xs">Giảm giá voucher</span>
               </div>
               <span className="text-sm font-bold text-red-700 dark:text-red-300">
-                -{totalVoucherDiscount.toLocaleString("vi-VN")} đ
+                -{Number(totalVoucherDiscount).toLocaleString("vi-VN")} đ
               </span>
             </div>
           )}
@@ -201,12 +202,12 @@ const RevenueTable = ({
               <span className="font-semibold text-orange-700 dark:text-orange-300 text-xs">Chi phí vận chuyển</span>
             </div>
             <span className="text-sm font-bold text-orange-700 dark:text-orange-300">
-              -{totalShippingFee.toLocaleString("vi-VN")} đ
+              -{Number(totalShippingFee).toLocaleString("vi-VN")} đ
             </span>
           </div>
 
           {/* Divider */}
-          <div className="border-t border-dashed border-gray-300 dark:border-gray-600 my-2"></div>
+          <div className="border-t border-dashed border-gray-300 dark:border-gray-500 my-2"></div>
 
           {/* Net Revenue */}
           <div className="flex justify-between items-center p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-white shadow-sm">
@@ -219,23 +220,23 @@ const RevenueTable = ({
                 <p className="text-green-100 text-xs">Lợi nhuận sau các khoản trừ</p>
               </div>
             </div>
-            <span className="text-lg font-bold">{netRevenue.toLocaleString("vi-VN")} đ</span>
+            <span className="text-lg font-bold">{Number(netRevenue).toLocaleString("vi-VN")} đ</span>
           </div>
         </div>
 
         {/* Performance Metrics */}
-        <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+        <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-500">
           <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-2 bg-white dark:bg-dark rounded-lg shadow-sm">
+            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
               <div className="flex items-center justify-center mb-1">
-                <Users className="mr-1 text-primary" size={14} />
+                <Users className="mr-1 text-orange-600" size={14} />
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Đơn hàng hoàn thành</span>
               </div>
               <div className="text-lg font-bold text-gray-800 dark:text-white">{orders.length}</div>
             </div>
-            <div className="text-center p-2 bg-white dark:bg-dark rounded-lg shadow-sm">
+            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
               <div className="flex items-center justify-center mb-1">
-                <Calculator className="mr-1 text-primary" size={14} />
+                <Calculator className="mr-1 text-orange-600" size={14} />
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Doanh thu/đơn</span>
               </div>
               <div className="text-lg font-bold text-gray-800 dark:text-white">

@@ -1,6 +1,8 @@
 import orderModel from "../models/orderModel.js"
 import userModel from "../models/userModel.js"
 import notificationModel from "../models/notificationModel.js"
+import foodModel from "../models/foodModel.js"
+import categoryModel from "../models/categoryModel.js"
 import PDFDocument from "pdfkit"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -54,10 +56,38 @@ const placeOrder = async (req, res) => {
       }
     }
 
+    // Enrich items with category information for revenue calculation
+    const enrichedItems = await Promise.all(
+      items.map(async (item) => {
+        try {
+          // Find food by ID or name to get category
+          let food = null
+          if (item.foodId) {
+            food = await foodModel.findById(item.foodId).populate('categoryId', 'name')
+          }
+
+          if (!food && item.name) {
+            food = await foodModel.findOne({ name: item.name }).populate('categoryId', 'name')
+          }
+
+          const enrichedItem = {
+            ...item,
+            categoryName: food && food.categoryId ? food.categoryId.name : (food ? food.category : 'Khác')
+          }
+
+          console.log(`Enriched item: ${item.name} -> Category: ${enrichedItem.categoryName}`)
+          return enrichedItem
+        } catch (error) {
+          console.error(`Error enriching item ${item.name}:`, error)
+          return { ...item, categoryName: 'Khác' }
+        }
+      })
+    )
+
     // Tạo đơn hàng mới với đầy đủ thông tin
     const newOrder = new orderModel({
       userId: userId,
-      items: items,
+      items: enrichedItems, // Use enriched items with category info
       amount: amount,
       address: address,
       date: new Date(),
@@ -224,12 +254,12 @@ const listOrders = async (req, res) => {
   }
 }
 
-// Thống kê revenue theo thời gian
+// Get revenue statistics with proper category mapping
 const getRevenueStats = async (req, res) => {
   try {
     const { period = "month", year, month } = req.query
 
-    let matchStage = {}
+    let matchStage = { status: "Đã giao" } // Only completed orders
     let groupStage = {}
     let sortStage = {}
 
@@ -242,11 +272,9 @@ const getRevenueStats = async (req, res) => {
         const targetYear = year ? Number.parseInt(year) : currentYear
         const targetMonth = month ? Number.parseInt(month) : currentMonth
 
-        matchStage = {
-          date: {
-            $gte: new Date(targetYear, targetMonth - 1, 1),
-            $lt: new Date(targetYear, targetMonth, 1),
-          },
+        matchStage.date = {
+          $gte: new Date(targetYear, targetMonth - 1, 1),
+          $lt: new Date(targetYear, targetMonth, 1),
         }
 
         groupStage = {
@@ -263,11 +291,9 @@ const getRevenueStats = async (req, res) => {
         // Thống kê theo tháng trong năm
         const statsYear = year ? Number.parseInt(year) : currentYear
 
-        matchStage = {
-          date: {
-            $gte: new Date(statsYear, 0, 1),
-            $lt: new Date(statsYear + 1, 0, 1),
-          },
+        matchStage.date = {
+          $gte: new Date(statsYear, 0, 1),
+          $lt: new Date(statsYear + 1, 0, 1),
         }
 
         groupStage = {
@@ -318,6 +344,124 @@ const getRevenueStats = async (req, res) => {
   } catch (error) {
     console.log("Error getting revenue stats:", error)
     res.json({ success: false, message: "Lỗi khi lấy thống kê doanh thu" })
+  }
+}
+
+// Get detailed revenue breakdown by category and product
+const getRevenueBreakdown = async (req, res) => {
+  try {
+    console.log("Getting revenue breakdown...")
+
+    // Get all completed orders
+    const completedOrders = await orderModel.find({ status: "Đã giao" }).sort({ date: -1 })
+    console.log(`Found ${completedOrders.length} completed orders`)
+
+    // Get all categories and foods for mapping
+    const [categories, foods] = await Promise.all([
+      categoryModel.find({}),
+      foodModel.find({}).populate('categoryId', 'name')
+    ])
+
+    console.log(`Loaded ${categories.length} categories and ${foods.length} foods`)
+
+    // Create mapping objects for faster lookup
+    const categoryMap = new Map(categories.map(cat => [cat._id.toString(), cat.name]))
+    const foodCategoryMap = new Map()
+
+    // Build food to category mapping
+    foods.forEach(food => {
+      if (food.categoryId && food.categoryId.name) {
+        foodCategoryMap.set(food.name, food.categoryId.name)
+        foodCategoryMap.set(food._id.toString(), food.categoryId.name)
+      } else if (food.category) {
+        foodCategoryMap.set(food.name, food.category)
+        foodCategoryMap.set(food._id.toString(), food.category)
+      }
+    })
+
+    console.log("Food category mapping:", Array.from(foodCategoryMap.entries()).slice(0, 10))
+
+    // Calculate revenue by category and product
+    const categoryRevenue = {}
+    const productRevenue = {}
+    let totalRevenue = 0
+    let totalVoucherDiscount = 0
+    let totalShippingFee = 0
+
+    completedOrders.forEach(order => {
+      totalRevenue += order.amount || 0
+      totalVoucherDiscount += order.discountAmount || 0
+      totalShippingFee += order.shippingFee || order.deliveryFee || 14000
+
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          if (item.name && item.price && item.quantity) {
+            const itemRevenue = (item.price || 0) * (item.quantity || 0)
+
+            // Get category name with multiple fallback methods
+            let categoryName = 'Khác'
+
+            // Method 1: Use categoryName from enriched order item
+            if (item.categoryName) {
+              categoryName = item.categoryName
+            }
+            // Method 2: Look up by foodId
+            else if (item.foodId && foodCategoryMap.has(item.foodId)) {
+              categoryName = foodCategoryMap.get(item.foodId)
+            }
+            // Method 3: Look up by food name
+            else if (foodCategoryMap.has(item.name)) {
+              categoryName = foodCategoryMap.get(item.name)
+            }
+            // Method 4: Use category field directly
+            else if (item.category) {
+              if (categoryMap.has(item.category)) {
+                categoryName = categoryMap.get(item.category)
+              } else {
+                categoryName = item.category
+              }
+            }
+
+            console.log(`Item: ${item.name}, FoodId: ${item.foodId}, Category: ${categoryName}, Revenue: ${itemRevenue}`)
+
+            // Accumulate revenue by category
+            if (!categoryRevenue[categoryName]) {
+              categoryRevenue[categoryName] = 0
+            }
+            categoryRevenue[categoryName] += itemRevenue
+
+            // Accumulate revenue by product
+            if (!productRevenue[item.name]) {
+              productRevenue[item.name] = 0
+            }
+            productRevenue[item.name] += itemRevenue
+          }
+        })
+      }
+    })
+
+    console.log("Final category revenue:", categoryRevenue)
+    console.log("Final product revenue:", Object.keys(productRevenue).length, "products")
+
+    res.json({
+      success: true,
+      data: {
+        categoryRevenue,
+        productRevenue,
+        totalRevenue,
+        totalVoucherDiscount,
+        totalShippingFee,
+        orderCount: completedOrders.length,
+        summary: {
+          totalCategories: Object.keys(categoryRevenue).length,
+          totalProducts: Object.keys(productRevenue).length,
+          netRevenue: totalRevenue - totalVoucherDiscount - totalShippingFee
+        }
+      }
+    })
+  } catch (error) {
+    console.error("Error getting revenue breakdown:", error)
+    res.json({ success: false, message: "Lỗi khi lấy thống kê doanh thu chi tiết" })
   }
 }
 
@@ -597,29 +741,6 @@ const userOrders = async (req, res) => {
     res.json({ success: false, message: "Error" })
   }
 }
-
-// Listing orders for admin panel
-// const listOrders = async (req, res) => {
-//   try {
-//     const orders = await orderModel.find({})
-//     console.log(
-//       "Orders from database with shipping info:",
-//       orders.map((order) => ({
-//         id: order._id,
-//         voucherCode: order.voucherCode,
-//         discountAmount: order.discountAmount,
-//         shippingFee: order.shippingFee,
-//         deliveryFee: order.deliveryFee,
-//         distance: order.distance,
-//       })),
-//     ) // Debug log
-
-//     res.json({ success: true, data: orders })
-//   } catch (error) {
-//     console.log("Error listing orders:", error)
-//     res.json({ success: false, message: "Lỗi khi lấy danh sách đơn hàng" })
-//   }
-// }
 
 // api for updating order status
 const updateStatus = async (req, res) => {
@@ -966,7 +1087,6 @@ const cancelOrder = async (req, res) => {
   }
 }
 
-
 export {
   placeOrder,
   verifyOrder,
@@ -976,6 +1096,7 @@ export {
   updatePaymentStatus,
   getUserPurchaseHistory,
   getRevenueStats,
+  getRevenueBreakdown,
   exportInvoice,
   confirmDelivery,
   autoCompleteOrders,
