@@ -8,7 +8,7 @@ const ContactSection = () => {
     {
       icon: <MapPin className="w-8 h-8 text-yellow-400" />,
       title: "Địa Chỉ",
-      content: "123 Trần Phú, TP. Hà Nội",
+      content: "Đối diện Trường Đại học Thăng Long",
     },
     {
       icon: <Phone className="w-8 h-8 text-yellow-400" />,

@@ -10,7 +10,7 @@ const ContactInfo = () => {
     {
       icon: MapPin,
       title: "Địa Chỉ",
-      content: "123 Trần Phú, TP. Hà Nội",
+      content: "Đối diện Trường Đại học Thăng Long",
     },
     {
       icon: Phone,
