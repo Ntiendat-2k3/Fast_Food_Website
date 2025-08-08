@@ -4,7 +4,6 @@ import { StoreContext } from "../../context/StoreContext"
 import { useNavigate } from "react-router-dom"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import axios from "axios"
 import { motion } from "framer-motion"
 
 import CartHeader from "../../components/cart/CartHeader"
@@ -62,39 +61,6 @@ const Cart = () => {
       setIsRefreshing(false)
     }
   }
-
-  // const handleApplyVoucher = async () => {
-  //   if (!voucherCode.trim()) {
-  //     toast.error("Vui lòng nhập mã giảm giá")
-  //     return
-  //   }
-
-  //   setIsApplyingVoucher(true)
-  //   try {
-  //     const response = await axios.post(`${url}/api/voucher/apply`, {
-  //       code: voucherCode,
-  //       orderAmount: getSelectedCartAmount(),
-  //     })
-
-  //     if (response.data.success) {
-  //       setAppliedVoucher(response.data.data)
-  //       toast.success("Áp dụng mã giảm giá thành công")
-  //     } else {
-  //       toast.error(response.data.message || "Mã giảm giá không hợp lệ")
-  //     }
-  //   } catch (error) {
-  //     console.error("Error applying voucher:", error)
-  //     toast.error("Đã xảy ra lỗi khi áp dụng mã giảm giá")
-  //   } finally {
-  //     setIsApplyingVoucher(false)
-  //   }
-  // }
-
-  // const handleRemoveVoucher = () => {
-  //   setAppliedVoucher(null)
-  //   setVoucherCode("")
-  //   toast.info("Đã xóa mã giảm giá")
-  // }
 
   const getSelectedCartAmount = () => {
     let totalAmount = 0
@@ -196,23 +162,23 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 pt-20 pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 pt-16 sm:pt-20 pb-8 sm:pb-16">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-400/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-yellow-400/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-48 h-48 sm:w-80 sm:h-80 bg-yellow-500/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-slate-700"
+          className="bg-slate-800/50 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border border-slate-700"
         >
           <CartHeader onRefresh={refreshCart} isRefreshing={isRefreshing} />
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {!token ? (
               <EmptyCartState
                 title="Vui lòng đăng nhập để xem giỏ hàng"
@@ -228,7 +194,7 @@ const Cart = () => {
                 onAction={() => navigate("/foods")}
               />
             ) : (
-              <>
+              <div className="space-y-6 sm:space-y-8">
                 <CartTable
                   cartItems={cartItems}
                   food_list={food_list}
@@ -242,31 +208,40 @@ const Cart = () => {
                   onRemoveFromCartAll={removeFromCartAll}
                 />
 
-                <div className="mt-8">
-                  {/* <VoucherSection
-                    voucherCode={voucherCode}
-                    setVoucherCode={setVoucherCode}
-                    appliedVoucher={appliedVoucher}
-                    onApplyVoucher={handleApplyVoucher}
-                    onRemoveVoucher={handleRemoveVoucher}
-                    isApplying={isApplyingVoucher}
-                  /> */}
-
-                  <CartSummary
-                    selectedItemsCount={getSelectedItemsCount()}
-                    selectedCartAmount={getSelectedCartAmount()}
-                    appliedVoucher={appliedVoucher}
-                    finalAmount={getFinalAmount()}
-                    hasSelectedItems={hasSelectedItems()}
-                    onCheckout={handleCheckout}
-                  />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    {/* Voucher section could go here */}
+                  </div>
+                  <div className="lg:col-span-1">
+                    <CartSummary
+                      selectedItemsCount={getSelectedItemsCount()}
+                      selectedCartAmount={getSelectedCartAmount()}
+                      appliedVoucher={appliedVoucher}
+                      finalAmount={getFinalAmount()}
+                      hasSelectedItems={hasSelectedItems()}
+                      onCheckout={handleCheckout}
+                    />
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </motion.div>
       </div>
-      <ToastContainer />
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        className="text-sm"
+      />
     </div>
   )
 }

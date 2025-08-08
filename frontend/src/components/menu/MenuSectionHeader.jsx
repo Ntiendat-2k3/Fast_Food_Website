@@ -1,25 +1,21 @@
 "use client"
-
 import { motion } from "framer-motion"
 
 const MenuSectionHeader = () => {
   return (
-    <div className="text-center mb-12">
-      <motion.h2
-        className="text-3xl md:text-4xl font-bold text-white mb-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-      >
-        Danh Mục Món Ăn
-      </motion.h2>
-      <motion.div
-        className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-amber-400 mx-auto rounded-full"
-        initial={{ width: 0 }}
-        animate={{ width: 96 }}
-        transition={{ delay: 1.2, duration: 0.8 }}
-      />
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="text-center mb-6 md:mb-12"
+    >
+      <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">
+        Thực đơn của chúng tôi
+      </h2>
+      <p className="text-sm md:text-lg text-gray-300 max-w-2xl mx-auto">
+        Khám phá những món ăn ngon được chế biến từ nguyên liệu tươi ngon nhất
+      </p>
+    </motion.div>
   )
 }
 

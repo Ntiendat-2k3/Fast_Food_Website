@@ -232,7 +232,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
       >
         <div className="flex flex-col sm:flex-row">
           {/* Image */}
-          <div className="relative h-48 sm:h-32 sm:w-48 flex-shrink-0 overflow-hidden">
+          <div className="relative h-46 sm:h-32 sm:w-48 flex-shrink-0 overflow-hidden">
             {!imageLoaded && !imageError && (
               <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1"></div>
@@ -378,7 +378,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
       <div className="absolute inset-0 bg-gradient-to-br from-primary/0 to-primary/0 group-hover:from-primary/10 group-hover:to-primary/5 transition-all duration-500 rounded-xl" />
 
       {/* Image Container */}
-      <div className="relative h-48 sm:h-56 overflow-hidden">
+      <div className="relative h-32 lg:h-48 overflow-hidden">
         {!imageLoaded && !imageError && (
           <div className="absolute inset-0 bg-slate-700/50 animate-pulse flex items-center justify-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1"></div>
@@ -460,7 +460,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
         {/* Stock Status Badge */}
         <div
-          className={`absolute bottom-3 right-3 px-2 py-1 rounded-full text-xs font-bold flex items-center ${
+          className={`hidden lg:inline-block absolute bottom-3 right-3 px-2 py-1 rounded-full text-xs font-bold flex items-center ${
             isOutOfStock
               ? "bg-red-500/80 text-white"
               : inventory?.quantity <= 20
@@ -468,15 +468,15 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
                 : "bg-green-500/80 text-white"
           }`}
         >
-          <Package size={12} className="mr-1" />
-          {stockStatus.text}
+          {/* <Package size={12} /> */}
+          <span>{stockStatus.text}</span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 sm:p-6 flex-1 flex flex-col relative z-10">
+      <div className="p-4 flex-1 flex flex-col relative z-10">
         <motion.h3
-          className="text-lg sm:text-xl font-bold text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors duration-300"
+          className="text-md lg:text-lg font-bold text-white mb-2 line-clamp-1 group-hover:text-primary transition-colors duration-300"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 + 0.2 }}
@@ -485,7 +485,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
         </motion.h3>
 
         <motion.p
-          className="text-gray-300 text-sm mb-4 line-clamp-2 flex-1 leading-relaxed"
+          className="text-gray-300 text-[10px] lg:text-sm mb-4 line-clamp-2 flex-1 leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: index * 0.1 + 0.3 }}
@@ -515,15 +515,24 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
         {/* Add to Cart Button */}
         <motion.button
-          onClick={handleAddToCart}
-          disabled={isOutOfStock}
-          className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
-            isOutOfStock
-              ? "bg-gray-500 text-gray-300 cursor-not-allowed"
-              : isAdding
-                ? "bg-green-500 text-white"
-                : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
-          }`}
+  onClick={handleAddToCart}
+  disabled={isOutOfStock}
+  className={`w-full
+    py-2 sm:py-3
+    px-3 sm:px-4
+    rounded-xl
+    font-semibold
+    text-sm sm:text-base
+    transition-all duration-300
+    flex items-center justify-center gap-1 sm:gap-2
+    min-h-[40px] sm:min-h-[44px]
+    ${
+      isOutOfStock
+        ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+        : isAdding
+          ? "bg-green-500 text-white"
+          : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
+    }`}
           whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
           whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
           initial={{ opacity: 0, y: 20 }}

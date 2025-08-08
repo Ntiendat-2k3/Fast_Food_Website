@@ -1,30 +1,35 @@
 "use client"
-
 import { motion } from "framer-motion"
+import { Users, Star, Clock, Award } from 'lucide-react'
 
 const HeroStats = () => {
   const stats = [
-    { number: "100+", label: "Món ăn đặc biệt" },
-    { number: "50K+", label: "Khách hàng hài lòng" },
-    { number: "5★", label: "Đánh giá trung bình" },
+    { icon: Users, value: "10K+", label: "Khách hàng" },
+    { icon: Star, value: "4.9", label: "Đánh giá" },
+    { icon: Clock, value: "30p", label: "Giao hàng" },
+    { icon: Award, value: "100+", label: "Món ăn" },
   ]
 
   return (
     <motion.div
-      className="flex flex-wrap justify-center gap-6 mt-12"
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.6 }}
+      transition={{ duration: 0.8, delay: 0.6 }}
+      className="grid grid-cols-4 gap-2 md:gap-8 max-w-2xl mx-auto mt-6 md:mt-12"
     >
       {stats.map((stat, index) => (
         <motion.div
           key={index}
-          className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 min-w-[140px]"
-          whileHover={{ scale: 1.05, y: -5 }}
-          transition={{ type: "spring", stiffness: 300 }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
+          className="text-center"
         >
-          <div className="text-3xl font-bold text-yellow-400 mb-1">{stat.number}</div>
-          <div className="text-gray-300 text-sm">{stat.label}</div>
+          <div className="bg-slate-800/30 backdrop-blur-sm rounded-lg md:rounded-xl p-2 md:p-6 border border-slate-700 hover:border-primary/50 transition-all duration-300 group hover:bg-slate-800/50">
+            <stat.icon className="h-4 w-4 md:h-8 md:w-8 text-primary mx-auto mb-1 md:mb-3 group-hover:scale-110 transition-transform duration-300" />
+            <div className="text-lg md:text-2xl font-bold text-white mb-0 md:mb-1">{stat.value}</div>
+            <div className="text-xs md:text-sm text-gray-400">{stat.label}</div>
+          </div>
         </motion.div>
       ))}
     </motion.div>

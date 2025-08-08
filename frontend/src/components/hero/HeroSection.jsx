@@ -5,9 +5,12 @@ import HeroStats from "./HeroStats"
 
 const HeroSection = () => {
   return (
-    <div className="text-center mb-16">
+    <div className="text-center mb-8 md:mb-16">
       <HeroTitle />
-      <HeroDescription />
+      {/* Hide description on mobile */}
+      <div className="hidden md:block">
+        <HeroDescription />
+      </div>
       <HeroStats />
     </div>
   )

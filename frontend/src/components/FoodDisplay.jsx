@@ -4,7 +4,7 @@ import { useContext, useState, useEffect, useRef } from "react"
 import { StoreContext } from "../context/StoreContext"
 import FoodItem from "./FoodItem"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, Grid3X3, List, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Filter, Grid3X3, List, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const FoodDisplay = ({ category }) => {
   const { food_list, url } = useContext(StoreContext)
@@ -253,8 +253,8 @@ const FoodDisplay = ({ category }) => {
             />
           </div>
 
-          {/* View Mode Toggle */}
-          <div className="flex bg-slate-700/50 rounded-xl p-1 border border-slate-600">
+          {/* View Mode Toggle - Hidden on mobile */}
+          <div className="hidden md:flex bg-slate-700/50 rounded-xl p-1 border border-slate-600">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-all duration-300 ${
@@ -382,8 +382,10 @@ const FoodDisplay = ({ category }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className={`grid gap-6 ${
-              viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
+            className={`grid lg:gap-4 sm:gap-6 ${
+              viewMode === "grid"
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" // 2 columns on mobile, 3 on tablet, 4 on desktop
+                : "grid-cols-1"
             }`}
           >
             {Array.from({ length: itemsPerPage }).map((_, index) => (
@@ -396,9 +398,9 @@ const FoodDisplay = ({ category }) => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className={`grid gap-4 sm:gap-6 ${
+            className={`grid gap-2 lg:gap-4 sm:gap-6 ${
               viewMode === "grid"
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" // 2 columns on mobile, 3 on tablet, 4 on desktop
                 : "grid-cols-1 max-w-4xl mx-auto"
             }`}
           >
