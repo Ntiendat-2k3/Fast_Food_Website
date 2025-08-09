@@ -20,6 +20,8 @@ export const useProductDetail = (slug) => {
   const [suggestedDrinks, setSuggestedDrinks] = useState([])
   const [isLoadingSuggestedDrinks, setIsLoadingSuggestedDrinks] = useState(false)
   const [stock, setStock] = useState(0)
+  const [isLoadingStock, setIsLoadingStock] = useState(true)
+  const [stockError, setStockError] = useState(null)
 
   const foodItem = food_list?.find((item) => {
     if (!slug || !item?.name) {
@@ -33,15 +35,35 @@ export const useProductDetail = (slug) => {
   // Fetch product stock from backend (with fallback to default)
   const fetchProductStock = useCallback(
     async (productId) => {
+      if (!productId) {
+        console.log("❌ No productId provided to fetchProductStock")
+        setIsLoadingStock(false)
+        return
+      }
+
+      console.log("🔍 Fetching stock for productId:", productId)
+      setIsLoadingStock(true)
+      setStockError(null)
+
       try {
         const response = await axios.get(`${url}/api/inventory/product/${productId}`)
-        console.log(response.data)
+        console.log("📦 Stock API Response:", response.data)
+
         if (response.data.success) {
-          setStock(response.data.data.quantity || 0)
+          const stockQuantity = response.data.data.quantity || 0
+          console.log("✅ Stock fetched successfully:", stockQuantity)
+          setStock(stockQuantity)
+        } else {
+          console.log("⚠️ Stock API returned success: false", response.data.message)
+          setStock(0)
+          setStockError(response.data.message)
         }
       } catch (error) {
-        console.error("Error fetching product stock:", error)
-        setStock(50)
+        console.error("❌ Error fetching stock:", error)
+        setStock(0)
+        setStockError(error.message)
+      } finally {
+        setIsLoadingStock(false)
       }
     },
     [url],
@@ -86,22 +108,36 @@ export const useProductDetail = (slug) => {
     [url],
   )
 
+  // Main effect to handle food item changes
   useEffect(() => {
+    console.log("useProductDetail effect triggered")
+    console.log("slug:", slug)
+    console.log("food_list length:", food_list?.length)
+    console.log("foodItem:", foodItem)
+
     window.scrollTo(0, 0)
 
     // Check if we have valid slug and food_list
     if (!slug || slug === "undefined") {
+      console.log("Invalid slug, returning early")
       return
     }
 
     if (!food_list || food_list.length === 0) {
+      console.log("No food_list, returning early")
       return
     }
 
     if (foodItem) {
+      console.log("Processing foodItem:", foodItem.name, "ID:", foodItem._id)
+
       // Fetch stock for the current product
       if (foodItem._id) {
+        console.log("Calling fetchProductStock with ID:", foodItem._id)
         fetchProductStock(foodItem._id)
+      } else {
+        console.log("No foodItem._id found")
+        setIsLoadingStock(false)
       }
 
       // Set rating stats for the current food item
@@ -152,6 +188,9 @@ export const useProductDetail = (slug) => {
       if (foodItem._id && token) {
         checkWishlistStatus(foodItem._id)
       }
+    } else {
+      console.log("No foodItem found for slug:", slug)
+      setIsLoadingStock(false)
     }
   }, [foodItem, food_list, slug, url, token, fetchRatingsForProducts, fetchProductStock])
 
@@ -161,6 +200,16 @@ export const useProductDetail = (slug) => {
       setRatingStats(relatedRatings[foodItem._id])
     }
   }, [relatedRatings, foodItem])
+
+  // Debug effect to log stock changes
+  useEffect(() => {
+    console.log("📊 Stock state changed:", {
+      stock,
+      isLoadingStock,
+      stockError,
+      foodItem
+    })
+  }, [stock, isLoadingStock, stockError, foodItem])
 
   const checkWishlistStatus = async (foodId) => {
     if (!token) return
@@ -291,7 +340,10 @@ export const useProductDetail = (slug) => {
     ratingStats,
     suggestedDrinks,
     isLoadingSuggestedDrinks,
-    stock, // Return stock value
+    stock,
+    isLoadingStock,
+    stockError,
+    refetchStock: fetchProductStock,
     handleAddToCart,
     handleBuyNow,
     increaseQuantity,

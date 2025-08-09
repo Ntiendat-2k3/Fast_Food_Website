@@ -15,9 +15,6 @@ const foodSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   isActive: { type: Boolean, default: true },
-  stock: { type: Number, default: 0 },
-  rating: { type: Number, default: 0 },
-  reviewCount: { type: Number, default: 0 },
 })
 
 foodSchema.index({ categoryId: 1 })

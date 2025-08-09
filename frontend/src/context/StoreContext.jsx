@@ -26,7 +26,6 @@ const StoreContextProvider = (props) => {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
 
-  // Add to cart - Save to database immediately
   const addToCart = async (itemName, quantity = 1) => {
     if (!token) {
       alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng")
@@ -37,11 +36,9 @@ const StoreContextProvider = (props) => {
       const response = await axios.post(`${url}/api/cart/add`, { itemName, quantity }, { headers: { token } })
 
       if (response.data.success) {
-        // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
         } else {
-          // If no cart data returned, reload cart from database
           await loadCartData(token)
         }
       } else {
@@ -54,7 +51,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Remove from cart - Update database immediately
   const removeFromCart = async (itemName) => {
     if (!token) return
 
@@ -62,11 +58,9 @@ const StoreContextProvider = (props) => {
       const response = await axios.post(`${url}/api/cart/remove`, { itemName }, { headers: { token } })
 
       if (response.data.success) {
-        // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
         } else {
-          // If no cart data returned, reload cart from database
           await loadCartData(token)
         }
       } else {
@@ -77,7 +71,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Remove all quantity of an item
   const removeFromCartAll = async (itemName) => {
     if (!token) return
 
@@ -85,11 +78,9 @@ const StoreContextProvider = (props) => {
       const response = await axios.post(`${url}/api/cart/remove-all`, { itemName }, { headers: { token } })
 
       if (response.data.success) {
-        // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
         } else {
-          // If no cart data returned, reload cart from database
           await loadCartData(token)
         }
       } else {
@@ -100,7 +91,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Update cart quantity directly
   const updateCartQuantity = async (itemName, quantity) => {
     if (!token) return
 
@@ -112,11 +102,9 @@ const StoreContextProvider = (props) => {
       )
 
       if (response.data.success) {
-        // Update local state with the returned cart data
         if (response.data.cartData) {
           setCartItems(response.data.cartData)
         } else {
-          // If no cart data returned, reload cart from database
           await loadCartData(token)
         }
       } else {
@@ -127,7 +115,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Load cart data from database
   const loadCartData = async (userToken) => {
     if (!userToken) {
       setCartItems({})
@@ -153,7 +140,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Clear cart
   const clearCart = async () => {
     if (!token) return
 
@@ -168,7 +154,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Calculate total cart amount
   const getTotalCartAmount = () => {
     let totalAmount = 0
     for (const item in cartItems) {
@@ -182,7 +167,6 @@ const StoreContextProvider = (props) => {
     return totalAmount
   }
 
-  // Fetch food list
   const fetchFoodList = async () => {
     try {
       const response = await axios.get(`${url}/api/food/list`)
@@ -194,14 +178,12 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Fetch user data
   const fetchUserData = async (userToken) => {
     try {
       const response = await axios.get(`${url}/api/user/profile`, {
         headers: { token: userToken },
       })
 
-      // Check if the request was successful and the user data is in response.data.data
       if (response.data.success && response.data.data) {
         setUser(response.data.data) // Use response.data.data
         localStorage.setItem("user", JSON.stringify(response.data.data)) // Use response.data.data
@@ -216,7 +198,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Initialize data on app load
   useEffect(() => {
     async function loadData() {
       setIsLoadingUser(true)
@@ -271,7 +252,6 @@ const StoreContextProvider = (props) => {
     }
   }, [token])
 
-  // Function to handle logout
   const logout = () => {
     setToken("")
     setUser(null)
@@ -282,7 +262,6 @@ const StoreContextProvider = (props) => {
     localStorage.removeItem("user")
   }
 
-  // Fetch user notifications
   const fetchNotifications = async (page = 1, limit = 20) => {
     if (!token) {
       return null
@@ -315,7 +294,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Fetch unread notification count
   const fetchUnreadCount = async () => {
     if (!token) {
       return 0
@@ -346,7 +324,6 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  // Mark notification as read
   const markNotificationAsRead = async (notificationId) => {
     if (!token) {
       return false
@@ -407,7 +384,6 @@ const StoreContextProvider = (props) => {
     fetchUserData,
     clearCart,
     loadCartData,
-    // Notification functions
     notifications,
     setNotifications,
     unreadCount,
@@ -418,7 +394,6 @@ const StoreContextProvider = (props) => {
     markNotificationAsRead,
   }
 
-  // Fetch notifications when user logs in
   useEffect(() => {
     if (token && user) {
       // console.log("Context: User logged in, fetching notifications for:", user.name)

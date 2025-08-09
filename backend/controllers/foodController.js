@@ -39,7 +39,6 @@ const listFood = async (req, res) => {
     const query = {}
 
     if (category) {
-      // Try to find by category name first, then by ObjectId
       const categoryDoc = await categoryModel.findOne({ name: category })
       if (categoryDoc) {
         query.$or = [{ category: category }, { categoryId: categoryDoc._id }]
