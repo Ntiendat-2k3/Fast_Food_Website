@@ -8,7 +8,28 @@ const orderSchema = new mongoose.Schema({
   },
   items: { type: Array, required: true },
   amount: { type: Number, required: true },
+  // SNAPSHOT của địa chỉ tại thời điểm đặt hàng
+  // address: {
+  //   name: { type: String, required: true },
+  //   phone: { type: String, required: true },
+  //   street: { type: String, required: true },
+  //   ward: { type: String },
+  //   district: { type: String },
+  //   province: { type: String },
+  // },
+
+  // Reference đến địa chỉ gốc (nếu user chọn từ danh sách đã lưu)
+  // addressId: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: "address",
+  //   required: false, // Có thể null nếu user nhập địa chỉ mới
+  // },
   address: { type: Object, required: true },
+  addressId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "address",
+    required: false, // Có thể null nếu user nhập địa chỉ mới không lưu
+  },
   status: { type: String, default: "Đang xử lý" },
   date: { type: Date, default: Date.now },
   payment: { type: Boolean, default: false },
