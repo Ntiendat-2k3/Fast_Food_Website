@@ -1,22 +1,42 @@
 import mongoose from "mongoose"
 
-const notificationSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  message: { type: String, required: true },
-  type: {
-    type: String,
-    enum: ["info", "warning", "success", "error", "order", "payment", "system", "user"],
-    default: "info",
+const notificationSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ["order", "system", "promotion", "order_cancelled", "inventory", "user"],
+      required: true,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null, // null for system-wide notifications
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "order",
+      default: null,
+    },
+    // Chỉ giữ một field cho trạng thái đọc
+    isRead: { type: Boolean, default: false },
+    // Metadata cho notification
+    metadata: {
+      type: Object,
+      default: {},
+    },
   },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "user", required: true },
-  read: { type: Boolean, default: false },
-  isRead: { type: Boolean, default: false },
-  readAt: { type: Date },
-  createdBy: { type: String },
-  targetUser: { type: String },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-})
+  {
+    timestamps: true,
+  },
+)
+
+// Indexes
+notificationSchema.index({ userId: 1, createdAt: -1 })
+notificationSchema.index({ type: 1 })
+notificationSchema.index({ isRead: 1 })
+notificationSchema.index({ orderId: 1 })
 
 const notificationModel = mongoose.models.notification || mongoose.model("notification", notificationSchema)
 

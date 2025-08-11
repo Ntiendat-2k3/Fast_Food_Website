@@ -11,7 +11,6 @@ import notificationRouter from "./routes/notificationRoute.js"
 import addressRouter from "./routes/addressRoute.js"
 import voucherRouter from "./routes/voucherRoute.js"
 import wishlistRouter from "./routes/wishlistRoute.js"
-import purchaseHistoryRouter from "./routes/purchaseHistoryRoute.js"
 import staffRouter from "./routes/staffRoute.js"
 import shippingRouter from "./routes/shippingRoute.js"
 import messageRouter from "./routes/messageRoute.js"
@@ -41,7 +40,6 @@ app.use("/api/notification", notificationRouter)
 app.use("/api/address", addressRouter)
 app.use("/api/voucher", voucherRouter)
 app.use("/api/wishlist", wishlistRouter)
-app.use("/api/purchase-history", purchaseHistoryRouter)
 app.use("/api/staff", staffRouter)
 app.use("/api/shipping", shippingRouter)
 app.use("/api/message", messageRouter)

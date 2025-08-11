@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { toast } from "react-toastify"
 import axios from "axios"
-import { TrendingUp, Calendar, BarChart3, LineChart } from 'lucide-react'
+import { TrendingUp, Calendar, BarChart3, LineChart } from "lucide-react"
 
 import RevenueSummaryCards from "../../components/revenue/RevenueSummaryCards"
 import RevenueTabNavigation from "../../components/revenue/RevenueTabNavigation"
@@ -29,7 +29,7 @@ const Revenue = ({ url }) => {
   const [timeStats, setTimeStats] = useState([])
   const [chartType, setChartType] = useState("bar")
 
-  // Fetch revenue breakdown from new API endpoint
+  // Fetch revenue breakdown from API endpoint
   const fetchRevenueBreakdown = async () => {
     setLoading(true)
     try {
@@ -52,7 +52,7 @@ const Revenue = ({ url }) => {
         console.log("State updated with:", {
           categoryRevenue: data.categoryRevenue,
           productRevenue: data.productRevenue,
-          totalRevenue: data.totalRevenue
+          totalRevenue: data.totalRevenue,
         })
       } else {
         toast.error("Lỗi khi tải dữ liệu doanh thu")
@@ -66,115 +66,65 @@ const Revenue = ({ url }) => {
     }
   }
 
-  // Fetch orders for time-based statistics
-  const fetchOrders = async () => {
+  // Fetch time-based revenue statistics
+  const fetchTimeStats = async () => {
     try {
-      const response = await axios.get(url + "/api/order/list")
-      if (response.data.success) {
-        const allOrders = response.data.data
-        setOrders(allOrders)
+      console.log("Fetching time stats with params:", { period, year, month })
 
-        // Filter only completed orders for time stats
-        const completed = allOrders.filter((order) =>
-          order.status === "Đã giao" || order.status === "Đã hoàn thành"
-        )
-        setCompletedOrders(completed)
+      const params = new URLSearchParams({
+        period,
+        year: year.toString(),
+      })
+
+      if (period === "day") {
+        params.append("month", month.toString())
+      }
+
+      const response = await axios.get(`${url}/api/order/revenue-stats?${params}`)
+
+      if (response.data.success) {
+        console.log("Time stats received:", response.data.data)
+        setTimeStats(response.data.data || [])
+      } else {
+        console.error("Error fetching time stats:", response.data.message)
+        setTimeStats([])
       }
     } catch (error) {
-      console.error("Error fetching orders:", error)
+      console.error("Error fetching time stats:", error)
+      setTimeStats([])
     }
-  }
-
-  // Generate time-based stats from completed orders only
-  const generateTimeStats = () => {
-    const stats = []
-
-    if (period === "day") {
-      // Generate stats for each day of the month
-      const daysInMonth = new Date(year, month, 0).getDate()
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dayOrders = completedOrders.filter((order) => {
-          const orderDate = new Date(order.date)
-          return orderDate.getFullYear() === year &&
-            orderDate.getMonth() + 1 === month &&
-            orderDate.getDate() === day &&
-            (order.status === "Đã giao" || order.status === "Đã hoàn thành")
-        })
-
-        const revenue = dayOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0)
-        stats.push({
-          period: `${day}/${month}`,
-          revenue,
-          orders: dayOrders.length,
-        })
-      }
-    } else if (period === "month") {
-      // Generate stats for each month of the year
-      for (let monthNum = 1; monthNum <= 12; monthNum++) {
-        const monthOrders = completedOrders.filter((order) => {
-          const orderDate = new Date(order.date)
-          return orderDate.getFullYear() === year && orderDate.getMonth() + 1 === monthNum
-        })
-
-        const revenue = monthOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0)
-        const monthNames = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"]
-        stats.push({
-          period: monthNames[monthNum - 1],
-          revenue,
-          orders: monthOrders.length,
-        })
-      }
-    } else if (period === "year") {
-      // Generate stats for recent years
-      const currentYear = new Date().getFullYear()
-      for (let yearNum = currentYear - 4; yearNum <= currentYear; yearNum++) {
-        const yearOrders = completedOrders.filter((order) => {
-          const orderDate = new Date(order.date)
-          return orderDate.getFullYear() === yearNum
-        })
-
-        const revenue = yearOrders.reduce((sum, order) => sum + (Number(order.amount) || 0), 0)
-        stats.push({
-          period: yearNum.toString(),
-          revenue,
-          orders: yearOrders.length,
-        })
-      }
-    }
-
-    setTimeStats(stats)
   }
 
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       console.log("Loading revenue data...")
-      await Promise.all([
-        fetchRevenueBreakdown(),
-        fetchOrders()
-      ])
+      await fetchRevenueBreakdown()
     }
     loadData()
   }, [])
 
+  // Fetch time stats when time filter changes
   useEffect(() => {
-    if (completedOrders.length > 0) {
-      generateTimeStats()
-    } else {
-      setTimeStats([])
-    }
-  }, [completedOrders, period, year, month])
+    fetchTimeStats()
+  }, [period, year, month])
 
-  // Compact Time Filter Component
+  // Apply time filter
+  const handleApplyTimeFilter = () => {
+    fetchTimeStats()
+    toast.success("Đã cập nhật thống kê theo thời gian")
+  }
+
+  // Enhanced Time Filter Component
   const TimeFilter = () => (
-    <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
-      <Calendar size={14} className="text-gray-500" />
+    <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+      <Calendar size={16} className="text-gray-500" />
 
       {/* Period Selector */}
       <select
         value={period}
         onChange={(e) => setPeriod(e.target.value)}
-        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
       >
         <option value="day">Theo ngày</option>
         <option value="month">Theo tháng</option>
@@ -182,70 +132,151 @@ const Revenue = ({ url }) => {
       </select>
 
       {/* Year Selector */}
-      <select
-        value={year}
-        onChange={(e) => setYear(Number.parseInt(e.target.value))}
-        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
-      >
-        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-          <option key={y} value={y}>
-            {y}
-          </option>
-        ))}
-      </select>
+      {(period === "day" || period === "month") && (
+        <select
+          value={year}
+          onChange={(e) => setYear(Number.parseInt(e.target.value))}
+          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      )}
 
       {/* Month Selector (only show when period is 'day') */}
       {period === "day" && (
         <select
           value={month}
           onChange={(e) => setMonth(Number.parseInt(e.target.value))}
-          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
             <option key={m} value={m}>
-              T{m}
+              Tháng {m}
             </option>
           ))}
         </select>
       )}
+
+      {/* Apply Button */}
+      <button
+        onClick={handleApplyTimeFilter}
+        className="px-4 py-2 bg-orange-600 text-white rounded-md text-sm hover:bg-orange-700 transition-colors"
+      >
+        Áp dụng
+      </button>
     </div>
   )
 
-  // Compact Time Chart Component
+  // Enhanced Time Chart Component
   const TimeChart = () => {
-    if (timeStats.length === 0) return null
+    if (timeStats.length === 0) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+            Doanh thu theo {period === "day" ? "ngày" : period === "month" ? "tháng" : "năm"}
+          </h3>
+          <div className="text-center text-gray-500 py-8">Không có dữ liệu thống kê cho khoảng thời gian này</div>
+        </div>
+      )
+    }
 
     const maxRevenue = Math.max(...timeStats.map((stat) => stat.revenue))
-    if (maxRevenue === 0) return null
+    const maxOrders = Math.max(...timeStats.map((stat) => stat.orders))
 
     return (
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h3 className="text-base font-semibold text-gray-800 dark:text-white mb-3">
-          Doanh thu theo {period === "day" ? "ngày" : period === "month" ? "tháng" : "năm"}
-        </h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Doanh thu theo {period === "day" ? "ngày" : period === "month" ? "tháng" : "năm"}
+            {period === "day" && ` - Tháng ${month}/${year}`}
+            {period === "month" && ` - Năm ${year}`}
+          </h3>
 
-        <div className="space-y-2">
-          {timeStats.slice(0, 8).map((stat, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <span className="text-xs text-gray-600 dark:text-gray-400 w-12">{stat.period}</span>
-              <div className="flex-1 mx-2">
-                <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div
-                    className="bg-orange-500 rounded-full h-1.5 transition-all duration-300"
-                    style={{
-                      width: maxRevenue > 0 ? `${(stat.revenue / maxRevenue) * 100}%` : "0%",
-                    }}
-                  />
+          {/* Chart Type Toggle */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setChartType("bar")}
+              className={`p-2 rounded-md transition-colors ${
+                chartType === "bar"
+                  ? "bg-white dark:bg-gray-800 text-orange-600 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              <BarChart3 size={16} />
+            </button>
+            <button
+              onClick={() => setChartType("line")}
+              className={`p-2 rounded-md transition-colors ${
+                chartType === "line"
+                  ? "bg-white dark:bg-gray-800 text-orange-600 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              }`}
+            >
+              <LineChart size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Chart Display */}
+        <div className="space-y-3">
+          {timeStats.map((stat, index) => (
+            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-16">
+                  {period === "day" ? `${stat.period}/${month}` : period === "month" ? `T${stat.period}` : stat.period}
+                </span>
+                <div className="flex-1 mx-4">
+                  <div className="bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div
+                      className="bg-orange-500 rounded-full h-2 transition-all duration-300"
+                      style={{
+                        width: maxRevenue > 0 ? `${(stat.revenue / maxRevenue) * 100}%` : "0%",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs font-medium text-gray-800 dark:text-white">
+                <div className="text-sm font-semibold text-gray-800 dark:text-white">
                   {Number(stat.revenue).toLocaleString("vi-VN")}đ
                 </div>
-                <div className="text-xs text-gray-500">{stat.orders}</div>
+                <div className="text-xs text-gray-500">{stat.orders} đơn hàng</div>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Summary */}
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-lg font-bold text-orange-600">
+                {timeStats.reduce((sum, stat) => sum + stat.revenue, 0).toLocaleString("vi-VN")}đ
+              </div>
+              <div className="text-xs text-gray-500">Tổng doanh thu</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-blue-600">
+                {timeStats.reduce((sum, stat) => sum + stat.orders, 0)}
+              </div>
+              <div className="text-xs text-gray-500">Tổng đơn hàng</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-green-600">
+                {timeStats.length > 0
+                  ? Math.round(
+                      timeStats.reduce((sum, stat) => sum + stat.revenue, 0) / timeStats.length,
+                    ).toLocaleString("vi-VN")
+                  : 0}
+                đ
+              </div>
+              <div className="text-xs text-gray-500">Trung bình</div>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -260,38 +291,14 @@ const Revenue = ({ url }) => {
             Thống kê doanh thu
           </h1>
 
-          <div className="flex items-center space-x-2">
-            {/* Chart Type Toggle */}
-            <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
-              <button
-                onClick={() => setChartType("bar")}
-                className={`p-1.5 rounded-md transition-colors ${
-                  chartType === "bar"
-                    ? "bg-white dark:bg-gray-800 text-orange-600 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                }`}
-              >
-                <BarChart3 size={14} />
-              </button>
-              <button
-                onClick={() => setChartType("line")}
-                className={`p-1.5 rounded-md transition-colors ${
-                  chartType === "line"
-                    ? "bg-white dark:bg-gray-800 text-orange-600 shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                }`}
-              >
-                <LineChart size={14} />
-              </button>
-            </div>
-
+          <div className="flex items-center space-x-3">
             {/* Time Filter */}
             <TimeFilter />
 
             {/* Refresh Button */}
             <button
               onClick={fetchRevenueBreakdown}
-              className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs hover:bg-orange-700 transition-colors"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition-colors"
               disabled={loading}
             >
               {loading ? "Đang tải..." : "Làm mới"}
@@ -312,7 +319,7 @@ const Revenue = ({ url }) => {
             />
 
             {/* Time-based Revenue Chart */}
-            <div className="mb-4">
+            <div className="mb-6">
               <TimeChart />
             </div>
 
@@ -335,18 +342,6 @@ const Revenue = ({ url }) => {
                 totalShippingFee={totalShippingFee}
               />
             </div>
-
-            {/* Debug Information */}
-            {/* {process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                <h4 className="font-bold mb-2">Debug Info:</h4>
-                <div className="text-xs space-y-1">
-                  <div>Total Categories: {Object.keys(categoryRevenue).length}</div>
-                  <div>Total Products: {Object.keys(productRevenue).length}</div>
-                  <div>Category Revenue: {JSON.stringify(categoryRevenue, null, 2).substring(0, 200)}...</div>
-                </div>
-              </div>
-            )} */}
           </>
         )}
       </div>

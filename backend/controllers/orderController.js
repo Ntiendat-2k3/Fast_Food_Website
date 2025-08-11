@@ -63,25 +63,25 @@ const placeOrder = async (req, res) => {
           // Find food by ID or name to get category
           let food = null
           if (item.foodId) {
-            food = await foodModel.findById(item.foodId).populate('categoryId', 'name')
+            food = await foodModel.findById(item.foodId).populate("categoryId", "name")
           }
 
           if (!food && item.name) {
-            food = await foodModel.findOne({ name: item.name }).populate('categoryId', 'name')
+            food = await foodModel.findOne({ name: item.name }).populate("categoryId", "name")
           }
 
           const enrichedItem = {
             ...item,
-            categoryName: food && food.categoryId ? food.categoryId.name : (food ? food.category : 'Khác')
+            categoryName: food && food.categoryId ? food.categoryId.name : food ? food.category : "Khác",
           }
 
           console.log(`Enriched item: ${item.name} -> Category: ${enrichedItem.categoryName}`)
           return enrichedItem
         } catch (error) {
           console.error(`Error enriching item ${item.name}:`, error)
-          return { ...item, categoryName: 'Khác' }
+          return { ...item, categoryName: "Khác" }
         }
-      })
+      }),
     )
 
     // Tạo đơn hàng mới với đầy đủ thông tin
@@ -259,11 +259,8 @@ const getRevenueStats = async (req, res) => {
   try {
     const { period = "month", year, month } = req.query
 
-    let matchStage = {
-      $or: [
-        { status: "Đã giao" },
-        { status: "Đã hoàn thành" }
-      ]
+    const matchStage = {
+      $or: [{ status: "Đã giao" }, { status: "Đã hoàn thành" }],
     } // Only completed orders
     let groupStage = {}
     let sortStage = {}
@@ -355,17 +352,16 @@ const getRevenueStats = async (req, res) => {
 const getRevenueBreakdown = async (req, res) => {
   try {
     // Get all completed orders
-    const completedOrders = await orderModel.find({
-      $or: [
-        { status: "Đã giao" },
-        { status: "Đã hoàn thành" }
-      ]
-    }).sort({ date: -1 })
+    const completedOrders = await orderModel
+      .find({
+        $or: [{ status: "Đã giao" }, { status: "Đã hoàn thành" }],
+      })
+      .sort({ date: -1 })
 
     // Get all categories and foods for mapping
     const [categories, foods] = await Promise.all([
       categoryModel.find({}),
-      foodModel.find({}).populate('categoryId', 'name')
+      foodModel.find({}).populate("categoryId", "name"),
     ])
 
     // Create comprehensive mapping objects
@@ -374,13 +370,13 @@ const getRevenueBreakdown = async (req, res) => {
     const foodNameToCategoryMap = new Map()
 
     // Build category mapping by ID and name
-    categories.forEach(cat => {
+    categories.forEach((cat) => {
       categoryMap.set(cat._id.toString(), cat.name)
       categoryMap.set(cat.name, cat.name) // Also map name to name for direct lookup
     })
 
     // Build food to category mapping with multiple lookup methods
-    foods.forEach(food => {
+    foods.forEach((food) => {
       const categoryName = food.categoryId ? food.categoryId.name : food.category
 
       if (categoryName) {
@@ -400,21 +396,21 @@ const getRevenueBreakdown = async (req, res) => {
     let totalRevenue = 0
     let totalVoucherDiscount = 0
     let totalShippingFee = 0
-    let unmappedItems = []
+    const unmappedItems = []
 
-    completedOrders.forEach(order => {
+    completedOrders.forEach((order) => {
       totalRevenue += order.amount || 0
       totalVoucherDiscount += order.discountAmount || 0
       totalShippingFee += order.shippingFee || order.deliveryFee || 14000
 
       if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(item => {
+        order.items.forEach((item) => {
           if (item.name && item.price && item.quantity) {
             const itemRevenue = (item.price || 0) * (item.quantity || 0)
             let categoryName = null
 
             // Method 1: Use categoryName from enriched order item (most reliable)
-            if (item.categoryName && item.categoryName !== 'Khác') {
+            if (item.categoryName && item.categoryName !== "Khác") {
               categoryName = item.categoryName
             }
             // Method 2: Look up by foodId in foodCategoryMap
@@ -441,7 +437,7 @@ const getRevenueBreakdown = async (req, res) => {
                 name: item.name,
                 foodId: item.foodId,
                 category: item.category,
-                categoryName: item.categoryName
+                categoryName: item.categoryName,
               })
 
               // For now, skip items that can't be mapped instead of using "Khác"
@@ -472,23 +468,25 @@ const getRevenueBreakdown = async (req, res) => {
 
           // Try to find by foodId first
           if (unmappedItem.foodId) {
-            food = await foodModel.findById(unmappedItem.foodId).populate('categoryId', 'name')
+            food = await foodModel.findById(unmappedItem.foodId).populate("categoryId", "name")
           }
 
           // If not found, try by name
           if (!food) {
-            food = await foodModel.findOne({
-              name: { $regex: new RegExp(`^${unmappedItem.name}$`, 'i') }
-            }).populate('categoryId', 'name')
+            food = await foodModel
+              .findOne({
+                name: { $regex: new RegExp(`^${unmappedItem.name}$`, "i") },
+              })
+              .populate("categoryId", "name")
           }
 
           if (food && food.categoryId) {
             const categoryName = food.categoryId.name
 
             // Find the item in orders and recalculate
-            completedOrders.forEach(order => {
+            completedOrders.forEach((order) => {
               if (order.items) {
-                order.items.forEach(item => {
+                order.items.forEach((item) => {
                   if (item.name === unmappedItem.name) {
                     const itemRevenue = (item.price || 0) * (item.quantity || 0)
 
@@ -525,9 +523,9 @@ const getRevenueBreakdown = async (req, res) => {
           totalCategories: Object.keys(categoryRevenue).length,
           totalProducts: Object.keys(productRevenue).length,
           netRevenue: totalRevenue - totalVoucherDiscount - totalShippingFee,
-          unmappedItemsCount: unmappedItems.length
-        }
-      }
+          unmappedItemsCount: unmappedItems.length,
+        },
+      },
     })
   } catch (error) {
     console.error("Error getting revenue breakdown:", error)
@@ -878,10 +876,7 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const query = {
       userId,
-      $or: [
-        { status: "Đã giao" },
-        { status: "Đã hoàn thành" }
-      ],
+      $or: [{ status: "Đã giao" }, { status: "Đã hoàn thành" }],
     }
 
     if (search) {
@@ -958,10 +953,7 @@ const getUserPurchaseHistory = async (req, res) => {
 
     const allCompletedOrders = await orderModel.find({
       userId,
-      $or: [
-        { status: "Đã giao" },
-        { status: "Đã hoàn thành" }
-      ],
+      $or: [{ status: "Đã giao" }, { status: "Đã hoàn thành" }],
     })
 
     const totalSpent = allCompletedOrders.reduce((sum, order) => sum + order.amount, 0)

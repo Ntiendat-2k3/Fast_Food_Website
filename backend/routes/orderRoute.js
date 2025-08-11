@@ -11,10 +11,9 @@ import {
   getRevenueBreakdown,
   exportInvoice,
   confirmDelivery,
-  autoCompleteOrders,
   cancelOrder,
 } from "../controllers/orderController.js"
-import { authMiddleware, verifyAdmin, verifyStaffOrAdmin } from "../middleware/auth.js"
+import { authMiddleware, verifyStaffOrAdmin } from "../middleware/auth.js"
 
 const orderRouter = express.Router()
 
