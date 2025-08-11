@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true }, // Required for local users
     role: { type: String, enum: ["user", "staff", "admin"], default: "user" },
-    // cartData: { type: Object, default: {} },
+    cartData: { type: Object, default: {} },
     googleId: { type: String, unique: true, sparse: true },
     avatar: { type: String },
     authProvider: { type: String, enum: ["local", "google"], default: "local" },
