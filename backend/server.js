@@ -12,11 +12,11 @@ import addressRouter from "./routes/addressRoute.js"
 import voucherRouter from "./routes/voucherRoute.js"
 import wishlistRouter from "./routes/wishlistRoute.js"
 import staffRouter from "./routes/staffRoute.js"
-import shippingRouter from "./routes/shippingRoute.js"
 import messageRouter from "./routes/messageRoute.js"
 import aiRouter from "./routes/aiRoute.js"
 import inventoryRouter from "./routes/inventoryRoute.js"
 import "dotenv/config"
+import shippingRouter from "./routes/shippingRoute.js"
 
 // app config
 const app = express()

@@ -1,5 +1,5 @@
 import express from "express"
-import { calculateDistance, getAddressSuggestions, getPlaceDetails } from "../controllers/shippingController.js"
+import { calculateDistance, getAddressSuggestions } from "../controllers/shippingController.js"
 
 const shippingRouter = express.Router()
 
@@ -10,6 +10,6 @@ shippingRouter.post("/calculate-distance", calculateDistance)
 shippingRouter.get("/address-suggestions", getAddressSuggestions)
 
 // Lấy chi tiết địa chỉ
-shippingRouter.get("/place-details/:placeId", getPlaceDetails)
+// shippingRouter.get("/place-details/:placeId", getPlaceDetails)
 
 export default shippingRouter
