@@ -25,7 +25,7 @@ const AddressForm = ({
     onChangeHandler({
       target: {
         name: "street",
-        value: addressData.address,
+        value: addressData.description,
       },
     })
 
@@ -60,7 +60,7 @@ const AddressForm = ({
         <AddressAutocomplete
           value={data.street || ""}
           onChange={handleAddressChange}
-          onAddressSelect={handleAddressSelect}
+          onSelect={handleAddressSelect}
           placeholder="Nhập địa chỉ giao hàng chi tiết..."
           className="w-full"
         />

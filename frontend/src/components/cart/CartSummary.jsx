@@ -1,6 +1,6 @@
 "use client"
 import { motion } from "framer-motion"
-import { CreditCard, Package, Truck, Tag } from 'lucide-react'
+import { CreditCard, Package, Tag } from "lucide-react"
 
 const CartSummary = ({
   selectedItemsCount,
@@ -10,8 +10,6 @@ const CartSummary = ({
   hasSelectedItems,
   onCheckout,
 }) => {
-  const shippingFee = selectedCartAmount === 0 ? 0 : 14000
-
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -36,19 +34,8 @@ const CartSummary = ({
               <Package size={16} />
               <span className="text-sm sm:text-base">Sản phẩm đã chọn ({selectedItemsCount})</span>
             </div>
-            <span className="font-medium text-white text-sm sm:text-base">
+            <span className="font-medium text-white text-sm sm:text-base break-all">
               {selectedCartAmount.toLocaleString("vi-VN")} đ
-            </span>
-          </div>
-
-          {/* Shipping Fee */}
-          <div className="flex justify-between items-center py-2">
-            <div className="flex items-center gap-2 text-gray-300">
-              <Truck size={16} />
-              <span className="text-sm sm:text-base">Phí vận chuyển</span>
-            </div>
-            <span className="font-medium text-white text-sm sm:text-base">
-              {shippingFee.toLocaleString("vi-VN")} đ
             </span>
           </div>
 
@@ -59,7 +46,7 @@ const CartSummary = ({
                 <Tag size={16} />
                 <span className="text-sm sm:text-base">Giảm giá</span>
               </div>
-              <span className="font-medium text-sm sm:text-base">
+              <span className="font-medium text-sm sm:text-base break-all">
                 - {appliedVoucher.discountAmount.toLocaleString("vi-VN")} đ
               </span>
             </div>
@@ -71,7 +58,7 @@ const CartSummary = ({
           {/* Total */}
           <div className="flex justify-between items-center py-2">
             <span className="text-lg sm:text-xl font-bold text-white">Tổng cộng</span>
-            <span className="text-lg sm:text-xl font-bold text-yellow-400">
+            <span className="text-lg sm:text-xl font-bold text-yellow-400 break-all">
               {finalAmount.toLocaleString("vi-VN")} đ
             </span>
           </div>
@@ -87,16 +74,11 @@ const CartSummary = ({
             }`}
           >
             <CreditCard size={18} className="mr-2" />
-            {hasSelectedItems
-              ? `Tiến hành thanh toán (${selectedItemsCount} sản phẩm)`
-              : "Chọn sản phẩm để thanh toán"
-            }
+            {hasSelectedItems ? `Tiến hành thanh toán (${selectedItemsCount} sản phẩm)` : "Chọn sản phẩm để thanh toán"}
           </button>
 
           {/* Security Notice */}
-          <div className="text-center text-xs sm:text-sm text-gray-400 mt-3">
-            🔒 Thanh toán an toàn và bảo mật
-          </div>
+          <div className="text-center text-xs sm:text-sm text-gray-400 mt-3">🔒 Thanh toán an toàn và bảo mật</div>
         </div>
       </div>
     </motion.div>

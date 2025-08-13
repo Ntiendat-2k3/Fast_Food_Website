@@ -30,7 +30,7 @@ const AddressAutocomplete = ({
       }
 
       debounceRef.current = setTimeout(async () => {
-        if (query.length < 3) {
+        if (query.length < 2) {
           setSuggestions([])
           setShowSuggestions(false)
           return
@@ -38,12 +38,15 @@ const AddressAutocomplete = ({
 
         setIsLoading(true)
         try {
-          const response = await axios.get(`${url}/api/shipping/autocomplete?input=${encodeURIComponent(query)}`, {
+          console.log("Searching for address:", query)
+          const response = await axios.get(`${url}/api/shipping/suggestions?input=${encodeURIComponent(query)}`, {
             timeout: 10000,
           })
 
-          if (response.data.success && response.data.predictions) {
-            setSuggestions(response.data.predictions)
+          console.log("Address suggestions response:", response.data)
+
+          if (response.data.success && response.data.data && response.data.data.length > 0) {
+            setSuggestions(response.data.data)
             setShowSuggestions(true)
           } else {
             setSuggestions([])
@@ -71,8 +74,9 @@ const AddressAutocomplete = ({
 
   // Handle suggestion selection
   const handleSuggestionSelect = (suggestion) => {
-    onChange(suggestion.description)
-    onSelect(suggestion)
+    const selectedAddress = suggestion.description || suggestion.mainText || suggestion.address
+    onChange(selectedAddress)
+    onSelect?.(suggestion)
     setShowSuggestions(false)
     setSuggestions([])
     setSelectedIndex(-1)
@@ -167,11 +171,10 @@ const AddressAutocomplete = ({
           placeholder={placeholder}
           disabled={disabled}
           className={`
-            w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-            disabled:bg-gray-100 disabled:cursor-not-allowed
-            text-sm placeholder-gray-500
-            transition-colors duration-200
+            w-full pl-10 pr-10 py-3 bg-slate-800/50 border border-slate-600 rounded-lg text-white placeholder-gray-400
+            focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400
+            disabled:bg-gray-700 disabled:cursor-not-allowed
+            transition-all duration-200
           `}
         />
 
@@ -179,7 +182,7 @@ const AddressAutocomplete = ({
         {value && !disabled && (
           <button
             onClick={handleClear}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-300 transition-colors"
           >
             <X className="h-4 w-4 text-gray-400" />
           </button>
@@ -190,28 +193,27 @@ const AddressAutocomplete = ({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto"
         >
           {suggestions.map((suggestion, index) => (
             <button
-              key={suggestion.place_id || index}
+              key={suggestion.placeId || suggestion.place_id || index}
               onClick={() => handleSuggestionSelect(suggestion)}
               className={`
-                w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors
-                flex items-start gap-3 border-b border-gray-100 last:border-b-0
-                ${index === selectedIndex ? "bg-blue-50 border-blue-200" : ""}
+                w-full px-4 py-3 text-left hover:bg-slate-700 transition-colors
+                flex items-start gap-3 border-b border-slate-700 last:border-b-0
+                ${index === selectedIndex ? "bg-slate-700 border-yellow-500/50" : ""}
               `}
             >
-              <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <MapPin className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 truncate">
-                  {suggestion.structured_formatting?.main_text || suggestion.description}
+                <p className="text-sm text-white truncate">
+                  {suggestion.mainText || suggestion.description || suggestion.address}
                 </p>
-                {suggestion.structured_formatting?.secondary_text && (
-                  <p className="text-xs text-gray-500 truncate mt-1">
-                    {suggestion.structured_formatting.secondary_text}
-                  </p>
+                {suggestion.secondaryText && (
+                  <p className="text-xs text-gray-400 truncate mt-1">{suggestion.secondaryText}</p>
                 )}
+                {suggestion.source && <p className="text-xs text-yellow-500 mt-1">Nguồn: {suggestion.source}</p>}
               </div>
             </button>
           ))}
@@ -219,9 +221,9 @@ const AddressAutocomplete = ({
       )}
 
       {/* No Results */}
-      {showSuggestions && suggestions.length === 0 && !isLoading && value.length >= 3 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
-          <p className="text-sm text-gray-500 text-center">Không tìm thấy địa chỉ phù hợp</p>
+      {showSuggestions && suggestions.length === 0 && !isLoading && value.length >= 2 && (
+        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-4">
+          <p className="text-sm text-gray-400 text-center">Không tìm thấy địa chỉ phù hợp</p>
         </div>
       )}
     </div>

@@ -183,13 +183,13 @@ const GEOCODING_APIS = [
   {
     name: "Nominatim",
     url: "https://nominatim.openstreetmap.org/search",
-    timeout: 8000, // Giảm timeout
+    timeout: 8000,
     retries: 2,
     params: (query) => ({
       q: query,
       format: "json",
       addressdetails: 1,
-      limit: 5,
+      limit: 8,
       countrycodes: "vn",
       "accept-language": "vi,en",
       bounded: 1,
@@ -203,7 +203,7 @@ const GEOCODING_APIS = [
     retries: 2,
     params: (query) => ({
       q: query,
-      limit: 5,
+      limit: 8,
       lang: "vi",
       bbox: "102.14441,8.59975,109.46762,23.39270",
     }),
@@ -286,25 +286,27 @@ const retryWithBackoff = async (fn, retries = 2, delay = 1000) => {
 const geocodeAddress = async (address, returnMultiple = false) => {
   console.log(`Starting geocoding for: "${address}"`)
 
-  // Bước 1: Tìm trong database local trước
-  const localResults = searchLocalDatabase(address)
-  if (localResults.length > 0) {
-    console.log(`Found ${localResults.length} results in local database`)
+  // Bước 1: Tìm trong database local trước (chỉ khi query ngắn)
+  if (address.length < 10) {
+    const localResults = searchLocalDatabase(address)
+    if (localResults.length > 0) {
+      console.log(`Found ${localResults.length} results in local database`)
 
-    const formattedResults = localResults.map((item) => ({
-      lat: item.lat,
-      lng: item.lng,
-      display_name: item.address,
-      confidence: item.confidence,
-      address_components: { name: item.name, type: item.type },
-      source: "Local Database",
-      place_id: `local_${item.name.replace(/\s+/g, "_")}`,
-    }))
+      const formattedResults = localResults.map((item) => ({
+        lat: item.lat,
+        lng: item.lng,
+        display_name: item.address,
+        confidence: item.confidence,
+        address_components: { name: item.name, type: item.type },
+        source: "Local Database",
+        place_id: `local_${item.name.replace(/\s+/g, "_")}`,
+      }))
 
-    if (returnMultiple) {
-      return formattedResults
+      if (returnMultiple) {
+        return formattedResults
+      }
+      return formattedResults[0]
     }
-    return formattedResults[0]
   }
 
   // Bước 2: Thử các API external
@@ -375,16 +377,6 @@ const geocodeAddress = async (address, returnMultiple = false) => {
       }
     } catch (error) {
       console.error(`${api.name} API error:`, error.message)
-
-      // Log chi tiết lỗi để debug
-      if (error.code === "ECONNABORTED") {
-        console.error(`${api.name} timeout after ${api.timeout}ms`)
-      } else if (error.response) {
-        console.error(`${api.name} HTTP ${error.response.status}: ${error.response.statusText}`)
-      } else if (error.request) {
-        console.error(`${api.name} network error: ${error.message}`)
-      }
-
       continue
     }
   }
@@ -414,7 +406,7 @@ const geocodeAddress = async (address, returnMultiple = false) => {
       lat: item.lat,
       lng: item.lng,
       display_name: `${item.address} (gợi ý)`,
-      confidence: item.confidence * 0.7, // Giảm confidence cho fuzzy match
+      confidence: item.confidence * 0.7,
       address_components: { name: item.name, type: item.type },
       source: "Local Fuzzy",
       place_id: `fuzzy_${item.name.replace(/\s+/g, "_")}`,
@@ -438,12 +430,10 @@ const searchFuzzyLocal = (query) => {
     const name = item.name.toLowerCase()
     const address = item.address.toLowerCase()
 
-    // Tìm kiếm từng từ
     return words.some(
       (word) =>
         name.includes(word) ||
         address.includes(word) ||
-        // Levenshtein distance đơn giản
         calculateSimilarity(word, name) > 0.6 ||
         calculateSimilarity(word, address) > 0.6,
     )
@@ -655,7 +645,7 @@ const validateVietnameseAddress = (address) => {
   return errors
 }
 
-// API lấy gợi ý địa chỉ
+// API lấy gợi ý địa chỉ - Improved version
 const getAddressSuggestions = async (req, res) => {
   try {
     const { input } = req.query
@@ -670,6 +660,7 @@ const getAddressSuggestions = async (req, res) => {
 
     console.log(`Getting address suggestions for: "${input}"`)
 
+    // Prioritize external APIs for better results
     const results = await geocodeAddress(input, true)
 
     if (!results || results.length === 0) {
@@ -712,7 +703,7 @@ const getAddressSuggestions = async (req, res) => {
   }
 }
 
-// API tính khoảng cách
+// API tính khoảng cách - Fixed version
 const calculateDistance = async (req, res) => {
   try {
     const { destination } = req.body
@@ -735,7 +726,17 @@ const calculateDistance = async (req, res) => {
       })
     }
 
-    const destinationCoords = await geocodeAddress(destination, false)
+    let destinationCoords
+    try {
+      destinationCoords = await geocodeAddress(destination, false)
+    } catch (geocodeError) {
+      console.error("Geocoding failed:", geocodeError.message)
+      return res.status(400).json({
+        success: false,
+        message: "Không thể xác định tọa độ của địa chỉ này. Vui lòng nhập địa chỉ chi tiết hơn.",
+        details: geocodeError.message,
+      })
+    }
 
     if (!destinationCoords) {
       return res.status(400).json({
@@ -746,7 +747,18 @@ const calculateDistance = async (req, res) => {
 
     console.log(`Destination: ${destinationCoords.lat}, ${destinationCoords.lng}`)
 
-    const routeInfo = await calculateRoute(STORE_LOCATION, destinationCoords)
+    let routeInfo
+    try {
+      routeInfo = await calculateRoute(STORE_LOCATION, destinationCoords)
+    } catch (routeError) {
+      console.error("Route calculation failed:", routeError.message)
+      return res.status(500).json({
+        success: false,
+        message: "Không thể tính toán tuyến đường. Vui lòng thử lại.",
+        details: routeError.message,
+      })
+    }
+
     const shippingFee = calculateShippingFee(routeInfo.distance)
 
     if (shippingFee === null) {

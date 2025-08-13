@@ -126,7 +126,7 @@ const Cart = () => {
   // Calculate final amount with discount
   const getFinalAmount = () => {
     const subtotal = getSelectedCartAmount()
-    const shippingFee = subtotal > 0 ? 14000 : 0
+    const shippingFee = subtotal > 0 ? 0 : 0
 
     if (!appliedVoucher || subtotal === 0) {
       return subtotal + shippingFee
@@ -193,7 +193,8 @@ const Cart = () => {
                 onAction={() => navigate("/foods")}
               />
             ) : (
-              <div className="space-y-6 sm:space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
                 <CartTable
                   cartItems={cartItems}
                   food_list={food_list}
@@ -206,9 +207,9 @@ const Cart = () => {
                   onRemoveFromCart={removeFromCart}
                   onRemoveFromCartAll={removeFromCartAll}
                 />
+                  </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">{/* Voucher section could go here */}</div>
+                <div className="lg:col-span-1">
                   <div className="lg:col-span-1">
                     <CartSummary
                       selectedItemsCount={getSelectedItemsCount()}

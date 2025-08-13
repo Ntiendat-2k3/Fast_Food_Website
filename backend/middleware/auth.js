@@ -2,19 +2,44 @@ import jwt from "jsonwebtoken"
 import userModel from "../models/userModel.js"
 
 const authMiddleware = async (req, res, next) => {
-  const { token } = req.headers
-  if (!token) {
-    return res.json({ success: false, message: "Not Authorized Login Again" })
-  }
   try {
+    let token = req.headers.token || req.headers.authorization
+
+    console.log("Auth middleware - checking token...")
+
+    if (!token) {
+      console.log("No token provided")
+      return res.json({ success: false, message: "Not Authorized Login Again" })
+    }
+
+    // Handle Bearer token format
+    if (token.startsWith("Bearer ")) {
+      token = token.slice(7)
+    }
+
+    console.log("Decoding token...")
     const token_decode = jwt.verify(token, process.env.JWT_SECRET)
+    console.log("Token decoded successfully, user ID:", token_decode.id)
+
+    // Verify user exists in database
+    const user = await userModel.findById(token_decode.id).select("-password")
+    if (!user) {
+      console.log("User not found in database for ID:", token_decode.id)
+      return res.json({ success: false, message: "User not found" })
+    }
+
+    console.log("User found:", { id: user._id, name: user.name, email: user.email })
+
     // Set userId in both req.body and req.userId for compatibility
     req.body.userId = token_decode.id
     req.userId = token_decode.id
+    req.user = user
+
+    console.log("Auth middleware completed - userId set to:", req.userId)
     next()
   } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: "Error" })
+    console.error("Auth middleware error:", error.message)
+    res.json({ success: false, message: "Invalid token" })
   }
 }
 

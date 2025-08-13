@@ -1,15 +1,12 @@
 import express from "express"
-import { calculateDistance, getAddressSuggestions } from "../controllers/shippingController.js"
+import { getAddressSuggestions, calculateDistance } from "../controllers/shippingController.js"
 
 const shippingRouter = express.Router()
 
-// Tính khoảng cách và phí ship
-shippingRouter.post("/calculate-distance", calculateDistance)
+// Route for address suggestions/autocomplete
+shippingRouter.get("/suggestions", getAddressSuggestions)
 
-// Lấy gợi ý địa chỉ
-shippingRouter.get("/address-suggestions", getAddressSuggestions)
-
-// Lấy chi tiết địa chỉ
-// shippingRouter.get("/place-details/:placeId", getPlaceDetails)
+// Route for calculating shipping distance and fee
+shippingRouter.post("/calculate", calculateDistance)
 
 export default shippingRouter

@@ -1,5 +1,6 @@
 import orderModel from "../models/orderModel.js"
 import userModel from "../models/userModel.js"
+import cartModel from "../models/cartModel.js"
 import notificationModel from "../models/notificationModel.js"
 import foodModel from "../models/foodModel.js"
 import categoryModel from "../models/categoryModel.js"
@@ -174,6 +175,29 @@ const placeOrder = async (req, res) => {
       // Không throw error để không ảnh hưởng đến việc đặt hàng
     }
 
+    // Remove purchased items from cart
+    try {
+      const itemIdsToRemove = items.map((item) => item.foodId)
+      console.log("Removing items from cart:", itemIdsToRemove)
+
+      // Find user's cart
+      const cart = await cartModel.findOne({ userId })
+      if (cart) {
+        // Remove purchased items from cart
+        cart.items = cart.items.filter((cartItem) => !itemIdsToRemove.includes(cartItem.foodId.toString()))
+
+        // Save updated cart
+        await cart.save()
+        console.log("Cart updated after order placement")
+
+        // Also update user's cartData field for backward compatibility
+        await userModel.findByIdAndUpdate(userId, { cartData: {} })
+      }
+    } catch (cartError) {
+      console.error("Error updating cart after order:", cartError)
+      // Don't throw error as order was successful
+    }
+
     // Tạo notification cho admin
     const notification = new notificationModel({
       title: "Đơn hàng mới",
@@ -207,11 +231,6 @@ const placeOrder = async (req, res) => {
         createdAt: notification.createdAt,
         isRead: false,
       })
-    }
-
-    // Xóa giỏ hàng của người dùng
-    if (userId) {
-      await userModel.findByIdAndUpdate(userId, { cartData: {} })
     }
 
     // Trả về thông tin đơn hàng

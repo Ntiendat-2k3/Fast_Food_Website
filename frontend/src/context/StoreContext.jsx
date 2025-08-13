@@ -112,6 +112,28 @@ const StoreContextProvider = (props) => {
     }
   }
 
+  const removeItemsFromCart = async (itemIds) => {
+    if (!token || !itemIds || itemIds.length === 0) return
+
+    try {
+      console.log("Removing items from cart:", itemIds)
+      const response = await axios.post(`${url}/api/cart/remove-items`, { itemIds }, { headers: { token } })
+
+      if (response.data.success) {
+        if (response.data.cartData) {
+          setCartItems(response.data.cartData)
+          console.log("Cart updated after removing items:", response.data.cartData)
+        } else {
+          await loadCartData(token)
+        }
+      } else {
+        console.error("Failed to remove items from cart:", response.data.message)
+      }
+    } catch (error) {
+      console.error("Error removing items from cart:", error)
+    }
+  }
+
   const loadCartData = async (userToken) => {
     if (!userToken) {
       setCartItems({})
@@ -367,6 +389,7 @@ const StoreContextProvider = (props) => {
     removeFromCartAll,
     removeFromCart,
     updateCartQuantity,
+    removeItemsFromCart,
     getTotalCartAmount,
     url,
     token,

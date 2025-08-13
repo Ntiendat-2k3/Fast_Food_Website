@@ -35,9 +35,11 @@ import AnimatedBackground from "../../components/ui/AnimatedBackground"
 import PageHeader from "../../components/ui/PageHeader"
 import ConfirmButton from "../../components/ui/ConfirmButton"
 import ShippingCalculator from "../../components/address/ShippingCalculator"
+import AddressAutocomplete from "../../components/address/AddressAutocomplete"
 
 const PlaceOrder = () => {
-  const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems, user } = useContext(StoreContext)
+  const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems, user, removeItemsFromCart } =
+    useContext(StoreContext)
   const location = useLocation()
   const appliedVoucher = location.state?.appliedVoucher || null
   const buyNowMode = location.state?.buyNowMode || false
@@ -129,6 +131,11 @@ const PlaceOrder = () => {
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" })
     }
+
+    // Reset shipping info when address changes
+    if (name === "street") {
+      setShippingInfo(null)
+    }
   }
 
   const validateForm = () => {
@@ -154,7 +161,7 @@ const PlaceOrder = () => {
       newErrors.street = "Vui lòng nhập địa chỉ giao hàng"
       isValid = false
     } else if (data.street.trim().length < 10) {
-      newErrors.street = "Địa ch��� phải đầy đủ và chi tiết (ít nhất 10 ký tự)"
+      newErrors.street = "Địa chỉ phải đầy đủ và chi tiết (ít nhất 10 ký tự)"
       isValid = false
     }
 
@@ -170,6 +177,26 @@ const PlaceOrder = () => {
 
     setErrors(newErrors)
     return isValid
+  }
+
+  // Check if order can be placed
+  const canPlaceOrder = () => {
+    // Must have shipping info calculated
+    if (!shippingInfo) {
+      return false
+    }
+
+    // If using saved address, it's valid
+    if (selectedAddressId) {
+      return true
+    }
+
+    // If using manual form, validate all fields
+    return (
+      data.name.trim().length >= 3 &&
+      data.street.trim().length >= 10 &&
+      /(84|0[3|5|7|8|9])+([0-9]{8})\b/.test(data.phone.trim())
+    )
   }
 
   // Tính tổng giá trị đơn hàng chính xác (chỉ sản phẩm đã chọn)
@@ -531,19 +558,42 @@ const PlaceOrder = () => {
     return data.street || ""
   }
 
+  // Handle address change for manual form with auto shipping calculation
+  const handleManualAddressChange = (address) => {
+    onChangeHandler({
+      target: {
+        name: "street",
+        value: address,
+      },
+    })
+  }
+
+  const handleManualAddressSelect = (addressData) => {
+    onChangeHandler({
+      target: {
+        name: "street",
+        value: addressData.description || addressData.mainText || addressData.address,
+      },
+    })
+  }
+
   // Sửa lại hàm placeOrder để khớp với yêu cầu của backend
   const placeOrder = async (event) => {
     event.preventDefault()
 
-    // Nếu không chọn địa chỉ đã lưu, kiểm tra form
-    if (!selectedAddressId && !validateForm()) {
-      toast.error("Vui lòng kiểm tra lại thông tin giao hàng")
+    // Check if order can be placed
+    if (!canPlaceOrder()) {
+      if (!shippingInfo) {
+        toast.error("Vui lòng tính phí vận chuyển trước khi đặt hàng")
+      } else {
+        toast.error("Vui lòng kiểm tra lại thông tin giao hàng")
+      }
       return
     }
 
-    // Kiểm tra phí ship đã được tính chưa
-    if (!shippingInfo) {
-      toast.error("Vui lòng tính phí vận chuyển trước khi đặt hàng")
+    // Nếu không chọn địa chỉ đã lưu, kiểm tra form
+    if (!selectedAddressId && !validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin giao hàng")
       return
     }
 
@@ -626,6 +676,8 @@ const PlaceOrder = () => {
       voucherCode: currentAppliedVoucher?.voucherInfo?.code || null,
       discountAmount: discountAmount,
       shippingFee: shippingFee,
+      subtotal: subtotal,
+      itemsTotal: subtotal,
       shippingInfo: {
         distance: shippingInfo.distance,
         duration: shippingInfo.duration,
@@ -647,16 +699,16 @@ const PlaceOrder = () => {
       console.log("Order response:", response.data)
 
       if (response.data.success) {
-        // Xóa giỏ hàng nếu không phải chế độ mua ngay
+        // Remove purchased items from cart
         if (!buyNowMode) {
-          // Chỉ xóa các mục đã được chọn
-          const newCartItems = { ...cartItems }
-          for (const itemId in selectedCartItems) {
-            if (selectedCartItems[itemId]) {
-              delete newCartItems[itemId]
-            }
-          }
-          setCartItems(newCartItems)
+          // Get list of purchased item IDs
+          const purchasedItemIds = orderItems.map((item) => item.foodId)
+          console.log("Removing purchased items from cart:", purchasedItemIds)
+
+          // Use the context function to remove items from cart
+          await removeItemsFromCart(purchasedItemIds)
+
+          // Clear selected items from localStorage
           localStorage.removeItem("selectedCartItems")
         }
 
@@ -839,6 +891,17 @@ const PlaceOrder = () => {
                       />
                       {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
                     </div>
+
+                    <div>
+                      <AddressAutocomplete
+                        value={data.street}
+                        onChange={handleManualAddressChange}
+                        onSelect={handleManualAddressSelect}
+                        placeholder="Nhập địa chỉ giao hàng chi tiết..."
+                        className="w-full"
+                      />
+                      {errors.street && <p className="text-red-400 text-sm mt-1">{errors.street}</p>}
+                    </div>
                   </div>
                 </div>
               )}
@@ -986,7 +1049,7 @@ const PlaceOrder = () => {
               {/* Place Order Button */}
               <ConfirmButton
                 onClick={placeOrder}
-                disabled={isSubmitting || !shippingInfo}
+                disabled={isSubmitting || !canPlaceOrder()}
                 isLoading={isSubmitting}
                 loadingText="Đang xử lý đơn hàng..."
                 className="w-full mt-6"
@@ -997,11 +1060,15 @@ const PlaceOrder = () => {
                 </div>
               </ConfirmButton>
 
-              {!shippingInfo && (
+              {!canPlaceOrder() && (
                 <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mt-4">
                   <div className="flex items-center">
                     <Info className="text-blue-400 mr-2" size={16} />
-                    <span className="text-blue-300 text-sm">Vui lòng chọn địa chỉ để tự động tính phí vận chuyển</span>
+                    <span className="text-blue-300 text-sm">
+                      {!shippingInfo
+                        ? "Vui lòng nhập địa chỉ để tự động tính phí vận chuyển"
+                        : "Vui lòng điền đầy đủ thông tin giao hàng"}
+                    </span>
                   </div>
                 </div>
               )}

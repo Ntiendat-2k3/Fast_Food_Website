@@ -5,21 +5,22 @@ import foodModel from "../models/foodModel.js"
 // Get cart data
 const getCart = async (req, res) => {
   try {
-    console.log("Getting cart for user:", req.body.userId)
+    const userId = req.body.userId || req.userId
+    console.log("Getting cart for user:", userId)
 
     // Find user to verify existence
-    const userData = await userModel.findById(req.body.userId)
+    const userData = await userModel.findById(userId)
     if (!userData) {
       return res.json({ success: false, message: "User not found" })
     }
 
     // Get cart from cart collection
-    let cart = await cartModel.findOne({ userId: req.body.userId }).populate("items.foodId")
+    let cart = await cartModel.findOne({ userId }).populate("items.foodId")
 
     if (!cart) {
       // Create empty cart if doesn't exist
       cart = new cartModel({
-        userId: req.body.userId,
+        userId,
         items: [],
         totalAmount: 0,
       })
@@ -45,15 +46,21 @@ const getCart = async (req, res) => {
 // Add item to cart
 const addToCart = async (req, res) => {
   try {
-    const { userId, itemId, quantity = 1 } = req.body
+    const userId = req.body.userId || req.userId
+    const { itemId, quantity = 1 } = req.body
     // Also check for alternative parameter names that frontend might be using
     const productId = itemId || req.body.productId || req.body.id || req.body._id
     console.log("Adding to cart:", { userId, productId, quantity })
 
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
+
     // Verify user exists
     const userData = await userModel.findById(userId)
     if (!userData) {
-      return res.json({ success: false, message: "User not found" })
+      console.log("User not found with ID:", userId)
+      return res.json({ success: false, message: "Không tìm thấy người dùng" })
     }
 
     // Find the food item by ID
@@ -118,15 +125,20 @@ const addToCart = async (req, res) => {
 // Remove one item from cart
 const removeFromCart = async (req, res) => {
   try {
-    const { userId, itemId } = req.body
+    const userId = req.body.userId || req.userId
+    const { itemId } = req.body
     // Also check for alternative parameter names that frontend might be using
     const productId = itemId || req.body.productId || req.body.id || req.body._id
     console.log("Removing from cart:", { userId, productId })
 
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
+
     // Verify user exists
     const userData = await userModel.findById(userId)
     if (!userData) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "Không tìm thấy người dùng" })
     }
 
     // Find the food item by ID
@@ -182,15 +194,20 @@ const removeFromCart = async (req, res) => {
 // Remove all quantity of a specific item
 const removeFromCartAll = async (req, res) => {
   try {
-    const { userId, itemId } = req.body
+    const userId = req.body.userId || req.userId
+    const { itemId } = req.body
     // Also check for alternative parameter names that frontend might be using
     const productId = itemId || req.body.productId || req.body.id || req.body._id
     console.log("Removing all from cart:", { userId, productId })
 
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
+
     // Verify user exists
     const userData = await userModel.findById(userId)
     if (!userData) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "Không tìm thấy người dùng" })
     }
 
     // Find the food item by ID
@@ -236,10 +253,15 @@ const removeFromCartAll = async (req, res) => {
 // Update item quantity directly
 const updateCartQuantity = async (req, res) => {
   try {
-    const { userId, itemId, quantity } = req.body
+    const userId = req.body.userId || req.userId
+    const { itemId, quantity } = req.body
     // Also check for alternative parameter names that frontend might be using
     const productId = itemId || req.body.productId || req.body.id || req.body._id
     console.log("Updating cart quantity:", { userId, productId, quantity })
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
 
     if (quantity < 0) {
       return res.json({ success: false, message: "Số lượng không hợp lệ" })
@@ -248,7 +270,7 @@ const updateCartQuantity = async (req, res) => {
     // Verify user exists
     const userData = await userModel.findById(userId)
     if (!userData) {
-      return res.json({ success: false, message: "User not found" })
+      return res.json({ success: false, message: "Không tìm thấy người dùng" })
     }
 
     // Find the food item by ID
@@ -322,8 +344,12 @@ const updateCartQuantity = async (req, res) => {
 // Clear entire cart
 const clearCart = async (req, res) => {
   try {
-    const { userId } = req.body
+    const userId = req.body.userId || req.userId
     console.log("Clearing cart for user:", userId)
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
 
     // Find and clear cart
     await cartModel.findOneAndUpdate(
@@ -337,11 +363,55 @@ const clearCart = async (req, res) => {
     )
 
     console.log("Cart cleared successfully")
-    res.json({ success: true, message: "Đã xóa toàn bộ giỏ hàng" })
+    res.json({ success: true, message: "Đã xóa toàn bộ giỏ hàng", cartData: {} })
   } catch (error) {
     console.error("Error clearing cart:", error)
     res.json({ success: false, message: "Lỗi khi xóa giỏ hàng" })
   }
 }
 
-export { addToCart, removeFromCart, removeFromCartAll, getCart, clearCart, updateCartQuantity }
+// Remove specific items from cart (for checkout)
+const removeItemsFromCart = async (req, res) => {
+  try {
+    const userId = req.body.userId || req.userId
+    const { itemIds } = req.body
+    console.log("Removing items from cart:", { userId, itemIds })
+
+    if (!userId) {
+      return res.json({ success: false, message: "Thiếu thông tin người dùng" })
+    }
+
+    if (!itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.json({ success: false, message: "Thiếu danh sách sản phẩm cần xóa" })
+    }
+
+    // Find cart
+    const cart = await cartModel.findOne({ userId })
+    if (!cart) {
+      return res.json({ success: true, message: "Giỏ hàng trống", cartData: {} })
+    }
+
+    // Remove specified items
+    cart.items = cart.items.filter((item) => !itemIds.includes(item.foodId.toString()))
+
+    // Save cart
+    await cart.save()
+
+    // Populate and convert to frontend format
+    await cart.populate("items.foodId")
+    const cartData = {}
+    for (const item of cart.items) {
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
+      }
+    }
+
+    console.log("Items removed from cart:", cartData)
+    res.json({ success: true, message: "Đã xóa sản phẩm khỏi giỏ hàng", cartData })
+  } catch (error) {
+    console.error("Error removing items from cart:", error)
+    res.json({ success: false, message: "Lỗi khi xóa sản phẩm khỏi giỏ hàng" })
+  }
+}
+
+export { addToCart, removeFromCart, removeFromCartAll, getCart, clearCart, updateCartQuantity, removeItemsFromCart }
