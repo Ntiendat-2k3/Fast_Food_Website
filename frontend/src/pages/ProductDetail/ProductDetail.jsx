@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
 //////////////////////////////
 // IMPORT
 //////////////////////////////
-import { useContext, useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { useContext, useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
+import axios from "axios"
+import { toast, ToastContainer } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
-import { StoreContext } from "../../context/StoreContext";
-import { useProductDetail } from "../../hooks/useProductDetail";
-import { useReviews } from "../../hooks/useReviews";
+import { StoreContext } from "../../context/StoreContext"
+import { useProductDetail } from "../../hooks/useProductDetail"
+import { useReviews } from "../../hooks/useReviews"
 
-import Breadcrumb from "../../components/product/Breadcrumb";
-import ProductNotFound from "../../components/product/ProductNotFound";
-import ProductImageGallery from "../../components/product/ProductImageGallery";
-import ProductInfo from "../../components/product/ProductInfo";
-import ProductTabs from "../../components/product/ProductTabs";
-import RelatedProducts from "../../components/product/RelatedProducts";
-import SuggestedSalads from "../../components/product/SuggestedSalads";
-import { AlertCircle } from "lucide-react";
+import Breadcrumb from "../../components/product/Breadcrumb"
+import ProductNotFound from "../../components/product/ProductNotFound"
+import ProductImageGallery from "../../components/product/ProductImageGallery"
+import ProductInfo from "../../components/product/ProductInfo"
+import ProductTabs from "../../components/product/ProductTabs"
+import RelatedProducts from "../../components/product/RelatedProducts"
+import SuggestedSalads from "../../components/product/SuggestedSalads"
+import { AlertCircle } from "lucide-react"
 
 //////////////////////////////
 // COMPONENT
 //////////////////////////////
 const ProductDetail = () => {
   // ======= Hooks & Context =======
-  const { slug } = useParams();
-  const navigate = useNavigate();
-  const { url, user, token, cartItems } = useContext(StoreContext);
+  const { slug } = useParams()
+  const navigate = useNavigate()
+  const { url, user, token, cartItems, addToCart } = useContext(StoreContext)
 
   // ======= Product Detail Hook =======
   const {
@@ -45,14 +45,11 @@ const ProductDetail = () => {
     suggestedDrinks,
     isLoadingSuggestedDrinks,
     stock,
-    handleAddToCart: handleAddToCartFromHook,
-    handleBuyNow: handleBuyNowFromHook,
     increaseQuantity,
     decreaseQuantity,
     toggleWishlist,
-  } = useProductDetail(slug);
-  console.log(foodItem);
-
+  } = useProductDetail(slug)
+  console.log(foodItem)
 
   // ======= Review Hook =======
   const {
@@ -68,78 +65,120 @@ const ProductDetail = () => {
     handleEditRating,
     handleSaveEdit,
     handleCancelEdit,
-  } = useReviews(foodItem);
+  } = useReviews(foodItem)
 
   // ======= Inventory State =======
-  const [inventory, setInventory] = useState(null);
-  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [inventory, setInventory] = useState(null)
+  const [inventoryLoading, setInventoryLoading] = useState(true)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
 
   // ======= Fetch Inventory =======
   useEffect(() => {
     const fetchInventory = async () => {
       if (foodItem && foodItem._id) {
         try {
-          const response = await axios.get(`${url}/api/inventory/product/${foodItem._id}`);
+          const response = await axios.get(`${url}/api/inventory/product/${foodItem._id}`)
           if (response.data.success) {
-            setInventory(response.data.data);
+            setInventory(response.data.data)
           }
         } catch (error) {
-          console.error("Error fetching inventory:", error);
+          console.error("Error fetching inventory:", error)
         } finally {
-          setInventoryLoading(false);
+          setInventoryLoading(false)
         }
       }
-    };
-    fetchInventory();
-  }, [foodItem, url]);
+    }
+    fetchInventory()
+  }, [foodItem, url])
 
   // ======= Stock Logic =======
   const getStockStatus = () => {
-    if (inventoryLoading) return { text: "Đang tải...", color: "text-gray-400", bgColor: "bg-gray-100" };
-    if (!inventory) return { text: "Không có thông tin", color: "text-gray-400", bgColor: "bg-gray-100" };
+    if (inventoryLoading) return { text: "Đang tải...", color: "text-gray-400", bgColor: "bg-gray-100" }
+    if (!inventory) return { text: "Không có thông tin", color: "text-gray-400", bgColor: "bg-gray-100" }
 
     if (inventory.quantity === 0) {
-      return { text: "Hết hàng", color: "text-red-600", bgColor: "bg-red-50" };
+      return { text: "Hết hàng", color: "text-red-600", bgColor: "bg-red-50" }
     } else if (inventory.quantity <= 20) {
-      return { text: `Chỉ còn ${inventory.quantity} sản phẩm`, color: "text-yellow-600", bgColor: "bg-yellow-50" };
+      return { text: `Chỉ còn ${inventory.quantity} sản phẩm`, color: "text-yellow-600", bgColor: "bg-yellow-50" }
     } else {
-      return { text: `Còn ${inventory.quantity} sản phẩm`, color: "text-green-600", bgColor: "bg-green-50" };
+      return { text: `Còn ${inventory.quantity} sản phẩm`, color: "text-green-600", bgColor: "bg-green-50" }
     }
-  };
+  }
 
-  const stockStatus = getStockStatus();
-  const isOutOfStock = inventory && inventory.quantity <= 0;
-  const maxQuantity = inventory ? Math.min(inventory.quantity, 10) : 10;
+  const stockStatus = getStockStatus()
+  const isOutOfStock = inventory && inventory.quantity <= 0
+  const maxQuantity = inventory ? Math.min(inventory.quantity, 10) : 10
 
   // ======= Handle Add to Cart =======
-  const handleAddToCart = () => {
-    if (inventory?.quantity <= 0) {
-      toast.error("Sản phẩm đã hết hàng");
-      return;
+  const handleAddToCart = async () => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng")
+      return
     }
 
-    if (cartItems[foodItem.name] + quantity > inventory.quantity) {
-      toast.error(`Chỉ còn ${inventory.quantity} sản phẩm trong kho`);
-      return;
+    if (isOutOfStock) {
+      toast.error("Sản phẩm đã hết hàng")
+      return
     }
 
-    handleAddToCartFromHook();
-  };
+    if (!foodItem || !foodItem._id) {
+      toast.error("Không tìm thấy thông tin sản phẩm")
+      return
+    }
+
+    // Check if adding this quantity would exceed inventory
+    const currentCartQuantity = cartItems[foodItem._id] || 0
+    if (currentCartQuantity + quantity > inventory.quantity) {
+      toast.error(`Chỉ còn ${inventory.quantity} sản phẩm trong kho`)
+      return
+    }
+
+    setIsAddingToCart(true)
+
+    try {
+      console.log("Adding to cart - Product ID:", foodItem._id, "Quantity:", quantity)
+      await addToCart(foodItem._id, quantity)
+      toast.success(`Đã thêm ${quantity} sản phẩm vào giỏ hàng`)
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      toast.error("Lỗi khi thêm vào giỏ hàng")
+    } finally {
+      setIsAddingToCart(false)
+    }
+  }
 
   // ======= Handle Buy Now =======
-  const handleBuyNow = () => {
-    if (inventory?.quantity <= 0) {
-      toast.error("Sản phẩm đã hết hàng");
-      return;
+  const handleBuyNow = async () => {
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để mua hàng")
+      return
+    }
+
+    if (isOutOfStock) {
+      toast.error("Sản phẩm đã hết hàng")
+      return
+    }
+
+    if (!foodItem || !foodItem._id) {
+      toast.error("Không tìm thấy thông tin sản phẩm")
+      return
     }
 
     if (quantity > inventory.quantity) {
-      toast.error(`Chỉ còn ${inventory.quantity} sản phẩm trong kho`);
-      return;
+      toast.error(`Chỉ còn ${inventory.quantity} sản phẩm trong kho`)
+      return
     }
 
-    handleBuyNowFromHook();
-  };
+    try {
+      // Add to cart first
+      await addToCart(foodItem._id, quantity)
+      // Then navigate to cart
+      navigate("/cart")
+    } catch (error) {
+      console.error("Error in buy now:", error)
+      toast.error("Lỗi khi mua hàng")
+    }
+  }
 
   // ======= Product Info (Hardcoded) =======
   const productDetails = {
@@ -156,17 +195,17 @@ const ProductDetail = () => {
       sugar: "15g",
       sodium: "380mg",
     },
-  };
+  }
 
   // ======= Breadcrumb =======
   const breadcrumbItems = [
     { label: "Trang chủ", link: "/" },
     { label: "Thực đơn", link: "/foods" },
     { label: foodItem ? foodItem.name : "Sản phẩm không tồn tại" },
-  ];
+  ]
 
   // ======= Trường hợp sản phẩm không tồn tại =======
-  if (!foodItem) return <ProductNotFound />;
+  if (!foodItem) return <ProductNotFound />
 
   //////////////////////////////
   // RETURN GIAO DIỆN
@@ -174,7 +213,6 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pt-20 pb-16">
       <div className="container mx-auto px-4">
-
         {/* Breadcrumb */}
         <Breadcrumb items={breadcrumbItems} />
 
@@ -219,6 +257,9 @@ const ProductDetail = () => {
                 inventory={inventory}
                 stockStatus={stockStatus}
                 url={url}
+                isAddingToCart={isAddingToCart}
+                maxQuantity={maxQuantity}
+                isOutOfStock={isOutOfStock}
               />
             </div>
           </div>
@@ -254,7 +295,7 @@ const ProductDetail = () => {
           url={url}
           relatedRatings={relatedRatings}
           navigate={navigate}
-          addToCart={handleAddToCart}
+          addToCart={addToCart}
         />
 
         {/* Thông báo hết hàng */}
@@ -262,16 +303,14 @@ const ProductDetail = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertCircle className="text-red-500 mr-2" size={20} />
-              <span className="text-red-700 font-medium">
-                Sản phẩm hiện tại đã hết hàng. Vui lòng quay lại sau.
-              </span>
+              <span className="text-red-700 font-medium">Sản phẩm hiện tại đã hết hàng. Vui lòng quay lại sau.</span>
             </div>
           </div>
         )}
       </div>
       <ToastContainer />
     </div>
-  );
-};
+  )
+}
 
-export default ProductDetail;
+export default ProductDetail

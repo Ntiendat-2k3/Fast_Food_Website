@@ -78,7 +78,6 @@ const PlaceOrder = () => {
 
   const [selectedCartItems, setSelectedCartItems] = useState({})
   const [shippingInfo, setShippingInfo] = useState(null)
-  const [selectedAddressData, setSelectedAddressData] = useState(null)
 
   const navigate = useNavigate()
 
@@ -155,7 +154,7 @@ const PlaceOrder = () => {
       newErrors.street = "Vui lòng nhập địa chỉ giao hàng"
       isValid = false
     } else if (data.street.trim().length < 10) {
-      newErrors.street = "Địa chỉ phải đầy đủ và chi tiết (ít nhất 10 ký tự)"
+      newErrors.street = "Địa ch��� phải đầy đủ và chi tiết (ít nhất 10 ký tự)"
       isValid = false
     }
 
@@ -523,10 +522,13 @@ const PlaceOrder = () => {
     setShippingInfo(shipping)
   }
 
-  const handleAddressSelect = (addressData) => {
-    setSelectedAddressData(addressData)
-    // Reset shipping info when address changes
-    setShippingInfo(null)
+  // Get selected address for shipping calculator
+  const getSelectedAddressForShipping = () => {
+    if (selectedAddressId) {
+      const selectedAddress = savedAddresses.find((addr) => addr._id === selectedAddressId)
+      return selectedAddress?.street || ""
+    }
+    return data.street || ""
   }
 
   // Sửa lại hàm placeOrder để khớp với yêu cầu của backend
@@ -798,17 +800,12 @@ const PlaceOrder = () => {
                 isLoading={loadingAddresses}
               />
 
-              {/* Shipping Calculator */}
-              {(selectedAddressId || data.street) && (
-                <ShippingCalculator
-                  selectedAddress={
-                    selectedAddressId
-                      ? savedAddresses.find((addr) => addr._id === selectedAddressId)?.street
-                      : data.street
-                  }
-                  onShippingUpdate={handleShippingUpdate}
-                />
-              )}
+              {/* Shipping Calculator - Auto calculate when address is selected */}
+              <ShippingCalculator
+                selectedAddress={getSelectedAddressForShipping()}
+                onShippingCalculated={handleShippingUpdate}
+                className="mt-6"
+              />
 
               {/* Manual Address Form (if no saved address selected) */}
               {!selectedAddressId && (
@@ -827,20 +824,6 @@ const PlaceOrder = () => {
                         }`}
                       />
                       {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
-                    </div>
-
-                    <div>
-                      <input
-                        name="street"
-                        onChange={onChangeHandler}
-                        value={data.street}
-                        type="text"
-                        placeholder="Địa chỉ chi tiết (số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố)"
-                        className={`w-full p-3 bg-slate-800/50 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all ${
-                          errors.street ? "border-red-500" : "border-slate-600"
-                        }`}
-                      />
-                      {errors.street && <p className="text-red-400 text-sm mt-1">{errors.street}</p>}
                     </div>
 
                     <div>
@@ -1018,9 +1001,7 @@ const PlaceOrder = () => {
                 <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mt-4">
                   <div className="flex items-center">
                     <Info className="text-blue-400 mr-2" size={16} />
-                    <span className="text-blue-300 text-sm">
-                      Vui lòng chọn địa chỉ và tính phí vận chuyển trước khi đặt hàng
-                    </span>
+                    <span className="text-blue-300 text-sm">Vui lòng chọn địa chỉ để tự động tính phí vận chuyển</span>
                   </div>
                 </div>
               )}

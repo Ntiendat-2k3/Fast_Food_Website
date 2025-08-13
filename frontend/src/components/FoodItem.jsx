@@ -124,19 +124,38 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
     navigate(`/product/${slugify(name)}`)
   }
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.stopPropagation()
 
+    if (!token) {
+      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng")
+      return
+    }
+
     if (inventory && inventory.quantity <= 0) {
-      return // Không cho phép thêm vào giỏ hàng nếu hết hàng
+      toast.error("Sản phẩm đã hết hàng")
+      return
+    }
+
+    if (!_id) {
+      toast.error("Không tìm thấy thông tin sản phẩm")
+      return
     }
 
     setIsAdding(true)
-    addToCart(_id, 1) // Sử dụng _id thay vì name
 
-    setTimeout(() => {
-      setIsAdding(false)
-    }, 1500)
+    try {
+      console.log("FoodItem - Adding to cart with ID:", _id)
+      await addToCart(_id, 1) // Use _id instead of name
+      toast.success("Đã thêm vào giỏ hàng")
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      toast.error("Lỗi khi thêm vào giỏ hàng")
+    } finally {
+      setTimeout(() => {
+        setIsAdding(false)
+      }, 1500)
+    }
   }
 
   const handleLike = async (e) => {
@@ -330,7 +349,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
             {/* Add to Cart Button */}
             <motion.button
               onClick={handleAddToCart}
-              disabled={isOutOfStock}
+              disabled={isOutOfStock || isAdding}
               className={`w-full sm:w-auto self-start py-2 px-4 sm:py-3 sm:px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
                 isOutOfStock
                   ? "bg-gray-500 text-gray-300 cursor-not-allowed"
@@ -338,8 +357,8 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
                     ? "bg-green-500 text-white"
                     : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
               }`}
-              whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
-              whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
+              whileHover={!isOutOfStock && !isAdding ? { scale: 1.02 } : {}}
+              whileTap={!isOutOfStock && !isAdding ? { scale: 0.98 } : {}}
             >
               {isOutOfStock ? (
                 <>
@@ -468,7 +487,6 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
                 : "bg-green-500/80 text-white"
           }`}
         >
-          {/* <Package size={12} /> */}
           <span>{stockStatus.text}</span>
         </div>
       </div>
@@ -516,7 +534,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
         {/* Add to Cart Button */}
         <motion.button
           onClick={handleAddToCart}
-          disabled={isOutOfStock}
+          disabled={isOutOfStock || isAdding}
           className={`w-full
             py-2 sm:py-3
             px-3 sm:px-4
@@ -533,8 +551,8 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
                   ? "bg-green-500 text-white"
                   : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
             }`}
-          whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
-          whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
+          whileHover={!isOutOfStock && !isAdding ? { scale: 1.02 } : {}}
+          whileTap={!isOutOfStock && !isAdding ? { scale: 0.98 } : {}}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 + 0.5 }}

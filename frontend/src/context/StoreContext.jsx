@@ -33,7 +33,8 @@ const StoreContextProvider = (props) => {
     }
 
     try {
-      const response = await axios.post(`${url}/api/cart/add`, { itemId, quantity }, { headers: { token } })
+      console.log("Adding to cart with itemId:", itemId, "quantity:", quantity)
+      const response = await axios.post(`${url}/api/cart/add`, { itemId: itemId, quantity }, { headers: { token } })
 
       if (response.data.success) {
         if (response.data.cartData) {

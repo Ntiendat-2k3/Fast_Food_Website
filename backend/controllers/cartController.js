@@ -46,7 +46,9 @@ const getCart = async (req, res) => {
 const addToCart = async (req, res) => {
   try {
     const { userId, itemId, quantity = 1 } = req.body
-    console.log("Adding to cart:", { userId, itemId, quantity })
+    // Also check for alternative parameter names that frontend might be using
+    const productId = itemId || req.body.productId || req.body.id || req.body._id
+    console.log("Adding to cart:", { userId, productId, quantity })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -55,11 +57,12 @@ const addToCart = async (req, res) => {
     }
 
     // Find the food item by ID
-    if (!itemId) {
+    if (!productId) {
+      console.log("Missing product ID. Request body:", req.body)
       return res.json({ success: false, message: "Thiếu ID sản phẩm" })
     }
 
-    const foodItem = await foodModel.findById(itemId)
+    const foodItem = await foodModel.findById(productId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -116,7 +119,9 @@ const addToCart = async (req, res) => {
 const removeFromCart = async (req, res) => {
   try {
     const { userId, itemId } = req.body
-    console.log("Removing from cart:", { userId, itemId })
+    // Also check for alternative parameter names that frontend might be using
+    const productId = itemId || req.body.productId || req.body.id || req.body._id
+    console.log("Removing from cart:", { userId, productId })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -125,11 +130,12 @@ const removeFromCart = async (req, res) => {
     }
 
     // Find the food item by ID
-    if (!itemId) {
+    if (!productId) {
+      console.log("Missing product ID. Request body:", req.body)
       return res.json({ success: false, message: "Thiếu ID sản phẩm" })
     }
 
-    const foodItem = await foodModel.findById(itemId)
+    const foodItem = await foodModel.findById(productId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -177,7 +183,9 @@ const removeFromCart = async (req, res) => {
 const removeFromCartAll = async (req, res) => {
   try {
     const { userId, itemId } = req.body
-    console.log("Removing all from cart:", { userId, itemId })
+    // Also check for alternative parameter names that frontend might be using
+    const productId = itemId || req.body.productId || req.body.id || req.body._id
+    console.log("Removing all from cart:", { userId, productId })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -186,11 +194,12 @@ const removeFromCartAll = async (req, res) => {
     }
 
     // Find the food item by ID
-    if (!itemId) {
+    if (!productId) {
+      console.log("Missing product ID. Request body:", req.body)
       return res.json({ success: false, message: "Thiếu ID sản phẩm" })
     }
 
-    const foodItem = await foodModel.findById(itemId)
+    const foodItem = await foodModel.findById(productId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -228,7 +237,9 @@ const removeFromCartAll = async (req, res) => {
 const updateCartQuantity = async (req, res) => {
   try {
     const { userId, itemId, quantity } = req.body
-    console.log("Updating cart quantity:", { userId, itemId, quantity })
+    // Also check for alternative parameter names that frontend might be using
+    const productId = itemId || req.body.productId || req.body.id || req.body._id
+    console.log("Updating cart quantity:", { userId, productId, quantity })
 
     if (quantity < 0) {
       return res.json({ success: false, message: "Số lượng không hợp lệ" })
@@ -241,11 +252,12 @@ const updateCartQuantity = async (req, res) => {
     }
 
     // Find the food item by ID
-    if (!itemId) {
+    if (!productId) {
+      console.log("Missing product ID. Request body:", req.body)
       return res.json({ success: false, message: "Thiếu ID sản phẩm" })
     }
 
-    const foodItem = await foodModel.findById(itemId)
+    const foodItem = await foodModel.findById(productId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
