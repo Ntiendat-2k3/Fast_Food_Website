@@ -3,7 +3,7 @@
 import { useContext, useState, useEffect } from "react"
 import { StoreContext } from "../context/StoreContext"
 import { useNavigate } from "react-router-dom"
-import { Star, Check, Heart, Eye, Plus, AlertCircle, Package } from 'lucide-react'
+import { Star, Check, Heart, Eye, Plus, AlertCircle } from "lucide-react"
 import { motion } from "framer-motion"
 import { slugify } from "../utils/slugify"
 import { toast } from "react-toastify"
@@ -132,7 +132,7 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
     }
 
     setIsAdding(true)
-    addToCart(name, 1)
+    addToCart(_id, 1) // Sử dụng _id thay vì name
 
     setTimeout(() => {
       setIsAdding(false)
@@ -515,24 +515,24 @@ function FoodItem({ name, price, description, image, index, _id, rating = 0, tot
 
         {/* Add to Cart Button */}
         <motion.button
-  onClick={handleAddToCart}
-  disabled={isOutOfStock}
-  className={`w-full
-    py-2 sm:py-3
-    px-3 sm:px-4
-    rounded-xl
-    font-semibold
-    text-sm sm:text-base
-    transition-all duration-300
-    flex items-center justify-center gap-1 sm:gap-2
-    min-h-[40px] sm:min-h-[44px]
-    ${
-      isOutOfStock
-        ? "bg-gray-500 text-gray-300 cursor-not-allowed"
-        : isAdding
-          ? "bg-green-500 text-white"
-          : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
-    }`}
+          onClick={handleAddToCart}
+          disabled={isOutOfStock}
+          className={`w-full
+            py-2 sm:py-3
+            px-3 sm:px-4
+            rounded-xl
+            font-semibold
+            text-sm sm:text-base
+            transition-all duration-300
+            flex items-center justify-center gap-1 sm:gap-2
+            min-h-[40px] sm:min-h-[44px]
+            ${
+              isOutOfStock
+                ? "bg-gray-500 text-gray-300 cursor-not-allowed"
+                : isAdding
+                  ? "bg-green-500 text-white"
+                  : "bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-slate-900 hover:shadow-lg hover:shadow-primary/30"
+            }`}
           whileHover={!isOutOfStock ? { scale: 1.02 } : {}}
           whileTap={!isOutOfStock ? { scale: 0.98 } : {}}
           initial={{ opacity: 0, y: 20 }}

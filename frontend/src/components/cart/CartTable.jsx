@@ -18,23 +18,23 @@ const CartTable = ({
       return null
     }
 
-    return Object.keys(cartItems).map((itemName, index) => {
-      if (cartItems[itemName] <= 0) return null
+    return Object.keys(cartItems).map((itemId, index) => {
+      if (cartItems[itemId] <= 0) return null
 
-      const item = food_list.find((product) => product.name === itemName)
+      const item = food_list.find((product) => product._id === itemId)
       if (!item) {
-        console.log(`Item not found in food_list: ${itemName}`)
+        console.log(`Item not found in food_list with ID: ${itemId}`)
         return null
       }
 
       return (
         <CartItemRow
-          key={itemName}
-          itemName={itemName}
+          key={itemId}
+          itemId={itemId}
           item={item}
-          quantity={cartItems[itemName]}
+          quantity={cartItems[itemId]}
           index={index}
-          isSelected={selectedItems[itemName] || false}
+          isSelected={selectedItems[itemId] || false}
           url={url}
           onSelectItem={onSelectItem}
           onAddToCart={onAddToCart}
@@ -78,9 +78,7 @@ const CartTable = ({
       </div>
 
       {/* Cart Items */}
-      <div className="space-y-3 sm:space-y-2">
-        {renderCartItems()}
-      </div>
+      <div className="space-y-3 sm:space-y-2">{renderCartItems()}</div>
     </div>
   )
 }

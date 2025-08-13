@@ -37,7 +37,7 @@ import ConfirmButton from "../../components/ui/ConfirmButton"
 import ShippingCalculator from "../../components/address/ShippingCalculator"
 
 const PlaceOrder = () => {
-  const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems, userData } = useContext(StoreContext)
+  const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems, user } = useContext(StoreContext)
   const location = useLocation()
   const appliedVoucher = location.state?.appliedVoucher || null
   const buyNowMode = location.state?.buyNowMode || false
@@ -99,9 +99,9 @@ const PlaceOrder = () => {
 
           // Nếu không có selectedCartItems, chọn tất cả các mục trong giỏ hàng
           const allSelected = {}
-          for (const item in cartItems) {
-            if (cartItems[item] > 0) {
-              allSelected[item] = true
+          for (const itemId in cartItems) {
+            if (cartItems[itemId] > 0) {
+              allSelected[itemId] = true
             }
           }
           setSelectedCartItems(allSelected)
@@ -110,9 +110,9 @@ const PlaceOrder = () => {
       } else {
         // Nếu không có selectedCartItems, chọn tất cả các mục trong giỏ hàng
         const allSelected = {}
-        for (const item in cartItems) {
-          if (cartItems[item] > 0) {
-            allSelected[item] = true
+        for (const itemId in cartItems) {
+          if (cartItems[itemId] > 0) {
+            allSelected[itemId] = true
           }
         }
         setSelectedCartItems(allSelected)
@@ -180,11 +180,11 @@ const PlaceOrder = () => {
     }
 
     let totalAmount = 0
-    for (const item in cartItems) {
-      if (cartItems[item] > 0 && selectedCartItems[item]) {
-        const itemInfo = food_list.find((product) => product.name === item)
+    for (const itemId in cartItems) {
+      if (cartItems[itemId] > 0 && selectedCartItems[itemId]) {
+        const itemInfo = food_list.find((product) => product._id === itemId)
         if (itemInfo) {
-          totalAmount += itemInfo.price * cartItems[item]
+          totalAmount += itemInfo.price * cartItems[itemId]
         }
       }
     }
@@ -198,10 +198,10 @@ const PlaceOrder = () => {
     }
 
     const items = food_list
-      .filter((item) => cartItems[item.name] > 0 && selectedCartItems[item.name])
+      .filter((item) => cartItems[item._id] > 0 && selectedCartItems[item._id])
       .map((item) => ({
         ...item,
-        quantity: cartItems[item.name],
+        quantity: cartItems[item._id],
       }))
 
     console.log("Order items:", items)
@@ -576,13 +576,13 @@ const PlaceOrder = () => {
     } else {
       // Chỉ thêm sản phẩm đã được chọn trong giỏ hàng
       food_list.forEach((item) => {
-        if (cartItems[item.name] > 0 && selectedCartItems[item.name]) {
+        if (cartItems[item._id] > 0 && selectedCartItems[item._id]) {
           orderItems.push({
             foodId: item._id,
             name: item.name,
             price: item.price,
             image: item.image,
-            quantity: cartItems[item.name],
+            quantity: cartItems[item._id],
           })
         }
       })
@@ -611,7 +611,7 @@ const PlaceOrder = () => {
 
     // Chuẩn bị dữ liệu đơn hàng theo đúng định dạng API yêu cầu
     const orderData = {
-      userId: userData?._id, // Đảm bảo có userId
+      userId: user?._id, // Đảm bảo có userId
       items: orderItems,
       amount: finalAmount,
       address: {
@@ -649,9 +649,9 @@ const PlaceOrder = () => {
         if (!buyNowMode) {
           // Chỉ xóa các mục đã được chọn
           const newCartItems = { ...cartItems }
-          for (const item in selectedCartItems) {
-            if (selectedCartItems[item]) {
-              delete newCartItems[item]
+          for (const itemId in selectedCartItems) {
+            if (selectedCartItems[itemId]) {
+              delete newCartItems[itemId]
             }
           }
           setCartItems(newCartItems)

@@ -26,14 +26,14 @@ const StoreContextProvider = (props) => {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
 
-  const addToCart = async (itemName, quantity = 1) => {
+  const addToCart = async (itemId, quantity = 1) => {
     if (!token) {
       alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng")
       return
     }
 
     try {
-      const response = await axios.post(`${url}/api/cart/add`, { itemName, quantity }, { headers: { token } })
+      const response = await axios.post(`${url}/api/cart/add`, { itemId, quantity }, { headers: { token } })
 
       if (response.data.success) {
         if (response.data.cartData) {
@@ -51,11 +51,11 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  const removeFromCart = async (itemName) => {
+  const removeFromCart = async (itemId) => {
     if (!token) return
 
     try {
-      const response = await axios.post(`${url}/api/cart/remove`, { itemName }, { headers: { token } })
+      const response = await axios.post(`${url}/api/cart/remove`, { itemId }, { headers: { token } })
 
       if (response.data.success) {
         if (response.data.cartData) {
@@ -71,11 +71,11 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  const removeFromCartAll = async (itemName) => {
+  const removeFromCartAll = async (itemId) => {
     if (!token) return
 
     try {
-      const response = await axios.post(`${url}/api/cart/remove-all`, { itemName }, { headers: { token } })
+      const response = await axios.post(`${url}/api/cart/remove-all`, { itemId }, { headers: { token } })
 
       if (response.data.success) {
         if (response.data.cartData) {
@@ -91,15 +91,11 @@ const StoreContextProvider = (props) => {
     }
   }
 
-  const updateCartQuantity = async (itemName, quantity) => {
+  const updateCartQuantity = async (itemId, quantity) => {
     if (!token) return
 
     try {
-      const response = await axios.post(
-        `${url}/api/cart/update-quantity`,
-        { itemName, quantity },
-        { headers: { token } },
-      )
+      const response = await axios.post(`${url}/api/cart/update-quantity`, { itemId, quantity }, { headers: { token } })
 
       if (response.data.success) {
         if (response.data.cartData) {
@@ -156,11 +152,11 @@ const StoreContextProvider = (props) => {
 
   const getTotalCartAmount = () => {
     let totalAmount = 0
-    for (const item in cartItems) {
-      if (cartItems[item] > 0) {
-        const itemInfo = food_list.find((product) => product.name === item)
+    for (const itemId in cartItems) {
+      if (cartItems[itemId] > 0) {
+        const itemInfo = food_list.find((product) => product._id === itemId)
         if (itemInfo) {
-          totalAmount += itemInfo.price * cartItems[item]
+          totalAmount += itemInfo.price * cartItems[itemId]
         }
       }
     }
@@ -273,7 +269,6 @@ const StoreContextProvider = (props) => {
         headers: { token },
       })
 
-
       if (response.data.success) {
         setNotifications(response.data.data || [])
         return response.data
@@ -303,7 +298,6 @@ const StoreContextProvider = (props) => {
       const response = await axios.get(`${url}/api/notification/unread-count`, {
         headers: { token },
       })
-
 
       if (response.data.success) {
         const count = response.data.data.count || 0

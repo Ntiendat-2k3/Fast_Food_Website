@@ -9,7 +9,6 @@ import { motion } from "framer-motion"
 import CartHeader from "../../components/cart/CartHeader"
 import CartTable from "../../components/cart/CartTable"
 import CartSummary from "../../components/cart/CartSummary"
-import VoucherSection from "../../components/voucher/VoucherSection"
 import EmptyCartState from "../../components/cart/EmptyCartState"
 import CartLoadingState from "../../components/cart/CartLoadingState"
 
@@ -64,21 +63,21 @@ const Cart = () => {
 
   const getSelectedCartAmount = () => {
     let totalAmount = 0
-    for (const item in cartItems) {
-      if (cartItems[item] > 0 && selectedItems[item]) {
-        const itemInfo = food_list.find((product) => product.name === item)
+    for (const itemId in cartItems) {
+      if (cartItems[itemId] > 0 && selectedItems[itemId]) {
+        const itemInfo = food_list.find((product) => product._id === itemId)
         if (itemInfo) {
-          totalAmount += itemInfo.price * cartItems[item]
+          totalAmount += itemInfo.price * cartItems[itemId]
         }
       }
     }
     return totalAmount
   }
 
-  const handleSelectItem = (itemName) => {
+  const handleSelectItem = (itemId) => {
     setSelectedItems((prev) => ({
       ...prev,
-      [itemName]: !prev[itemName],
+      [itemId]: !prev[itemId],
     }))
   }
 
@@ -88,9 +87,9 @@ const Cart = () => {
 
     const newSelectedItems = {}
     if (cartItems) {
-      Object.keys(cartItems).forEach((itemName) => {
-        if (cartItems[itemName] > 0) {
-          newSelectedItems[itemName] = newSelectAll
+      Object.keys(cartItems).forEach((itemId) => {
+        if (cartItems[itemId] > 0) {
+          newSelectedItems[itemId] = newSelectAll
         }
       })
     }
@@ -111,9 +110,9 @@ const Cart = () => {
 
     // Initialize selected items for existing cart items
     const initialSelected = {}
-    Object.keys(cartItems).forEach((itemName) => {
-      if (cartItems[itemName] > 0) {
-        initialSelected[itemName] = selectedItems[itemName] || false
+    Object.keys(cartItems).forEach((itemId) => {
+      if (cartItems[itemId] > 0) {
+        initialSelected[itemId] = selectedItems[itemId] || false
       }
     })
     setSelectedItems(initialSelected)
@@ -209,9 +208,7 @@ const Cart = () => {
                 />
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    {/* Voucher section could go here */}
-                  </div>
+                  <div className="lg:col-span-2">{/* Voucher section could go here */}</div>
                   <div className="lg:col-span-1">
                     <CartSummary
                       selectedItemsCount={getSelectedItemsCount()}

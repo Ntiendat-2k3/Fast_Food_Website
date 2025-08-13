@@ -6,7 +6,6 @@ const foodSchema = new mongoose.Schema({
   description: { type: String, required: true },
   price: { type: Number, required: true },
   image: { type: String, required: true },
-  // category: { type: String, required: true },
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "category",
@@ -17,8 +16,19 @@ const foodSchema = new mongoose.Schema({
   isActive: { type: Boolean, default: true },
 })
 
+// Virtual field for category name (for backward compatibility)
+foodSchema.virtual("category", {
+  ref: "category",
+  localField: "categoryId",
+  foreignField: "_id",
+  justOne: true,
+})
+
+// Ensure virtual fields are serialized
+foodSchema.set("toJSON", { virtuals: true })
+foodSchema.set("toObject", { virtuals: true })
+
 foodSchema.index({ categoryId: 1 })
-foodSchema.index({ category: 1 })
 foodSchema.index({ name: "text", description: "text" })
 foodSchema.index({ isActive: 1 })
 

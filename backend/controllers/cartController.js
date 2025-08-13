@@ -26,11 +26,11 @@ const getCart = async (req, res) => {
       await cart.save()
     }
 
-    // Convert cart items to the format expected by frontend (name-based)
+    // Convert cart items to the format expected by frontend (id-based)
     const cartData = {}
     for (const item of cart.items) {
-      if (item.foodId && item.foodId.name) {
-        cartData[item.foodId.name] = item.quantity
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
       }
     }
 
@@ -45,8 +45,8 @@ const getCart = async (req, res) => {
 // Add item to cart
 const addToCart = async (req, res) => {
   try {
-    const { userId, itemName, quantity = 1 } = req.body
-    console.log("Adding to cart:", { userId, itemName, quantity })
+    const { userId, itemId, quantity = 1 } = req.body
+    console.log("Adding to cart:", { userId, itemId, quantity })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -54,8 +54,12 @@ const addToCart = async (req, res) => {
       return res.json({ success: false, message: "User not found" })
     }
 
-    // Find the food item by name
-    const foodItem = await foodModel.findOne({ name: itemName })
+    // Find the food item by ID
+    if (!itemId) {
+      return res.json({ success: false, message: "Thiếu ID sản phẩm" })
+    }
+
+    const foodItem = await foodModel.findById(itemId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -75,31 +79,28 @@ const addToCart = async (req, res) => {
 
     if (existingItemIndex > -1) {
       // Update quantity
-      cart.items[existingItemIndex].quantity += quantity
+      cart.items[existingItemIndex].quantity += Number.parseInt(quantity)
       cart.items[existingItemIndex].price = foodItem.price // Update price in case it changed
     } else {
       // Add new item
       cart.items.push({
         foodId: foodItem._id,
-        quantity,
+        quantity: Number.parseInt(quantity),
         price: foodItem.price,
       })
     }
 
-    // Recalculate total amount
-    cart.totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
-    cart.updatedAt = new Date()
-
+    // Save cart (pre-save middleware will calculate totalAmount)
     await cart.save()
 
     // Populate food data for response
     await cart.populate("items.foodId")
 
-    // Convert to frontend format
+    // Convert to frontend format (id-based)
     const cartData = {}
     for (const item of cart.items) {
-      if (item.foodId && item.foodId.name) {
-        cartData[item.foodId.name] = item.quantity
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
       }
     }
 
@@ -107,15 +108,15 @@ const addToCart = async (req, res) => {
     res.json({ success: true, message: "Đã thêm vào giỏ hàng", cartData })
   } catch (error) {
     console.error("Error adding to cart:", error)
-    res.json({ success: false, message: "Lỗi khi thêm vào giỏ hàng" })
+    res.json({ success: false, message: "Lỗi khi thêm vào giỏ hàng", error: error.message })
   }
 }
 
 // Remove one item from cart
 const removeFromCart = async (req, res) => {
   try {
-    const { userId, itemName } = req.body
-    console.log("Removing from cart:", { userId, itemName })
+    const { userId, itemId } = req.body
+    console.log("Removing from cart:", { userId, itemId })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -123,8 +124,12 @@ const removeFromCart = async (req, res) => {
       return res.json({ success: false, message: "User not found" })
     }
 
-    // Find the food item by name
-    const foodItem = await foodModel.findOne({ name: itemName })
+    // Find the food item by ID
+    if (!itemId) {
+      return res.json({ success: false, message: "Thiếu ID sản phẩm" })
+    }
+
+    const foodItem = await foodModel.findById(itemId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -147,10 +152,7 @@ const removeFromCart = async (req, res) => {
         cart.items.splice(itemIndex, 1)
       }
 
-      // Recalculate total amount
-      cart.totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
-      cart.updatedAt = new Date()
-
+      // Save cart
       await cart.save()
     }
 
@@ -158,8 +160,8 @@ const removeFromCart = async (req, res) => {
     await cart.populate("items.foodId")
     const cartData = {}
     for (const item of cart.items) {
-      if (item.foodId && item.foodId.name) {
-        cartData[item.foodId.name] = item.quantity
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
       }
     }
 
@@ -174,8 +176,8 @@ const removeFromCart = async (req, res) => {
 // Remove all quantity of a specific item
 const removeFromCartAll = async (req, res) => {
   try {
-    const { userId, itemName } = req.body
-    console.log("Removing all from cart:", { userId, itemName })
+    const { userId, itemId } = req.body
+    console.log("Removing all from cart:", { userId, itemId })
 
     // Verify user exists
     const userData = await userModel.findById(userId)
@@ -183,8 +185,12 @@ const removeFromCartAll = async (req, res) => {
       return res.json({ success: false, message: "User not found" })
     }
 
-    // Find the food item by name
-    const foodItem = await foodModel.findOne({ name: itemName })
+    // Find the food item by ID
+    if (!itemId) {
+      return res.json({ success: false, message: "Thiếu ID sản phẩm" })
+    }
+
+    const foodItem = await foodModel.findById(itemId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -198,18 +204,15 @@ const removeFromCartAll = async (req, res) => {
     // Remove item completely
     cart.items = cart.items.filter((item) => item.foodId.toString() !== foodItem._id.toString())
 
-    // Recalculate total amount
-    cart.totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
-    cart.updatedAt = new Date()
-
+    // Save cart
     await cart.save()
 
     // Populate and convert to frontend format
     await cart.populate("items.foodId")
     const cartData = {}
     for (const item of cart.items) {
-      if (item.foodId && item.foodId.name) {
-        cartData[item.foodId.name] = item.quantity
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
       }
     }
 
@@ -224,8 +227,8 @@ const removeFromCartAll = async (req, res) => {
 // Update item quantity directly
 const updateCartQuantity = async (req, res) => {
   try {
-    const { userId, itemName, quantity } = req.body
-    console.log("Updating cart quantity:", { userId, itemName, quantity })
+    const { userId, itemId, quantity } = req.body
+    console.log("Updating cart quantity:", { userId, itemId, quantity })
 
     if (quantity < 0) {
       return res.json({ success: false, message: "Số lượng không hợp lệ" })
@@ -237,8 +240,12 @@ const updateCartQuantity = async (req, res) => {
       return res.json({ success: false, message: "User not found" })
     }
 
-    // Find the food item by name
-    const foodItem = await foodModel.findOne({ name: itemName })
+    // Find the food item by ID
+    if (!itemId) {
+      return res.json({ success: false, message: "Thiếu ID sản phẩm" })
+    }
+
+    const foodItem = await foodModel.findById(itemId)
     if (!foodItem) {
       return res.json({ success: false, message: "Sản phẩm không tồn tại" })
     }
@@ -268,30 +275,27 @@ const updateCartQuantity = async (req, res) => {
     } else {
       if (itemIndex > -1) {
         // Update existing item
-        cart.items[itemIndex].quantity = quantity
+        cart.items[itemIndex].quantity = Number.parseInt(quantity)
         cart.items[itemIndex].price = foodItem.price
       } else {
         // Add new item
         cart.items.push({
           foodId: foodItem._id,
-          quantity,
+          quantity: Number.parseInt(quantity),
           price: foodItem.price,
         })
       }
     }
 
-    // Recalculate total amount
-    cart.totalAmount = cart.items.reduce((total, item) => total + item.price * item.quantity, 0)
-    cart.updatedAt = new Date()
-
+    // Save cart
     await cart.save()
 
     // Populate and convert to frontend format
     await cart.populate("items.foodId")
     const cartData = {}
     for (const item of cart.items) {
-      if (item.foodId && item.foodId.name) {
-        cartData[item.foodId.name] = item.quantity
+      if (item.foodId && item.foodId._id) {
+        cartData[item.foodId._id.toString()] = item.quantity
       }
     }
 
