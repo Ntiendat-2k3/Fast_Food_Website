@@ -88,16 +88,20 @@ const Sidebar = ({ onLogout, userRole }) => {
         { title: "Đánh giá sản phẩm", path: "/comments", icon: MessageCircle },
       ],
     },
-    {
-      id: "Voucher&Notif",
-      title: "Voucher & Thông báo",
-      icon: Gift,
-      color: "from-cyan-500 to-cyan-600",
-      submenu: [
-        { title: "Voucher", path: "/vouchers", icon: Gift },
-        { title: "Thông báo", path: "/notifications", icon: Bell },
-      ],
-    },
+    ...(userRole === "admin"
+      ? [
+        {
+          id: "Voucher&Notif",
+          title: "Voucher & Thông báo",
+          icon: Gift,
+          color: "from-cyan-500 to-cyan-600",
+          submenu: [
+            { title: "Voucher", path: "/vouchers", icon: Gift },
+            { title: "Thông báo", path: "/notifications", icon: Bell },
+          ],
+        },
+        ]
+      : []),
     ...(userRole === "admin"
       ? [
           {
