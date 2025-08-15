@@ -21,9 +21,9 @@ const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => 
   const handleAddToCartClick = (e) => {
     e.stopPropagation()
     if (onAddToCart) {
-      onAddToCart(drinkData.name)
+      onAddToCart(drinkData._id)
     } else if (addToCart) {
-      addToCart(drinkData.name, 1)
+      addToCart(drinkData._id, 1)
       toast.success(`Đã thêm ${drinkData.name} vào giỏ hàng!`, { autoClose: 2000 })
     } else {
       console.error("❌ No addToCart function provided")
@@ -55,9 +55,7 @@ const SuggestedDrinkRowItem = ({ item, drink, url, addToCart, onAddToCart }) => 
         }}
       />
       <div className="flex-grow">
-        <h4 className="text-sm font-medium text-white line-clamp-1">
-          {drinkData.name || "Tên không xác định"}
-        </h4>
+        <h4 className="text-sm font-medium text-white line-clamp-1">{drinkData.name || "Tên không xác định"}</h4>
         <p className="text-primary font-bold text-xs mt-0.5">
           {drinkData.price ? `${drinkData.price.toLocaleString("vi-VN")} đ` : "Giá chưa cập nhật"}
         </p>

@@ -18,7 +18,7 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
     e.stopPropagation()
     setIsAdding(true)
     try {
-      addToCart(item.name)
+      addToCart(item._id, 1)
       toast.success(`Đã thêm ${item.name} vào giỏ hàng`)
     } catch (error) {
       toast.error("Có lỗi xảy ra khi thêm vào giỏ hàng")
@@ -38,7 +38,7 @@ const SuggestedSaladRowItem = ({ item, url, isCompact = false }) => {
 
   // const purchaseCount = item.purchaseCount || Math.floor(Math.random() * 100) + 15
 
-  const isInCart = Boolean(cartItems[item.name])
+  const isInCart = Boolean(cartItems[item._id])
 
   return (
     <motion.div

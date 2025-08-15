@@ -21,7 +21,7 @@ const SuggestedFoodRowItem = ({ item, food }) => {
 
   const handleAddToCartClick = (e) => {
     e.stopPropagation()
-    addToCart(foodData.name)
+    addToCart(foodData._id, 1)
     toast.success(`Đã thêm ${foodData.name} vào giỏ hàng!`, { autoClose: 2000 })
   }
 
@@ -64,9 +64,7 @@ const SuggestedFoodRowItem = ({ item, food }) => {
           {foodData.name || "Tên không xác định"}
         </h4>
         <p className="text-orange-400 font-semibold text-sm mt-0.5">{formatPrice(foodData.price)}</p>
-        {foodData.purchaseCount && (
-          <p className="text-slate-400 text-xs mt-0.5">Đã bán {foodData.purchaseCount} lần</p>
-        )}
+        {foodData.purchaseCount && <p className="text-slate-400 text-xs mt-0.5">Đã bán {foodData.purchaseCount} lần</p>}
       </div>
 
       {/* Add to Cart Button */}
@@ -76,7 +74,7 @@ const SuggestedFoodRowItem = ({ item, food }) => {
           className="bg-yellow-500 hover:bg-yellow-400 text-slate-900 w-8 h-8 rounded-full transition-colors duration-200 flex items-center justify-center shadow-lg"
           title="Thêm vào giỏ hàng"
         >
-          {cartItems[foodData.name] ? <Check size={14} /> : <ShoppingCart size={14} />}
+          {cartItems[foodData._id] ? <Check size={14} /> : <ShoppingCart size={14} />}
         </button>
       </div>
     </motion.div>
