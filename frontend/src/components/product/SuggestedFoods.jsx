@@ -6,18 +6,19 @@ import axios from "axios"
 import SuggestedFoodRowItem from "./SuggestedFoodRowItem"
 import LoadingSpinner from "../common/LoadingSpinner"
 
-const SuggestedFoods = ({ drinkName }) => {
+const SuggestedFoods = ({ drinkName, drinkId }) => {
   const { url } = useContext(StoreContext)
   const [suggestedFoods, setSuggestedFoods] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showAll, setShowAll] = useState(false)
+  const [suggestionType, setSuggestionType] = useState("loading")
 
   const INITIAL_DISPLAY_COUNT = 3
 
   useEffect(() => {
     const fetchSuggestedFoods = async () => {
-      if (!drinkName) {
+      if (!drinkName && !drinkId) {
         setLoading(false)
         return
       }
@@ -25,37 +26,69 @@ const SuggestedFoods = ({ drinkName }) => {
       try {
         setLoading(true)
         setError(null)
+        setSuggestionType("loading")
 
-        console.log(`🔍 Fetching suggested foods for drink: ${drinkName}`)
+        let response
+        let suggestionMethod = "random"
 
-        const response = await axios.get(`${url}/api/food/suggested-foods/${encodeURIComponent(drinkName)}`)
+        if (drinkId) {
+          console.log(`🔍 Fetching drink-specific suggested foods for drink ID: ${drinkId}`)
+          try {
+            response = await axios.get(`${url}/api/food/suggested-foods-by-drink/${drinkId}`)
+            if (response.data.success && response.data.data && response.data.data.length > 0) {
+              suggestionMethod = response.data.data[0]?.suggestionType || "drink-specific"
+              console.log(`✅ Drink-specific suggestions found: ${response.data.data.length} foods`)
+            } else {
+              console.log(`⚠️ No drink-specific suggestions, trying name-based fallback`)
+              response = null
+            }
+          } catch (err) {
+            console.log(`❌ Drink-specific API failed, trying name-based fallback:`, err.message)
+            response = null
+          }
+        }
 
-        console.log("📦 Suggested foods response:", response.data)
+        if (!response && drinkName) {
+          console.log(`🔍 Fetching name-based suggested foods for drink: ${drinkName}`)
+          try {
+            response = await axios.get(`${url}/api/food/suggested-foods/${encodeURIComponent(drinkName)}`)
+            if (response.data.success && response.data.data && response.data.data.length > 0) {
+              suggestionMethod = "name-based"
+              console.log(`✅ Name-based suggestions found: ${response.data.data.length} foods`)
+            }
+          } catch (err) {
+            console.log(`❌ Name-based API failed:`, err.message)
+            response = null
+          }
+        }
 
-        if (response.data.success) {
+        if (response && response.data.success) {
           setSuggestedFoods(response.data.data || [])
+          setSuggestionType(suggestionMethod)
           console.log(`✅ Successfully loaded ${response.data.data?.length || 0} suggested foods`)
         } else {
-          console.warn("⚠️ No suggested foods found:", response.data.message)
+          console.warn("⚠️ No suggested foods found")
           setSuggestedFoods([])
-          setError(response.data.message)
+          setSuggestionType("none")
+          setError("Không tìm thấy món ăn phù hợp")
         }
       } catch (error) {
         console.error("❌ Error fetching suggested foods:", error)
         setError("Không thể tải gợi ý món ăn")
         setSuggestedFoods([])
+        setSuggestionType("error")
       } finally {
         setLoading(false)
       }
     }
 
     fetchSuggestedFoods()
-  }, [drinkName, url])
+  }, [drinkName, drinkId, url])
 
-  // Reset showAll when drinkName changes
+  // Reset showAll when drinkName or drinkId changes
   useEffect(() => {
     setShowAll(false)
-  }, [drinkName])
+  }, [drinkName, drinkId])
 
   const handleToggleShowAll = () => {
     setShowAll(!showAll)
@@ -64,9 +97,35 @@ const SuggestedFoods = ({ drinkName }) => {
   const displayedFoods = showAll ? suggestedFoods : suggestedFoods.slice(0, INITIAL_DISPLAY_COUNT)
   const hasMoreItems = suggestedFoods.length > INITIAL_DISPLAY_COUNT
 
-  // Don't render if no drink name
-  if (!drinkName) {
+  // Don't render if no drink name or ID
+  if (!drinkName && !drinkId) {
     return null
+  }
+
+  const getSuggestionTitle = () => {
+    switch (suggestionType) {
+      case "drink-specific":
+        return `🍔 Món ăn được gợi ý cho "${drinkName || "đồ uống này"}"`
+      case "name-based":
+        return `🍔 Món ăn phù hợp với ${drinkName}`
+      case "category-based":
+        return `🍔 Món ăn được gợi ý theo danh mục`
+      default:
+        return `🍔 Món ăn được gợi ý`
+    }
+  }
+
+  const getSuggestionSubtitle = () => {
+    switch (suggestionType) {
+      case "drink-specific":
+        return "Dựa trên lịch sử mua hàng cụ thể"
+      case "name-based":
+        return "Dựa trên tên đồ uống"
+      case "category-based":
+        return "Dựa trên danh mục đồ uống"
+      default:
+        return `Phù hợp với ${drinkName || drinkId}`
+    }
   }
 
   // Loading state
@@ -77,7 +136,7 @@ const SuggestedFoods = ({ drinkName }) => {
           <h3 className="text-lg font-semibold text-white flex items-center">
             🍔 <span className="ml-2">Món ăn được gợi ý</span>
           </h3>
-          <span className="text-sm text-slate-400">Phù hợp với {drinkName}</span>
+          <span className="text-sm text-slate-400">Đang tải...</span>
         </div>
         <div className="text-center py-8">
           <LoadingSpinner />
@@ -95,7 +154,7 @@ const SuggestedFoods = ({ drinkName }) => {
           <h3 className="text-lg font-semibold text-white flex items-center">
             🍔 <span className="ml-2">Món ăn được gợi ý</span>
           </h3>
-          <span className="text-sm text-slate-400">Phù hợp với {drinkName}</span>
+          <span className="text-sm text-slate-400">{getSuggestionSubtitle()}</span>
         </div>
         <div className="text-center py-6">
           <div className="text-slate-500 mb-3">
@@ -104,7 +163,7 @@ const SuggestedFoods = ({ drinkName }) => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={1.5}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012 2v2M7 7h10"
               />
             </svg>
           </div>
@@ -120,9 +179,9 @@ const SuggestedFoods = ({ drinkName }) => {
     <div className="mt-8 bg-slate-900/50 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-white flex items-center">
-          🍔 <span className="ml-2">Món ăn được gợi ý</span>
+          🍔 <span className="ml-2">{getSuggestionTitle()}</span>
         </h3>
-        <span className="text-sm text-slate-400">Phù hợp với {drinkName}</span>
+        <span className="text-sm text-slate-400">{getSuggestionSubtitle()}</span>
       </div>
 
       <div className="space-y-3">
@@ -153,7 +212,12 @@ const SuggestedFoods = ({ drinkName }) => {
 
       {/* Info message */}
       <div className="mt-4 pt-4 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500 text-center">💡 Gợi ý dựa trên sở thích của khách hàng khác</p>
+        <p className="text-xs text-slate-500 text-center">
+          💡{" "}
+          {suggestionType === "drink-specific"
+            ? "Gợi ý dựa trên lịch sử mua hàng thực tế"
+            : "Gợi ý dựa trên sở thích của khách hàng khác"}
+        </p>
       </div>
     </div>
   )

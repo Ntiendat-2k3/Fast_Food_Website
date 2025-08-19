@@ -1,7 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Star, Check, Minus, Plus, CreditCard, ShoppingCart, Truck, ShieldCheck, RefreshCw, AlertTriangle, X, Heart } from 'lucide-react'
+import {
+  Check,
+  Minus,
+  Plus,
+  CreditCard,
+  ShoppingCart,
+  Truck,
+  ShieldCheck,
+  RefreshCw,
+  AlertTriangle,
+  X,
+  Heart,
+} from "lucide-react"
 import SuggestedDrinks from "./SuggestedDrinks"
 import SuggestedFoods from "./SuggestedFoods"
 import { useState, useEffect, useContext } from "react"
@@ -349,7 +361,7 @@ const ProductInfo = ({
           transition={{ delay: 0.75 }}
           className="mt-6 pt-6 border-t border-slate-700"
         >
-          <SuggestedFoods drinkName={product.name} isCompact={true} />
+          <SuggestedFoods drinkName={product.name} drinkId={product._id} isCompact={true} />
         </motion.div>
       ) : (
         // If it's food, show suggested drinks
@@ -362,7 +374,12 @@ const ProductInfo = ({
             transition={{ delay: 0.75 }}
             className="mt-6 pt-6 border-t border-slate-700"
           >
-            <SuggestedDrinks productCategory={product.category} isCompact={true} />
+            <SuggestedDrinks
+              productCategory={product.category}
+              productId={product._id}
+              productName={product.name}
+              isCompact={true}
+            />
           </motion.div>
         )
       )}

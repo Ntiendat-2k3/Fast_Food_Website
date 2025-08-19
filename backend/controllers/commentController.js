@@ -7,16 +7,16 @@ import foodModel from "../models/foodModel.js"
 // Kiểm tra xem user đã mua sản phẩm này chưa
 const checkUserPurchase = async (userId, foodId) => {
   try {
-    console.log("Checking purchase for userId:", userId, "foodId:", foodId)
+    // console.log("Checking purchase for userId:", userId, "foodId:", foodId)
 
     const food = await foodModel.findById(foodId)
     if (!food) {
-      console.log("Food not found")
+      // console.log("Food not found")
       return false
     }
 
     const allOrders = await orderModel.find({ userId: userId })
-    console.log("Total orders found:", allOrders.length)
+    // console.log("Total orders found:", allOrders.length)
 
     if (allOrders.length === 0) {
       return false
@@ -36,13 +36,13 @@ const checkUserPurchase = async (userId, foodId) => {
       // Đơn hàng không bị hủy
       const notCancelled = !["Hủy", "Cancelled", "Canceled", "Đã hủy"].includes(order.status)
 
-      console.log(`Order ${order._id}: status=${order.status}, payment=${order.paymentStatus}, method=${order.paymentMethod}`)
-      console.log(`Checks: delivered=${isDelivered}, validPayment=${isValidPayment}, notCancelled=${notCancelled}`)
+      // console.log(`Order ${order._id}: status=${order.status}, payment=${order.paymentStatus}, method=${order.paymentMethod}`)
+      // console.log(`Checks: delivered=${isDelivered}, validPayment=${isValidPayment}, notCancelled=${notCancelled}`)
 
       return isDelivered && isValidPayment && notCancelled
     })
 
-    console.log(`Valid orders found: ${validOrders.length}`)
+    // console.log(`Valid orders found: ${validOrders.length}`)
 
     if (validOrders.length === 0) {
       return false
@@ -55,18 +55,18 @@ const checkUserPurchase = async (userId, foodId) => {
       for (const item of order.items) {
         // Kiểm tra theo foodId
         if (item.foodId && item.foodId.toString() === foodId.toString()) {
-          console.log(`Found product by foodId in order ${order._id}`)
+          // console.log(`Found product by foodId in order ${order._id}`)
           return true
         }
         // Kiểm tra theo tên sản phẩm (fallback)
         if (item.name && food.name && item.name.toLowerCase().trim() === food.name.toLowerCase().trim()) {
-          console.log(`Found product by name in order ${order._id}`)
+          // console.log(`Found product by name in order ${order._id}`)
           return true
         }
       }
     }
 
-    console.log("Product not found in any valid order")
+    // console.log("Product not found in any valid order")
     return false
   } catch (error) {
     console.error("Error checking user purchase:", error)
@@ -79,7 +79,7 @@ const addComment = async (req, res) => {
   try {
     const { userId, foodId, rating, comment } = req.body
 
-    console.log("Adding comment:", { userId, foodId, rating, comment })
+    // console.log("Adding comment:", { userId, foodId, rating, comment })
 
     if (!userId || !foodId || !rating || !comment) {
       return res.json({
@@ -180,7 +180,7 @@ const getCommentsByFood = async (req, res) => {
   try {
     const { foodId } = req.params
 
-    console.log("Getting comments for foodId:", foodId)
+    // console.log("Getting comments for foodId:", foodId)
 
     if (!mongoose.Types.ObjectId.isValid(foodId)) {
       return res.json({ success: false, message: "ID sản phẩm không hợp lệ" })
@@ -188,7 +188,7 @@ const getCommentsByFood = async (req, res) => {
 
     const comments = await commentModel.find({ foodId }).populate("userId", "name email").sort({ createdAt: -1 })
 
-    console.log("Found comments:", comments.length)
+    // console.log("Found comments:", comments.length)
 
     const formattedComments = comments.map((comment) => ({
       _id: comment._id,
@@ -259,7 +259,7 @@ const checkCanReview = async (req, res) => {
   try {
     const { userId, foodId } = req.params
 
-    console.log("Checking review eligibility for userId:", userId, "foodId:", foodId)
+    // console.log("Checking review eligibility for userId:", userId, "foodId:", foodId)
 
     if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(foodId)) {
       return res.json({ success: false, message: "ID không hợp lệ" })
@@ -294,7 +294,7 @@ const checkCanReview = async (req, res) => {
         : null,
     }
 
-    console.log("Review eligibility result:", result)
+    // console.log("Review eligibility result:", result)
 
     res.json({
       success: true,
@@ -372,7 +372,7 @@ const replyComment = async (req, res) => {
   try {
     const { commentId, adminReply, adminName } = req.body
 
-    console.log("Admin replying to comment:", { commentId, adminReply, adminName })
+    // console.log("Admin replying to comment:", { commentId, adminReply, adminName })
 
     if (!commentId || !adminReply || !adminName) {
       return res.json({
@@ -504,7 +504,7 @@ const updateComment = async (req, res) => {
   try {
     const { commentId, userId, rating, comment } = req.body
 
-    console.log("User updating comment:", { commentId, userId, rating, comment })
+    // console.log("User updating comment:", { commentId, userId, rating, comment })
 
     if (!commentId || !userId || !rating || !comment) {
       return res.json({

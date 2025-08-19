@@ -10,6 +10,8 @@ import {
   removeMultipleFood,
   getSuggestedDrinks,
   getSuggestedFoods,
+  getSuggestedDrinksByProduct, // Import new function
+  getSuggestedFoodsByDrink, // Import new function
   debugSuggestedDrinks,
   debugSuggestedFoods,
   getFoodSalesCount,
@@ -40,6 +42,10 @@ foodRouter.get("/item/:id", getFoodById)
 foodRouter.get("/sales/:foodId", getFoodSalesCount)
 
 // Suggestion routes
+foodRouter.get("/suggested-drinks-by-product/:productId", getSuggestedDrinksByProduct) // Add new product-based suggestion routes
+foodRouter.get("/suggested-foods-by-drink/:drinkId", getSuggestedFoodsByDrink) // Add new product-based suggestion routes
+
+// Existing suggestion routes (keep for backward compatibility)
 foodRouter.get("/suggested-drinks/:category", getSuggestedDrinks)
 foodRouter.get("/suggested-foods/:drinkName", getSuggestedFoods)
 
