@@ -32,32 +32,25 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
         let suggestionMethod = "random"
 
         if (drinkId) {
-          console.log(`🔍 Fetching drink-specific suggested foods for drink ID: ${drinkId}`)
           try {
             response = await axios.get(`${url}/api/food/suggested-foods-by-drink/${drinkId}`)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = response.data.data[0]?.suggestionType || "drink-specific"
-              console.log(`✅ Drink-specific suggestions found: ${response.data.data.length} foods`)
             } else {
-              console.log(`⚠️ No drink-specific suggestions, trying name-based fallback`)
               response = null
             }
           } catch (err) {
-            console.log(`❌ Drink-specific API failed, trying name-based fallback:`, err.message)
             response = null
           }
         }
 
         if (!response && drinkName) {
-          console.log(`🔍 Fetching name-based suggested foods for drink: ${drinkName}`)
           try {
             response = await axios.get(`${url}/api/food/suggested-foods/${encodeURIComponent(drinkName)}`)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = "name-based"
-              console.log(`✅ Name-based suggestions found: ${response.data.data.length} foods`)
             }
           } catch (err) {
-            console.log(`❌ Name-based API failed:`, err.message)
             response = null
           }
         }
@@ -65,9 +58,7 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
         if (response && response.data.success) {
           setSuggestedFoods(response.data.data || [])
           setSuggestionType(suggestionMethod)
-          console.log(`✅ Successfully loaded ${response.data.data?.length || 0} suggested foods`)
         } else {
-          console.warn("⚠️ No suggested foods found")
           setSuggestedFoods([])
           setSuggestionType("none")
           setError("Không tìm thấy món ăn phù hợp")

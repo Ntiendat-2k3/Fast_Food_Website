@@ -11,11 +11,11 @@ const STORE_LOCATION = {
 const VIETNAM_ADDRESSES_DB = [
   // Hà Nội - Trường đại học
   {
-    name: "Đại học Đại Nam",
-    address: "Đại học Đại Nam, Hà Nội",
-    lat: 20.9758758,
-    lng: 105.8130185,
-    confidence: 0.9,
+    name: "Đại học Thủy lợi",
+    address: "Đại học Thủy lợi, Phố Tây Sơn, Đống Đa, Hà Nội",
+    lat: 21.0067,
+    lng: 105.8431,
+    confidence: 0.95,
     type: "university",
   },
   {
@@ -45,16 +45,24 @@ const VIETNAM_ADDRESSES_DB = [
   {
     name: "Đại học Kinh tế Quốc dân",
     address: "Đại học Kinh tế Quốc dân, Giải Phóng, Hai Bà Trưng, Hà Nội",
-    lat: 20.9967,
-    lng: 105.8438,
+    lat: 20.9985,
+    lng: 105.8455,
     confidence: 0.9,
     type: "university",
   },
   {
     name: "Đại học Ngoại thương",
     address: "Đại học Ngoại thương, Chùa Láng, Đống Đa, Hà Nội",
-    lat: 21.0136,
-    lng: 105.827,
+    lat: 21.0125,
+    lng: 105.8275,
+    confidence: 0.9,
+    type: "university",
+  },
+  {
+    name: "Đại học Công nghiệp Hà Nội",
+    address: "Đại học Công nghiệp Hà Nội, Minh Khai, Hai Bà Trưng, Hà Nội",
+    lat: 20.9912,
+    lng: 105.8567,
     confidence: 0.9,
     type: "university",
   },
@@ -79,8 +87,8 @@ const VIETNAM_ADDRESSES_DB = [
   {
     name: "Bệnh viện Bạch Mai",
     address: "Bệnh viện Bạch Mai, Giải Phóng, Hai Bà Trưng, Hà Nội",
-    lat: 20.9967,
-    lng: 105.8438,
+    lat: 20.9925,
+    lng: 105.842,
     confidence: 0.9,
     type: "hospital",
   },
@@ -97,16 +105,16 @@ const VIETNAM_ADDRESSES_DB = [
   {
     name: "Hoàn Kiếm",
     address: "Quận Hoàn Kiếm, Hà Nội",
-    lat: 21.0285,
-    lng: 105.8542,
+    lat: 21.0245,
+    lng: 105.8412,
     confidence: 0.8,
     type: "district",
   },
   {
     name: "Ba Đình",
     address: "Quận Ba Đình, Hà Nội",
-    lat: 21.0333,
-    lng: 105.8347,
+    lat: 21.0355,
+    lng: 105.82,
     confidence: 0.8,
     type: "district",
   },
@@ -121,32 +129,32 @@ const VIETNAM_ADDRESSES_DB = [
   {
     name: "Đống Đa",
     address: "Quận Đống Đa, Hà Nội",
-    lat: 21.0136,
-    lng: 105.827,
+    lat: 21.02,
+    lng: 105.83,
     confidence: 0.8,
     type: "district",
   },
   {
     name: "Hai Bà Trưng",
     address: "Quận Hai Bà Trưng, Hà Nội",
-    lat: 20.9967,
-    lng: 105.8438,
+    lat: 21.005,
+    lng: 105.85,
     confidence: 0.8,
     type: "district",
   },
   {
     name: "Hoàng Mai",
     address: "Quận Hoàng Mai, Hà Nội",
-    lat: 20.9758,
-    lng: 105.813,
+    lat: 20.965,
+    lng: 105.82,
     confidence: 0.8,
     type: "district",
   },
   {
     name: "Thanh Xuân",
     address: "Quận Thanh Xuân, Hà Nội",
-    lat: 20.9883,
-    lng: 105.8053,
+    lat: 20.995,
+    lng: 105.81,
     confidence: 0.8,
     type: "district",
   },
@@ -579,12 +587,27 @@ const calculateRoute = async (origin, destination) => {
   } catch (error) {
     console.error("OSRM routing error:", error.message)
 
-    // Fallback: Haversine distance
-    const distance = calculateHaversineDistance(origin, destination)
-    const roadDistance = distance * 1.4
+    const haversineDistance = calculateHaversineDistance(origin, destination)
+    console.log(`[DEBUG] Haversine distance: ${haversineDistance.toFixed(2)}km`)
+
+    // Sử dụng hệ số nhân thông minh dựa trên khoảng cách
+    let roadFactor = 1.2 // Giảm từ 1.4 xuống 1.2 cho chính xác hơn
+
+    // Điều chỉnh hệ số theo khoảng cách
+    if (haversineDistance < 3) {
+      roadFactor = 1.15 // Khoảng cách ngắn, đường đi ít quanh co
+    } else if (haversineDistance < 7) {
+      roadFactor = 1.25 // Khoảng cách trung bình
+    } else {
+      roadFactor = 1.3 // Khoảng cách xa, có thể phải đi vòng
+    }
+
+    const roadDistance = haversineDistance * roadFactor
     const estimatedDuration = Math.ceil((roadDistance / 25) * 60)
 
-    console.log(`Using Haversine fallback: ${roadDistance.toFixed(1)}km, ${estimatedDuration} minutes`)
+    console.log(
+      `[DEBUG] Using Haversine fallback: ${haversineDistance.toFixed(2)}km * ${roadFactor} = ${roadDistance.toFixed(1)}km, ${estimatedDuration} minutes`,
+    )
 
     return {
       distance: Number.parseFloat(roadDistance.toFixed(1)),
@@ -611,10 +634,26 @@ const calculateHaversineDistance = (pos1, pos2) => {
 
 // Tính phí ship
 const calculateShippingFee = (distance) => {
-  if (distance <= 2) return 0
-  if (distance <= 5) return 14000
-  if (distance <= 7) return 20000
-  if (distance <= 10) return 25000
+  console.log(`[DEBUG] Calculating shipping fee for distance: ${distance}km`)
+
+  if (distance <= 2) {
+    console.log(`[DEBUG] Distance ${distance}km <= 2km: FREE SHIPPING`)
+    return 0
+  }
+  if (distance <= 5) {
+    console.log(`[DEBUG] Distance ${distance}km <= 5km: 14,000đ`)
+    return 14000
+  }
+  if (distance <= 7) {
+    console.log(`[DEBUG] Distance ${distance}km <= 7km: 20,000đ`)
+    return 20000
+  }
+  if (distance <= 10) {
+    console.log(`[DEBUG] Distance ${distance}km <= 10km: 25,000đ`)
+    return 25000
+  }
+
+  console.log(`[DEBUG] Distance ${distance}km > 10km: NO DELIVERY`)
   return null
 }
 
@@ -715,7 +754,7 @@ const calculateDistance = async (req, res) => {
       })
     }
 
-    console.log(`Calculating shipping for: "${destination}"`)
+    console.log(`[DEBUG] ===== CALCULATING SHIPPING FOR: "${destination}" =====`)
 
     const validationErrors = validateVietnameseAddress(destination)
     if (validationErrors.length > 0) {
@@ -728,9 +767,16 @@ const calculateDistance = async (req, res) => {
 
     let destinationCoords
     try {
+      console.log(`[DEBUG] Starting geocoding for: "${destination}"`)
       destinationCoords = await geocodeAddress(destination, false)
+      console.log(`[DEBUG] Geocoding result:`, {
+        lat: destinationCoords.lat,
+        lng: destinationCoords.lng,
+        source: destinationCoords.source,
+        confidence: destinationCoords.confidence,
+      })
     } catch (geocodeError) {
-      console.error("Geocoding failed:", geocodeError.message)
+      console.error("[DEBUG] Geocoding failed:", geocodeError.message)
       return res.status(400).json({
         success: false,
         message: "Không thể xác định tọa độ của địa chỉ này. Vui lòng nhập địa chỉ chi tiết hơn.",
@@ -745,13 +791,15 @@ const calculateDistance = async (req, res) => {
       })
     }
 
-    console.log(`Destination: ${destinationCoords.lat}, ${destinationCoords.lng}`)
+    console.log(`[DEBUG] Store location: ${STORE_LOCATION.lat}, ${STORE_LOCATION.lng}`)
+    console.log(`[DEBUG] Destination: ${destinationCoords.lat}, ${destinationCoords.lng}`)
 
     let routeInfo
     try {
       routeInfo = await calculateRoute(STORE_LOCATION, destinationCoords)
+      console.log(`[DEBUG] Route calculation result:`, routeInfo)
     } catch (routeError) {
-      console.error("Route calculation failed:", routeError.message)
+      console.error("[DEBUG] Route calculation failed:", routeError.message)
       return res.status(500).json({
         success: false,
         message: "Không thể tính toán tuyến đường. Vui lòng thử lại.",
@@ -760,6 +808,7 @@ const calculateDistance = async (req, res) => {
     }
 
     const shippingFee = calculateShippingFee(routeInfo.distance)
+    console.log(`[DEBUG] Final shipping fee: ${shippingFee}đ for ${routeInfo.distance}km`)
 
     if (shippingFee === null) {
       return res.status(400).json({
@@ -790,14 +839,15 @@ const calculateDistance = async (req, res) => {
       },
     }
 
-    console.log("Shipping calculation successful:", result)
+    console.log(`[DEBUG] ===== SHIPPING CALCULATION SUCCESSFUL =====`)
+    console.log(`[DEBUG] Result:`, result)
 
     res.json({
       success: true,
       data: result,
     })
   } catch (error) {
-    console.error("Distance calculation error:", error)
+    console.error("[DEBUG] Distance calculation error:", error)
 
     let errorMessage = "Không thể tính phí vận chuyển"
 

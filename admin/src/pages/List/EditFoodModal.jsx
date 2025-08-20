@@ -3,22 +3,43 @@
 import { useState, useEffect } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { X, Upload, Tag, DollarSign, FileText, Save, ImageIcon } from 'lucide-react'
+import { X, Upload, Tag, DollarSign, FileText, Save, ImageIcon } from "lucide-react"
 
 const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+
+  const extractCategoryName = (food) => {
+    // Handle different possible category formats
+    if (typeof food.category === "string") {
+      return food.category
+    }
+    if (food.categoryId && typeof food.categoryId === "object" && food.categoryId.name) {
+      return food.categoryId.name
+    }
+    if (food.category && typeof food.category === "object" && food.category.name) {
+      return food.category.name
+    }
+    return food.category || ""
+  }
+
   const [data, setData] = useState({
     id: food._id,
     name: food.name,
     description: food.description,
     price: food.price,
-    category: food.category,
+    category: extractCategoryName(food),
   })
 
   useEffect(() => {
+    console.log("[v0] Full food object:", food)
+    console.log("[v0] food.category:", food.category)
+    console.log("[v0] food.categoryId:", food.categoryId)
+    console.log("[v0] Extracted category:", extractCategoryName(food))
+
     // Set image preview from existing food image
     setImagePreview(`${url}/images/${food.image}`)
     // Fetch categories
@@ -26,21 +47,59 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   }, [food, url])
 
   const fetchCategories = async () => {
+    setCategoriesLoading(true)
+
     try {
       const response = await axios.get(`${url}/api/category/active`)
       if (response.data.success) {
-        setCategories(response.data.data.map((cat) => cat.name))
+        const categoryNames = response.data.data.map((cat) => cat.name)
+        const currentCategory = extractCategoryName(food)
+
+        console.log("[v0] Available categories:", categoryNames)
+        console.log("[v0] Current food category:", currentCategory)
+
+        let finalCategories = [...categoryNames]
+        if (currentCategory && !categoryNames.includes(currentCategory)) {
+          console.log("[v0] Adding missing category to list:", currentCategory)
+          finalCategories = [currentCategory, ...categoryNames]
+        }
+
+        setCategories(finalCategories)
+
+        setData((prevData) => ({
+          ...prevData,
+          category: currentCategory,
+        }))
+      } else {
+        throw new Error("Failed to fetch categories")
       }
     } catch (error) {
       console.error("Error fetching categories:", error)
-      // Fallback to default categories including "Đồ uống"
-      setCategories(["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart", "Đồ uống"])
+      const defaultCategories = ["Burger", "Burito", "Gà", "Hot dog", "Pasta", "Salad", "Sandwich", "Tart", "Đồ uống"]
+      const currentCategory = extractCategoryName(food)
+
+      let finalCategories = [...defaultCategories]
+      if (currentCategory && !defaultCategories.includes(currentCategory)) {
+        finalCategories = [currentCategory, ...defaultCategories]
+      }
+
+      setCategories(finalCategories)
+
+      setData((prevData) => ({
+        ...prevData,
+        category: currentCategory,
+      }))
+    } finally {
+      setCategoriesLoading(false)
     }
   }
 
   // Handle input changes
   const onChangeHandler = (event) => {
     const { name, value } = event.target
+    if (name === "category") {
+      console.log("[v0] Category changed to:", value)
+    }
     setData((prevData) => ({ ...prevData, [name]: value }))
   }
 
@@ -98,12 +157,12 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
         description: data.description,
         price: data.price,
         category: data.category,
-        hasImage: !!image
+        hasImage: !!image,
       })
 
       const response = await axios.put(`${url}/api/food/update`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       })
 
@@ -262,13 +321,18 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
                       id="productCategory"
                       value={data.category}
                       required
-                      className="pl-12 block w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-dark py-4 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 appearance-none"
+                      disabled={categoriesLoading}
+                      className="pl-12 block w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-dark py-4 px-4 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
+                      {categoriesLoading ? (
+                        <option value={data.category}>Đang tải danh mục...</option>
+                      ) : (
+                        categories.map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))
+                      )}
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                       <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

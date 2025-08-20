@@ -17,8 +17,6 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
   // Use productId first, then productCategory or category as fallback
   const targetCategory = productCategory || category
 
-  console.log("SuggestedDrinks props:", { productCategory, category, productId, productName, isCompact })
-
   useEffect(() => {
     const fetchSuggestedDrinks = async () => {
       setLoading(true)
@@ -30,45 +28,31 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
         let suggestionMethod = "random"
 
         if (productId) {
-          console.log(`🔍 [DEBUG] Fetching product-specific suggested drinks for product ID: ${productId}`)
-          console.log(`🔍 [DEBUG] API URL: ${url}/api/food/suggested-drinks-by-product/${productId}`)
           try {
             response = await axios.get(`${url}/api/food/suggested-drinks-by-product/${productId}`)
-            console.log(`🔍 [DEBUG] API Response:`, response.data)
 
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = response.data.data[0]?.suggestionType || "product-specific"
-              console.log(`✅ [DEBUG] Product-specific suggestions found: ${response.data.data.length} drinks`)
-              console.log(`✅ [DEBUG] Suggestion method: ${suggestionMethod}`)
-              console.log(`✅ [DEBUG] First suggestion:`, response.data.data[0])
             } else {
-              console.log(`⚠️ [DEBUG] No product-specific suggestions, API response:`, response.data)
               response = null
             }
           } catch (err) {
-            console.log(`❌ [DEBUG] Product-specific API failed:`, err.response?.data || err.message)
             response = null
           }
-        } else {
-          console.log(`⚠️ [DEBUG] No productId provided, productId:`, productId)
         }
 
         if (!response && targetCategory) {
-          console.log(`🔍 Fetching category-based suggested drinks for category: ${targetCategory}`)
           try {
             response = await axios.get(`${url}/api/food/suggested-drinks/${encodeURIComponent(targetCategory)}`)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = "category-based"
-              console.log(`✅ Category-based suggestions found: ${response.data.data.length} drinks`)
             }
           } catch (err) {
-            console.log(`❌ Category-based API failed:`, err.message)
             response = null
           }
         }
 
         if (!response || !response.data.success || !response.data.data || response.data.data.length === 0) {
-          console.log(`🔄 No specific suggestions found, loading random drinks`)
           try {
             const fallbackResponse = await axios.get(`${url}/api/food/list`)
             if (fallbackResponse.data.success) {
@@ -81,16 +65,13 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
               }))
               setSuggestedDrinks(randomDrinks)
               setSuggestionType("random")
-              console.log("✅ Loaded random drinks:", randomDrinks.length)
             }
           } catch (finalErr) {
-            console.error("❌ Final fallback failed:", finalErr)
             setError("Không thể tải gợi ý đồ uống")
           }
         } else {
           setSuggestedDrinks(response.data.data)
           setSuggestionType(suggestionMethod)
-          console.log(`✅ Successfully loaded ${suggestionMethod} drinks:`, response.data.data.length)
         }
       } catch (err) {
         console.error("❌ Error fetching suggested drinks:", err)
@@ -114,9 +95,6 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
         <div className="text-red-400 mb-2">⚠️ Lỗi: Không có thông tin sản phẩm</div>
         <div className="text-red-300 text-sm mb-2">
           Component SuggestedDrinks cần prop "productId" hoặc "productCategory"/"category"
-        </div>
-        <div className="text-red-200 text-xs">
-          Props nhận được: {JSON.stringify({ productCategory, category, productId, productName, isCompact })}
         </div>
       </div>
     )

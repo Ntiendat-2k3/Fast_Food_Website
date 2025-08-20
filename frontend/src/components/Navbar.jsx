@@ -4,7 +4,23 @@ import { useState, useContext, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { StoreContext } from "../context/StoreContext"
 import { useTheme } from "../context/ThemeContext"
-import { ShoppingCart, User, LogOut, Package, Menu, X, Sun, Moon, Bell, Heart, History, KeyRound, CheckCheck, Home, UtensilsCrossed } from 'lucide-react'
+import {
+  ShoppingCart,
+  User,
+  LogOut,
+  Package,
+  Menu,
+  X,
+  Sun,
+  Moon,
+  Bell,
+  Heart,
+  History,
+  KeyRound,
+  CheckCheck,
+  Home,
+  UtensilsCrossed,
+} from "lucide-react"
 import axios from "axios"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -19,9 +35,9 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [wishlistCount, setWishlistCount] = useState(0)
   const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0) // Declare unreadCount variable
 
   // Handle scroll effect
   useEffect(() => {
@@ -676,6 +692,20 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                           >
                             <Package size={16} className="mr-3" />
                             Đơn hàng của tôi
+                          </Link>
+                        </motion.div>
+                        <motion.div variants={menuItemVariants} custom={navItems.length + 3}>
+                          <Link
+                            to="/purchase-history"
+                            className={`font-medium transition-all duration-300 py-3 px-4 rounded-lg flex items-center min-h-[48px] ${
+                              location.pathname === "/purchase-history"
+                                ? "text-primary bg-slate-700/50"
+                                : "text-white hover:text-primary hover:bg-slate-700/30"
+                            }`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <History size={16} className="mr-3" />
+                            Lịch sử mua hàng
                           </Link>
                         </motion.div>
                         <motion.div variants={menuItemVariants} custom={navItems.length + 4}>

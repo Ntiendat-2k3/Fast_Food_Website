@@ -31,6 +31,25 @@ const getInventoryList = async (req, res) => {
       {
         $unwind: "$foodId",
       },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "foodId.categoryId",
+          foreignField: "_id",
+          as: "categoryData",
+        },
+      },
+      {
+        $addFields: {
+          "foodId.category": {
+            $cond: {
+              if: { $gt: [{ $size: "$categoryData" }, 0] },
+              then: { $arrayElemAt: ["$categoryData.name", 0] },
+              else: "Không có danh mục",
+            },
+          },
+        },
+      },
     ]
 
     // Add search filter
@@ -131,7 +150,14 @@ const getInventoryByFoodId = async (req, res) => {
       return res.json({ success: false, message: "Food ID is required" })
     }
 
-    const inventory = await inventoryModel.findOne({ foodId }).populate("foodId", "name category price image")
+    const inventory = await inventoryModel.findOne({ foodId }).populate({
+      path: "foodId",
+      select: "name price image categoryId",
+      populate: {
+        path: "categoryId",
+        select: "name",
+      },
+    })
 
     if (!inventory) {
       return res.json({
@@ -142,6 +168,10 @@ const getInventoryByFoodId = async (req, res) => {
           maxStockLevel: 0,
         },
       })
+    }
+
+    if (inventory.foodId && inventory.foodId.categoryId) {
+      inventory.foodId.category = inventory.foodId.categoryId.name
     }
 
     res.json({ success: true, data: inventory })
