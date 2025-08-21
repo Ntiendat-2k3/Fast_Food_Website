@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema(
     message: { type: String, required: true },
     type: {
       type: String,
-      enum: ["order", "system", "promotion", "order_cancelled", "inventory", "user"],
+      enum: ["info", "warning", "success"],
       required: true,
     },
     userId: {
@@ -17,6 +17,16 @@ const notificationSchema = new mongoose.Schema(
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "order",
+      default: null,
+    },
+    createdBy: {
+      type: String,
+      default: "admin",
+      required: true,
+    },
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
       default: null,
     },
     // Chỉ giữ một field cho trạng thái đọc
@@ -37,6 +47,7 @@ notificationSchema.index({ userId: 1, createdAt: -1 })
 notificationSchema.index({ type: 1 })
 notificationSchema.index({ isRead: 1 })
 notificationSchema.index({ orderId: 1 })
+notificationSchema.index({ createdBy: 1 })
 
 const notificationModel = mongoose.models.notification || mongoose.model("notification", notificationSchema)
 

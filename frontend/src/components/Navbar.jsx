@@ -596,7 +596,7 @@ const Navbar = ({ setShowLogin, setShowChangePasswordModal }) => {
                         </Link>
                         <Link
                           to="/purchase-history"
-                          className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors lg:hidden"
+                          className="block px-4 py-3 text-sm text-white hover:bg-slate-700/50 hover:text-primary flex items-center transition-colors"
                           onClick={() => setDropdownOpen(false)}
                         >
                           <History size={16} className="mr-3" />

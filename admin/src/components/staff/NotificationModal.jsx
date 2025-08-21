@@ -3,14 +3,14 @@
 import { useState } from "react"
 import axios from "axios"
 import { toast } from "react-toastify"
-import { X, Send, Bell, Users, User, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react'
+import { X, Send, Bell, Users, User, Info, CheckCircle, AlertTriangle } from "lucide-react"
 
 const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
   const [formData, setFormData] = useState({
     recipient: "all", // "all" or specific staff ID
     title: "",
     message: "",
-    type: "info" // info, warning, success, error
+    type: "info", // info, warning, success
   })
   const [loading, setLoading] = useState(false)
 
@@ -29,21 +29,23 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
     try {
       if (formData.recipient === "all") {
         // Send to all active staff
-        const promises = staff.map(staffMember =>
+        const promises = staff.map((staffMember) =>
           axios.post(`${url}/api/staff/send-notification`, {
             staffId: staffMember._id,
             title: formData.title,
             message: formData.message,
-            type: formData.type
-          })
+            type: formData.type,
+          }),
         )
 
         const results = await Promise.allSettled(promises)
-        const successful = results.filter(result => result.status === 'fulfilled').length
+        const successful = results.filter((result) => result.status === "fulfilled").length
         const failed = results.length - successful
 
         if (successful > 0) {
-          toast.success(`Đã gửi thông báo thành công đến ${successful} nhân viên${failed > 0 ? `, ${failed} thất bại` : ''}`)
+          toast.success(
+            `Đã gửi thông báo thành công đến ${successful} nhân viên${failed > 0 ? `, ${failed} thất bại` : ""}`,
+          )
         } else {
           toast.error("Không thể gửi thông báo đến bất kỳ nhân viên nào")
         }
@@ -53,7 +55,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
           staffId: formData.recipient,
           title: formData.title,
           message: formData.message,
-          type: formData.type
+          type: formData.type,
         })
 
         if (response.data.success) {
@@ -68,7 +70,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
         recipient: "all",
         title: "",
         message: "",
-        type: "info"
+        type: "info",
       })
       onSuccess()
     } catch (error) {
@@ -80,20 +82,19 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
   }
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
   const notificationTypes = [
     { value: "info", label: "Thông tin", icon: Info, color: "text-blue-500", bgColor: "bg-blue-50" },
-    { value: "success", label: "Thành công", icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-50" },
     { value: "warning", label: "Cảnh báo", icon: AlertTriangle, color: "text-yellow-500", bgColor: "bg-yellow-50" },
-    { value: "error", label: "Lỗi", icon: AlertCircle, color: "text-red-500", bgColor: "bg-red-50" }
+    { value: "success", label: "Thành công", icon: CheckCircle, color: "text-green-500", bgColor: "bg-green-50" },
   ]
 
-  const selectedType = notificationTypes.find(type => type.value === formData.type)
+  const selectedType = notificationTypes.find((type) => type.value === formData.type)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -122,9 +123,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Recipient Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Người nhận
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Người nhận</label>
             <div className="relative">
               <select
                 value={formData.recipient}
@@ -149,9 +148,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
 
           {/* Notification Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Loại thông báo
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại thông báo</label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {notificationTypes.map((type) => {
                 const Icon = type.icon
@@ -167,8 +164,13 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
                     }`}
                     disabled={loading}
                   >
-                    <Icon size={20} className={`mx-auto mb-1 ${formData.type === type.value ? type.color : "text-gray-400"}`} />
-                    <span className={`text-xs font-medium ${formData.type === type.value ? type.color : "text-gray-600 dark:text-gray-400"}`}>
+                    <Icon
+                      size={20}
+                      className={`mx-auto mb-1 ${formData.type === type.value ? type.color : "text-gray-400"}`}
+                    />
+                    <span
+                      className={`text-xs font-medium ${formData.type === type.value ? type.color : "text-gray-600 dark:text-gray-400"}`}
+                    >
                       {type.label}
                     </span>
                   </button>
@@ -179,9 +181,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
 
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tiêu đề thông báo
-            </label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tiêu đề thông báo</label>
             <input
               type="text"
               value={formData.title}
@@ -191,9 +191,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
               disabled={loading}
               maxLength={100}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              {formData.title.length}/100 ký tự
-            </div>
+            <div className="text-xs text-gray-500 mt-1">{formData.title.length}/100 ký tự</div>
           </div>
 
           {/* Message */}
@@ -210,9 +208,7 @@ const NotificationModal = ({ isOpen, onClose, onSuccess, staff, url }) => {
               disabled={loading}
               maxLength={500}
             />
-            <div className="text-xs text-gray-500 mt-1">
-              {formData.message.length}/500 ký tự
-            </div>
+            <div className="text-xs text-gray-500 mt-1">{formData.message.length}/500 ký tự</div>
           </div>
 
           {/* Preview */}

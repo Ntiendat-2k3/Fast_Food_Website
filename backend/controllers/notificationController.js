@@ -13,7 +13,7 @@ const createNotification = async (req, res) => {
     }
 
     // Validate type
-    const validTypes = ["info", "warning", "success", "error", "order", "payment", "system", "user"]
+    const validTypes = ["info", "warning", "success"]
     if (!validTypes.includes(type)) {
       return res.json({ success: false, message: "Loại thông báo không hợp lệ" })
     }
@@ -22,6 +22,10 @@ const createNotification = async (req, res) => {
     const creator = await userModel.findById(req.userId)
     if (!creator) {
       return res.json({ success: false, message: "Không tìm thấy người tạo" })
+    }
+
+    if (creator.role !== "admin" && creator.role !== "staff") {
+      return res.json({ success: false, message: "Chỉ admin và staff mới có thể tạo thông báo" })
     }
 
     let targetUsers = []
@@ -59,7 +63,8 @@ const createNotification = async (req, res) => {
       message,
       userId,
       type,
-      createdBy: creator.name,
+      createdBy: creator.role, // Save actual role (admin/staff) instead of hardcoded "admin"
+      createdByUserId: creator._id, // Also save the creator's user ID for reference
       targetUser: targetUser === "all" ? "all" : targetUser,
       read: false,
       isRead: false,
@@ -91,7 +96,6 @@ const getAllNotifications = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100) // Limit to prevent too much data
 
-
     res.json({
       success: true,
       data: notifications,
@@ -115,14 +119,19 @@ const getUserNotifications = async (req, res) => {
       return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
     }
 
-    // Get notifications for this specific user
     const notifications = await notificationModel
-      .find({ userId: userId })
+      .find({
+        userId: userId,
+        createdBy: { $in: ["admin", "staff"] }, // Only show notifications from admin/staff
+      })
       .sort({ createdAt: -1 })
       .limit(Number.parseInt(limit))
       .skip((Number.parseInt(page) - 1) * Number.parseInt(limit))
 
-    const total = await notificationModel.countDocuments({ userId: userId })
+    const total = await notificationModel.countDocuments({
+      userId: userId,
+      createdBy: { $in: ["admin", "staff"] }, // Count only notifications from admin/staff
+    })
 
     // console.log(`Found ${notifications.length} notifications for user ${userId}, total: ${total}`)
 
@@ -337,9 +346,9 @@ const getUnreadCount = async (req, res) => {
 
     const count = await notificationModel.countDocuments({
       userId: userId,
+      createdBy: { $in: ["admin", "staff"] }, // Only count notifications from admin/staff
       $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
-
 
     res.json({ success: true, data: { count } })
   } catch (error) {

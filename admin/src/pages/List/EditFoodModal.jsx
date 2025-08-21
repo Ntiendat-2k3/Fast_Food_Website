@@ -35,10 +35,6 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   })
 
   useEffect(() => {
-    console.log("[v0] Full food object:", food)
-    console.log("[v0] food.category:", food.category)
-    console.log("[v0] food.categoryId:", food.categoryId)
-    console.log("[v0] Extracted category:", extractCategoryName(food))
 
     // Set image preview from existing food image
     setImagePreview(`${url}/images/${food.image}`)
@@ -55,12 +51,9 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
         const categoryNames = response.data.data.map((cat) => cat.name)
         const currentCategory = extractCategoryName(food)
 
-        console.log("[v0] Available categories:", categoryNames)
-        console.log("[v0] Current food category:", currentCategory)
 
         let finalCategories = [...categoryNames]
         if (currentCategory && !categoryNames.includes(currentCategory)) {
-          console.log("[v0] Adding missing category to list:", currentCategory)
           finalCategories = [currentCategory, ...categoryNames]
         }
 
@@ -98,7 +91,7 @@ const EditFoodModal = ({ food, url, onClose, onSuccess }) => {
   const onChangeHandler = (event) => {
     const { name, value } = event.target
     if (name === "category") {
-      console.log("[v0] Category changed to:", value)
+      console.log("Category changed to:", value)
     }
     setData((prevData) => ({ ...prevData, [name]: value }))
   }
