@@ -22,14 +22,24 @@ const ExploreMenu = ({ category, setCategory }) => {
         const allCategory = { _id: "All", name: "Tất cả", icon: "🍽️" }
         const categoriesWithIcons = response.data.data.map((cat) => ({
           ...cat,
-          icon: getCategoryIcon(cat.name),
+          icon: cat.icon || getCategoryIcon(cat.name), // Use existing icon from API or fallback
         }))
         setCategories([allCategory, ...categoriesWithIcons])
       }
     } catch (error) {
       console.error("Error fetching categories:", error)
-      // Chỉ giữ lại "Tất cả" nếu API lỗi
-      setCategories([{ _id: "All", name: "Tất cả", icon: "🍽️" }])
+      const defaultCategories = [
+        { _id: "All", name: "Tất cả", icon: "🍽️" },
+        { _id: "burger", name: "Burger", icon: "🍔" },
+        { _id: "burito", name: "Burito", icon: "🌯" },
+        { _id: "ga", name: "Gà", icon: "🍗" },
+        { _id: "hotdog", name: "Hot dog", icon: "🌭" },
+        { _id: "pasta", name: "Pasta", icon: "🍝" },
+        { _id: "salad", name: "Salad", icon: "🥗" },
+        { _id: "sandwich", name: "Sandwich", icon: "🥪" },
+        { _id: "tart", name: "Tart", icon: "🥧" },
+      ]
+      setCategories(defaultCategories)
     } finally {
       setLoading(false)
     }

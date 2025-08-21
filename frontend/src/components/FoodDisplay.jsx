@@ -4,7 +4,7 @@ import { useContext, useState, useEffect, useRef } from "react"
 import { StoreContext } from "../context/StoreContext"
 import FoodItem from "./FoodItem"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, Grid3X3, List, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Filter, Grid3X3, List, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 
 const FoodDisplay = ({ category }) => {
   const { food_list, url } = useContext(StoreContext)
@@ -38,7 +38,20 @@ const FoodDisplay = ({ category }) => {
   // Filter and sort food items
   const filteredAndSortedFood = food_list
     .filter((item) => {
-      const matchesCategory = category === "All" || item.category === category
+      let matchesCategory = false
+      if (category === "All") {
+        matchesCategory = true
+      } else {
+        // Handle both string category and populated categoryId object
+        if (typeof item.category === "string") {
+          matchesCategory = item.category === category
+        } else if (item.categoryId && typeof item.categoryId === "object") {
+          matchesCategory = item.categoryId.name === category
+        } else if (item.category && typeof item.category === "object") {
+          matchesCategory = item.category.name === category
+        }
+      }
+
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesPrice = item.price >= priceRange[0] && item.price <= priceRange[1]
       return matchesCategory && matchesSearch && matchesPrice

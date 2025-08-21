@@ -20,7 +20,6 @@ const CategoryFilter = ({ selectedCategory, handleCategoryChange, refreshList, u
         setCategories(response.data.data)
       } else {
         console.error("Failed to fetch categories:", response.data.message)
-        // Fallback to default categories if API fails
         setCategories([
           { name: "Burger", _id: "burger" },
           { name: "Burito", _id: "burito" },
@@ -34,7 +33,6 @@ const CategoryFilter = ({ selectedCategory, handleCategoryChange, refreshList, u
       }
     } catch (error) {
       console.error("Error fetching categories:", error)
-      // Fallback to default categories if API fails
       setCategories([
         { name: "Burger", _id: "burger" },
         { name: "Burito", _id: "burito" },

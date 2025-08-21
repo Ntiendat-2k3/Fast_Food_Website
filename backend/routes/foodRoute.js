@@ -13,7 +13,7 @@ import {
   getSuggestedDrinksByProduct, // Import new function
   getSuggestedFoodsByDrink, // Import new function
   debugSuggestedDrinks,
-  debugSuggestedFoods,
+  // debugSuggestedFoods,
   getFoodSalesCount,
 } from "../controllers/foodController.js"
 import multer from "multer"
@@ -51,6 +51,6 @@ foodRouter.get("/suggested-foods/:drinkName", getSuggestedFoods)
 
 // Debug routes
 foodRouter.get("/debug-drinks/:category", debugSuggestedDrinks)
-foodRouter.get("/debug-foods/:drinkName", debugSuggestedFoods)
+// foodRouter.get("/debug-foods/:drinkName", debugSuggestedFoods)
 
 export default foodRouter
