@@ -198,17 +198,31 @@ const placeOrder = async (req, res) => {
       // Don't throw error as order was successful
     }
 
-    // Tạo notification cho admin
-    const notification = new notificationModel({
+    // Tạo notification cho admin về đơn hàng mới
+    const adminNotification = new notificationModel({
       title: "Đơn hàng mới",
       message: `Đơn hàng mới từ ${address.name} - ${amount.toLocaleString("vi-VN")} đ`,
       type: "order",
       orderId: savedOrder._id,
-      userId: userId,
+      userId: null, // Admin notification - no specific user
+      createdBy: "system",
       createdAt: new Date(),
     })
 
-    await notification.save()
+    await adminNotification.save()
+
+    // Tạo notification cho khách hàng về xác nhận đơn hàng
+    const customerNotification = new notificationModel({
+      title: "Xác nhận đơn hàng",
+      message: `Đơn hàng #${savedOrder._id.toString().slice(-8).toUpperCase()} của bạn đã được xác nhận. Tổng tiền: ${amount.toLocaleString("vi-VN")} đ`,
+      type: "order",
+      orderId: savedOrder._id,
+      userId: userId, // Customer's userId
+      createdBy: "system",
+      createdAt: new Date(),
+    })
+
+    await customerNotification.save()
 
     // Emit real-time notification to admin
     if (req.io) {
@@ -222,13 +236,24 @@ const placeOrder = async (req, res) => {
       })
 
       req.io.emit("newNotification", {
-        id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
+        id: adminNotification._id,
+        title: adminNotification.title,
+        message: adminNotification.message,
+        type: adminNotification.type,
+        orderId: savedOrder._id,
+        userId: null,
+        createdAt: adminNotification.createdAt,
+        isRead: false,
+      })
+
+      req.io.emit("customerNotification", {
+        id: customerNotification._id,
+        title: customerNotification.title,
+        message: customerNotification.message,
+        type: customerNotification.type,
         orderId: savedOrder._id,
         userId: userId,
-        createdAt: notification.createdAt,
+        createdAt: customerNotification.createdAt,
         isRead: false,
       })
     }
@@ -832,22 +857,73 @@ const userOrders = async (req, res) => {
 // api for updating order status
 const updateStatus = async (req, res) => {
   try {
-    const updateData = { status: req.body.status }
+    const { orderId, status } = req.body
+    const updateData = { status }
 
     // Add timestamp for specific status changes
-    if (req.body.status === "Đã giao hàng") {
+    if (status === "Đã giao hàng") {
       updateData.deliveredAt = new Date()
     }
 
-    await orderModel.findByIdAndUpdate(req.body.orderId, updateData)
-    res.json({ success: true, message: "Status Updated" })
+    const updatedOrder = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true })
+
+    if (!updatedOrder) {
+      return res.json({ success: false, message: "Không tìm thấy đơn hàng" })
+    }
+
+    let notificationMessage = ""
+    switch (status) {
+      case "Đã xác nhận":
+        notificationMessage = `Đơn hàng #${orderId.slice(-8).toUpperCase()} đã được xác nhận và đang chuẩn bị`
+        break
+      case "Đang giao hàng":
+        notificationMessage = `Đơn hàng #${orderId.slice(-8).toUpperCase()} đang được giao đến bạn`
+        break
+      case "Đã giao hàng":
+        notificationMessage = `Đơn hàng #${orderId.slice(-8).toUpperCase()} đã được giao thành công`
+        break
+      case "Đã hủy":
+        notificationMessage = `Đơn hàng #${orderId.slice(-8).toUpperCase()} đã bị hủy`
+        break
+      default:
+        notificationMessage = `Trạng thái đơn hàng #${orderId.slice(-8).toUpperCase()} đã được cập nhật: ${status}`
+    }
+
+    if (notificationMessage && updatedOrder.userId) {
+      const customerNotification = new notificationModel({
+        title: "Cập nhật đơn hàng",
+        message: notificationMessage,
+        type: "order",
+        orderId: orderId,
+        userId: updatedOrder.userId,
+        createdBy: "system",
+        createdAt: new Date(),
+      })
+
+      await customerNotification.save()
+
+      // Emit real-time notification to customer
+      if (req.io) {
+        req.io.emit("customerNotification", {
+          id: customerNotification._id,
+          title: customerNotification.title,
+          message: customerNotification.message,
+          type: customerNotification.type,
+          orderId: orderId,
+          userId: updatedOrder.userId,
+          createdAt: customerNotification.createdAt,
+          isRead: false,
+        })
+      }
+    }
+
+    res.json({ success: true, message: "Cập nhật trạng thái thành công" })
   } catch (error) {
     console.log(error)
-    res.json({ success: false, message: "Error" })
+    res.json({ success: false, message: "Lỗi khi cập nhật trạng thái" })
   }
 }
 
-// Get order details with populated references
 const getOrderDetails = async (req, res) => {
   try {
     const order = await orderModel

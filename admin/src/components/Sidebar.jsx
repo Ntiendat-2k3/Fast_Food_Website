@@ -52,7 +52,7 @@ const Sidebar = ({ onLogout, userRole }) => {
         // { title: "Danh sách", path: "/list", icon: List },
 
         ...(userRole === "admin" ? [{ title: "Danh mục", path: "/categories", icon: Grid3X3 }] : []),
-        { title: "Quản lý kho", path: "/inventory", icon: Package },
+        { title: "Quản lý số lượng khả dụng", path: "/inventory", icon: Package },
       ].filter(Boolean),
     },
     {

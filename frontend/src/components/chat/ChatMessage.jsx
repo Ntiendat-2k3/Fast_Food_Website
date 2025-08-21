@@ -33,7 +33,7 @@ const ChatMessage = ({ message, baseUrl }) => {
 
   const getImageUrl = () => {
     if (message.image) {
-      return `${baseUrl}/uploads/messages/${message.image}`
+      return `${baseUrl}/images/messages/${message.image}`
     }
     return null
   }
@@ -82,7 +82,7 @@ const ChatMessage = ({ message, baseUrl }) => {
                     <img
                       src={getImageUrl() || "/placeholder.svg"}
                       alt="Attached image"
-                      className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-md border border-white/10"
+                      className="max-w-48 max-h-48 h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity shadow-md border border-white/10 object-cover"
                       onClick={handleImageClick}
                       onError={() => setImageError(true)}
                     />

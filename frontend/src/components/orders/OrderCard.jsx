@@ -127,7 +127,7 @@ const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) =
         const foodItem = food_list.find((food) => food.name === item.name)
 
         if (foodItem) {
-          await addToCart(item.name, item.quantity)
+          await addToCart(foodItem._id, item.quantity)
           addedItems++
         } else {
           unavailableItems.push(item.name)

@@ -476,7 +476,6 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-
 // Delete user (admin only)
 const deleteUser = async (req, res) => {
   try {
@@ -490,9 +489,6 @@ const deleteUser = async (req, res) => {
     if (!user) {
       return res.json({ success: false, message: "Người dùng không tồn tại" })
     }
-
-    // Also remove from blacklist if exists
-    await blacklistModel.deleteOne({ userId })
 
     res.json({ success: true, message: "Đã xóa người dùng thành công" })
   } catch (error) {

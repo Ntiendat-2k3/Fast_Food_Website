@@ -282,7 +282,7 @@ const Inventory = ({ url }) => {
               <Package className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-300 bg-clip-text text-transparent">
-              Quản lý kho hàng
+              Quản lý số lượng khả dụng
             </h1>
           </div>
 

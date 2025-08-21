@@ -100,7 +100,10 @@ const ImageGallery = ({ messages, onClose }) => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() =>
-                  handleDownload(`http://localhost:4000${currentImage.content}`, `image-${currentImage._id}.jpg`)
+                  handleDownload(
+                    `http://localhost:4000/images/messages/${currentImage.image}`,
+                    `image-${currentImage._id}.jpg`,
+                  )
                 }
                 className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
                 title="Tải xuống"
@@ -123,7 +126,7 @@ const ImageGallery = ({ messages, onClose }) => {
         <div className="flex-1 flex items-center justify-center p-16">
           <div className="relative max-w-full max-h-full">
             <img
-              src={`http://localhost:4000${currentImage.content}`}
+              src={`http://localhost:4000/images/messages/${currentImage.image}`}
               alt="Hình ảnh"
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
             />
@@ -178,7 +181,7 @@ const ImageGallery = ({ messages, onClose }) => {
                   }`}
                 >
                   <img
-                    src={`http://localhost:4000${msg.content}`}
+                    src={`http://localhost:4000/images/messages/${msg.image}`}
                     alt="Thumbnail"
                     className="w-full h-full object-cover"
                   />

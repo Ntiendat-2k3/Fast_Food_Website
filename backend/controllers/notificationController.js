@@ -113,8 +113,6 @@ const getUserNotifications = async (req, res) => {
     const { page = 1, limit = 20 } = req.query
     const userId = req.userId
 
-    // console.log("Getting notifications for user:", userId, "page:", page, "limit:", limit)
-
     if (!userId) {
       return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
     }
@@ -122,7 +120,7 @@ const getUserNotifications = async (req, res) => {
     const notifications = await notificationModel
       .find({
         userId: userId,
-        createdBy: { $in: ["admin", "staff"] }, // Only show notifications from admin/staff
+        createdBy: { $in: ["admin", "staff", "system"] }, // Include system notifications
       })
       .sort({ createdAt: -1 })
       .limit(Number.parseInt(limit))
@@ -130,10 +128,8 @@ const getUserNotifications = async (req, res) => {
 
     const total = await notificationModel.countDocuments({
       userId: userId,
-      createdBy: { $in: ["admin", "staff"] }, // Count only notifications from admin/staff
+      createdBy: { $in: ["admin", "staff", "system"] }, // Include system notifications
     })
-
-    // console.log(`Found ${notifications.length} notifications for user ${userId}, total: ${total}`)
 
     res.json({
       success: true,
@@ -156,8 +152,6 @@ const markAsRead = async (req, res) => {
   try {
     const { id, read = true } = req.body
     const userId = req.userId
-
-    // console.log("Marking notification as read:", { id, read, userId })
 
     if (!id) {
       return res.json({ success: false, message: "Thiếu ID thông báo" })
@@ -199,8 +193,6 @@ const markAsRead = async (req, res) => {
       },
       { new: true },
     )
-
-    // console.log("Notification updated successfully:", updatedNotification._id)
 
     res.json({
       success: true,
@@ -338,7 +330,6 @@ const deleteAllNotifications = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const userId = req.userId
-    // console.log("Getting unread count for user:", userId)
 
     if (!userId) {
       return res.json({ success: false, message: "Không tìm thấy thông tin người dùng" })
@@ -346,7 +337,7 @@ const getUnreadCount = async (req, res) => {
 
     const count = await notificationModel.countDocuments({
       userId: userId,
-      createdBy: { $in: ["admin", "staff"] }, // Only count notifications from admin/staff
+      createdBy: { $in: ["admin", "staff", "system"] }, // Include system notifications
       $or: [{ read: { $ne: true } }, { isRead: { $ne: true } }],
     })
 

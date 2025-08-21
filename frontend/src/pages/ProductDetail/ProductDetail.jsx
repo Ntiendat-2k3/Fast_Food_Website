@@ -48,6 +48,7 @@ const ProductDetail = () => {
     increaseQuantity,
     decreaseQuantity,
     toggleWishlist,
+    handleBuyNow: hookHandleBuyNow, // Get handleBuyNow from hook
   } = useProductDetail(slug)
   console.log(foodItem)
 
@@ -169,15 +170,8 @@ const ProductDetail = () => {
       return
     }
 
-    try {
-      // Add to cart first
-      await addToCart(foodItem._id, quantity)
-      // Then navigate to cart
-      navigate("/cart")
-    } catch (error) {
-      console.error("Error in buy now:", error)
-      toast.error("Lỗi khi mua hàng")
-    }
+    // Use the hook's handleBuyNow function which navigates directly to checkout
+    hookHandleBuyNow()
   }
 
   // ======= Product Info (Hardcoded) =======

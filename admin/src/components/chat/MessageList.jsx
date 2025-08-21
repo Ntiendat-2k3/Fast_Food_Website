@@ -129,15 +129,15 @@ const MessageList = ({ messages, messagesLoading, onDeleteMessage, messagesEndRe
                     {message.type === "image" && (
                       <div className="relative">
                         <img
-                          src={`http://localhost:4000${message.content}`}
+                          src={`http://localhost:4000/images/messages/${message.image}`}
                           alt="Hình ảnh"
-                          className="max-w-full h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => handleImageClick(`http://localhost:4000${message.content}`)}
+                          className="max-w-48 max-h-48 h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
+                          onClick={() => handleImageClick(`http://localhost:4000/images/messages/${message.image}`)}
                         />
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="flex space-x-1">
                             <button
-                              onClick={() => handleImageClick(`http://localhost:4000${message.content}`)}
+                              onClick={() => handleImageClick(`http://localhost:4000/images/messages/${message.image}`)}
                               className="p-1 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-colors"
                               title="Xem ảnh"
                             >
@@ -146,7 +146,7 @@ const MessageList = ({ messages, messagesLoading, onDeleteMessage, messagesEndRe
                             <button
                               onClick={() =>
                                 handleDownloadImage(
-                                  `http://localhost:4000${message.content}`,
+                                  `http://localhost:4000/images/messages/${message.image}`,
                                   `image-${message._id}.jpg`,
                                 )
                               }

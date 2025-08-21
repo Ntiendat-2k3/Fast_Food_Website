@@ -347,7 +347,7 @@ const Chat = () => {
               placeholder="Tìm kiếm khách hàng..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-yellow-500/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all duration-300"
+              className="w-full pl-12 pr-4 py-3 bg-slate-700/50 border border-yellow-500/30 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 resize-none transition-all duration-300"
             />
           </div>
         </div>
@@ -393,7 +393,7 @@ const Chat = () => {
                           {user.unreadCount > 9 ? "9+" : user.unreadCount}
                         </div>
                       )}
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-slate-800 rounded-full shadow-lg"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-slate-800 rounded-full shadow-lg animate-pulse"></div>
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -510,14 +510,14 @@ const Chat = () => {
                         {message.type === "image" ? (
                           <div className="space-y-3">
                             <img
-                              src={`${url}/uploads/messages/${message.image}`}
+                              src={`${url}/images/messages/${message.image}`}
                               alt="Hình ảnh"
                               className="max-w-full h-auto rounded-xl cursor-pointer hover:opacity-90 transition-opacity shadow-lg"
-                              onClick={() => window.open(`${url}/uploads/messages/${message.image}`, "_blank")}
+                              onClick={() => window.open(`${url}/images/messages/${message.image}`, "_blank")}
                             />
                             <div className="flex items-center space-x-3 text-sm">
                               <button
-                                onClick={() => window.open(`${url}/uploads/messages/${message.image}`, "_blank")}
+                                onClick={() => window.open(`${url}/images/messages/${message.image}`, "_blank")}
                                 className="flex items-center space-x-1 hover:underline opacity-75 hover:opacity-100 transition-opacity"
                               >
                                 <Info className="w-4 h-4" />
