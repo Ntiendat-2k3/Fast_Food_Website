@@ -27,64 +27,64 @@ const SuggestedSalads = ({ currentProduct, isCompact = true }) => {
         if (response.data.success) {
           const allItems = response.data.data || []
 
-          const mainDishes = allItems.filter((item) => {
-            // Exclude current product
-            if (item._id === currentProduct._id) return false
+          // Check if current product is a salad
+          const isCurrentProductSalad =
+            currentProduct.name.toLowerCase().includes("salad") ||
+            currentProduct.category?.toLowerCase().includes("salad") ||
+            currentProduct.name.toLowerCase().includes("nộm") ||
+            currentProduct.name.toLowerCase().includes("gỏi")
 
-            // Exclude drinks
-            const isDrink =
-              item.category?.toLowerCase().includes("uống") ||
-              item.category?.toLowerCase().includes("drink") ||
-              item.category?.toLowerCase().includes("nước") ||
-              item.category?.toLowerCase().includes("beverage")
-            if (isDrink) return false
+          // Check if current product is a drink
+          const isCurrentProductDrink =
+            currentProduct.category?.toLowerCase().includes("uống") ||
+            currentProduct.category?.toLowerCase().includes("drink") ||
+            currentProduct.category?.toLowerCase().includes("nước") ||
+            currentProduct.category?.toLowerCase().includes("beverage")
 
-            // Exclude other salads
-            const isSalad =
-              item.name.toLowerCase().includes("salad") ||
-              item.category?.toLowerCase().includes("salad") ||
-              item.name.toLowerCase().includes("nộm") ||
-              item.name.toLowerCase().includes("gỏi")
-            if (isSalad) return false
+          let filteredItems = []
 
-            // Include main dishes (burger, gà, cơm, pizza, etc.)
-            const isMainDish =
-              item.category?.toLowerCase().includes("burger") ||
-              item.category?.toLowerCase().includes("gà") ||
-              item.category?.toLowerCase().includes("cơm") ||
-              item.category?.toLowerCase().includes("pizza") ||
-              item.category?.toLowerCase().includes("mì") ||
-              item.category?.toLowerCase().includes("phở") ||
-              item.name.toLowerCase().includes("burger") ||
-              item.name.toLowerCase().includes("gà") ||
-              item.name.toLowerCase().includes("cơm") ||
-              item.name.toLowerCase().includes("pizza")
+          if (isCurrentProductSalad) {
+            filteredItems = allItems.filter((item) => {
+              // Exclude current product
+              if (item._id === currentProduct._id) return false
 
-            return isMainDish
-          })
+              // Exclude other salads
+              const isSalad =
+                item.name.toLowerCase().includes("salad") ||
+                item.category?.toLowerCase().includes("salad") ||
+                item.name.toLowerCase().includes("nộm") ||
+                item.name.toLowerCase().includes("gỏi")
+              if (isSalad) return false
 
-          // If no specific main dishes found, get any non-drink, non-salad items
-          if (mainDishes.length === 0) {
-            const otherFoods = allItems
-              .filter((item) => {
-                if (item._id === currentProduct._id) return false
+              // Exclude drinks (since drinks have separate section on the right)
+              const isDrink =
+                item.category?.toLowerCase().includes("uống") ||
+                item.category?.toLowerCase().includes("drink") ||
+                item.category?.toLowerCase().includes("nước") ||
+                item.category?.toLowerCase().includes("beverage")
+              if (isDrink) return false
 
-                const isDrink =
-                  item.category?.toLowerCase().includes("uống") ||
-                  item.category?.toLowerCase().includes("drink") ||
-                  item.category?.toLowerCase().includes("nước")
-                const isSalad =
-                  item.name.toLowerCase().includes("salad") ||
-                  item.name.toLowerCase().includes("nộm") ||
-                  item.name.toLowerCase().includes("gỏi")
-
-                return !isDrink && !isSalad
-              })
-              .slice(0, 6)
-            setSuggestedFoods(otherFoods)
+              // Include only food items
+              return true
+            })
           } else {
-            setSuggestedFoods(mainDishes.slice(0, 6))
+            // If current product is food or drink → suggest only salads
+            filteredItems = allItems.filter((item) => {
+              // Exclude current product
+              if (item._id === currentProduct._id) return false
+
+              // Only include salads
+              const isSalad =
+                item.name.toLowerCase().includes("salad") ||
+                item.category?.toLowerCase().includes("salad") ||
+                item.name.toLowerCase().includes("nộm") ||
+                item.name.toLowerCase().includes("gỏi")
+
+              return isSalad
+            })
           }
+
+          setSuggestedFoods(filteredItems.slice(0, 6))
         } else {
           throw new Error(response.data.message || "Failed to fetch foods")
         }
@@ -100,12 +100,26 @@ const SuggestedSalads = ({ currentProduct, isCompact = true }) => {
     fetchSuggestedFoods()
   }, [currentProduct, url])
 
+  const getSuggestionTitle = () => {
+    const isCurrentProductSalad =
+      currentProduct.name.toLowerCase().includes("salad") ||
+      currentProduct.category?.toLowerCase().includes("salad") ||
+      currentProduct.name.toLowerCase().includes("nộm") ||
+      currentProduct.name.toLowerCase().includes("gỏi")
+
+    if (isCurrentProductSalad) {
+      return "Món ăn được gợi ý"
+    } else {
+      return "Salad được gợi ý"
+    }
+  }
+
   if (loading) {
     return (
       <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700">
         <div className="flex items-center gap-2 mb-4">
           <Utensils className="h-5 w-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Món ăn được gợi ý</h3>
+          <h3 className="text-lg font-semibold text-white">{getSuggestionTitle()}</h3>
         </div>
         <div className="space-y-3">
           {[...Array(3)].map((_, index) => (
@@ -145,7 +159,7 @@ const SuggestedSalads = ({ currentProduct, isCompact = true }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Utensils className="h-5 w-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Món ăn được gợi ý</h3>
+          <h3 className="text-lg font-semibold text-white">{getSuggestionTitle()}</h3>
         </div>
         <span className="text-xs text-orange-400 bg-orange-400/10 px-2 py-1 rounded-full whitespace-nowrap">
           Phù hợp với {currentProduct.name || "món này"}
@@ -175,7 +189,7 @@ const SuggestedSalads = ({ currentProduct, isCompact = true }) => {
           onClick={() => setShowAll(!showAll)}
           className="w-full mt-3 py-2 text-orange-400 hover:text-orange-300 transition-colors text-sm font-medium border border-orange-400/20 rounded-lg hover:border-orange-400/40"
         >
-          {showAll ? "Thu gọn" : `Xem thêm ${suggestedFoods.length - 3} món ăn khác`}
+          {showAll ? "Thu gọn" : `Xem thêm ${suggestedFoods.length - 3} món khác`}
         </motion.button>
       )}
     </motion.div>

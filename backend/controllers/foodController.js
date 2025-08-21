@@ -232,130 +232,188 @@ const debugSuggestedDrinks = async (req, res) => {
 const getSuggestedDrinks = async (req, res) => {
   try {
     const { category } = req.params
+    const { productId } = req.query // Optional productId for product-specific suggestions
 
-    // console.log(`🔍 Getting suggested drinks for category: ${category}`)
+    console.log(`[v0] 🔍 Getting suggested drinks for category: ${category}, productId: ${productId}`)
 
-    // Get all available categories for debugging
-    const allCategories = await foodModel.distinct("category")
-    // console.log("📂 Available categories:", allCategories)
+    // Strategy 1: Product-specific suggestions (if productId provided)
+    if (productId) {
+      console.log(`[v0] 🎯 Trying product-specific suggestions for productId: ${productId}`)
 
-    // Find all foods in the specified category
-    const categoryFoods = await foodModel.find({ category: category })
-    // console.log(`🍔 Found ${categoryFoods.length} foods in category "${category}"`)
+      const product = await foodModel.findById(productId)
+      if (product) {
+        console.log(`[v0] ✅ Found product: "${product.name}" in category: "${product.category}"`)
 
-    if (categoryFoods.length === 0) {
-      return res.json({
-        success: false,
-        message: `Không tìm thấy sản phẩm nào trong danh mục "${category}"`,
-        availableCategories: allCategories,
-      })
+        // Find orders containing this specific product
+        const ordersWithProduct = await orderModel.find({
+          "items.name": product.name,
+          status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
+        })
+
+        console.log(`[v0] Found ${ordersWithProduct.length} orders with product "${product.name}"`)
+
+        if (ordersWithProduct.length > 0) {
+          // Get all drinks
+          const allDrinks = await foodModel
+            .find({
+              $or: [{ category: "Đồ uống" }, { categoryId: { $exists: true } }],
+            })
+            .populate("categoryId", "name")
+
+          const drinks = allDrinks.filter((drink) => {
+            if (drink.category === "Đồ uống") return true
+            if (drink.categoryId && drink.categoryId.name === "Đồ uống") return true
+            return false
+          })
+
+          const drinkNames = drinks.map((drink) => drink.name)
+          const drinkCount = {}
+
+          ordersWithProduct.forEach((order) => {
+            order.items.forEach((item) => {
+              if (drinkNames.includes(item.name) && item.name !== product.name) {
+                drinkCount[item.name] = (drinkCount[item.name] || 0) + (item.quantity || 1)
+              }
+            })
+          })
+
+          const suggestedDrinks = drinks
+            .filter((drink) => drinkCount[drink.name] > 0)
+            .map((drink) => ({
+              ...drink.toObject(),
+              purchaseCount: drinkCount[drink.name] || 0,
+              suggestionType: "product-specific",
+            }))
+            .sort((a, b) => b.purchaseCount - a.purchaseCount)
+            .slice(0, 6)
+
+          if (suggestedDrinks.length > 0) {
+            console.log(`[v0] ✅ Returning ${suggestedDrinks.length} product-specific suggestions`)
+            return res.json({
+              success: true,
+              data: suggestedDrinks,
+              message: `Gợi ý dựa trên sản phẩm "${product.name}"`,
+            })
+          }
+        }
+      }
     }
 
-    const categoryFoodNames = categoryFoods.map((food) => food.name)
-    // console.log("📝 Category food names:", categoryFoodNames)
+    console.log(`[v0] 🔄 No product-specific suggestions found, trying category-based fallback`)
 
-    // Find orders that contain items from this category
-    const ordersWithCategory = await orderModel.find({
-      "items.name": { $in: categoryFoodNames },
-      status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
-    })
+    // Strategy 2: Category-based suggestions
+    let categoryDoc = null
+    try {
+      categoryDoc = await categoryModel.findOne({ name: category })
+    } catch (err) {
+      console.log("Category model not found, using string-based search only")
+    }
 
-    // console.log(`📦 Found ${ordersWithCategory.length} orders with ${category} items`)
+    const categoryQuery = categoryDoc
+      ? { $or: [{ category: category }, { categoryId: categoryDoc._id }] }
+      : { category: category }
 
-    if (ordersWithCategory.length === 0) {
-      const drinkCategories = await foodModel.distinct("category", {
-        $or: [
-          { category: { $regex: /uống/i } },
-          { category: { $regex: /drink/i } },
-          { category: { $regex: /nước/i } },
-          { category: { $regex: /beverage/i } },
+    const categoryFoods = await foodModel.find(categoryQuery)
+    console.log(`[v0] Found ${categoryFoods.length} foods in category "${category}"`)
+
+    if (categoryFoods.length > 0) {
+      const categoryFoodNames = categoryFoods.map((food) => food.name)
+
+      const ordersWithCategory = await orderModel.find({
+        "items.name": { $in: categoryFoodNames },
+        status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
+      })
+
+      console.log(`[v0] Found ${ordersWithCategory.length} orders with category foods`)
+
+      if (ordersWithCategory.length > 0) {
+        const allDrinks = await foodModel
+          .find({
+            $or: [{ category: "Đồ uống" }, { categoryId: { $exists: true } }],
+          })
+          .populate("categoryId", "name")
+
+        const drinks = allDrinks.filter((drink) => {
+          if (drink.category === "Đồ uống") return true
+          if (drink.categoryId && drink.categoryId.name === "Đồ uống") return true
+          return false
+        })
+
+        const drinkNames = drinks.map((drink) => drink.name)
+        const drinkCount = {}
+
+        ordersWithCategory.forEach((order) => {
+          order.items.forEach((item) => {
+            if (drinkNames.includes(item.name)) {
+              drinkCount[item.name] = (drinkCount[item.name] || 0) + (item.quantity || 1)
+            }
+          })
+        })
+
+        const suggestedDrinks = drinks
+          .filter((drink) => drinkCount[drink.name] > 0)
+          .map((drink) => ({
+            ...drink.toObject(),
+            purchaseCount: drinkCount[drink.name] || 0,
+            suggestionType: "category-based",
+          }))
+          .sort((a, b) => b.purchaseCount - a.purchaseCount)
+          .slice(0, 6)
+
+        if (suggestedDrinks.length > 0) {
+          console.log(`[v0] ✅ Returning ${suggestedDrinks.length} category-based suggestions`)
+          return res.json({
+            success: true,
+            data: suggestedDrinks,
+            message: `Gợi ý dựa trên danh mục "${category}"`,
+          })
+        }
+      }
+    }
+
+    console.log(`[v0] 🎲 Using random fallback`)
+
+    // Final fallback: high-quality foods with better filtering
+    const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+    const testKeywords = ["test", "k có đơn", "không có đơn", "demo", "sample", "thử nghiệm"]
+
+    const randomFoods = await foodModel
+      .find({
+        $and: [
+          { category: { $nin: drinkCategories } },
+          { isActive: true },
+          // Filter out test/demo products
+          {
+            name: {
+              $not: {
+                $regex: testKeywords.join("|"),
+                $options: "i",
+              },
+            },
+          },
         ],
       })
+      .sort({ price: -1, name: 1 }) // Sort by price desc, then name asc for consistent results
+      .limit(6)
 
-      const randomDrinks = await foodModel
-        .find({
-          category: { $in: drinkCategories },
-        })
-        .limit(4)
+    console.log(`[v0] ✅ Returning ${randomFoods.length} high-quality random foods as fallback`)
+    console.log(
+      `[v0] Random foods selected:`,
+      randomFoods.map((f) => f.name),
+    )
 
-      return res.json({
-        success: true,
-        data: randomDrinks,
-        message: "Không có dữ liệu lịch sử, hiển thị đồ uống ngẫu nhiên",
-      })
-    }
-
-    const drinkCategories = await foodModel.distinct("category", {
-      $or: [
-        { category: { $regex: /uống/i } },
-        { category: { $regex: /drink/i } },
-        { category: { $regex: /nước/i } },
-        { category: { $regex: /beverage/i } },
-      ],
+    return res.json({
+      success: true,
+      data: randomFoods.map((food) => ({ ...food.toObject(), suggestionType: "random" })),
+      message: "Gợi ý món ăn phổ biến",
+      debug: {
+        strategy: "random",
+        drinkSearched: "N/A",
+        ordersFound: 0,
+      },
     })
-
-    // Get all actual drinks from database with improved filtering
-    const allDrinks = await foodModel.find({
-      category: { $in: drinkCategories },
-      $and: [
-        { category: { $not: { $regex: /burger/i } } },
-        { category: { $not: { $regex: /pizza/i } } },
-        { category: { $not: { $regex: /gà/i } } },
-        { category: { $not: { $regex: /chicken/i } } },
-        { category: { $not: { $regex: /cơm/i } } },
-        { category: { $not: { $regex: /rice/i } } },
-        { category: { $not: { $regex: /bánh/i } } },
-        { category: { $not: { $regex: /bread/i } } },
-        { category: { $not: { $regex: /salad/i } } },
-      ],
-    })
-
-    const drinkNames = allDrinks.map((drink) => drink.name)
-    // console.log("🥤 Available drinks:", drinkNames)
-
-    // Count drink occurrences in orders that contain the target category
-    const drinkCount = {}
-
-    ordersWithCategory.forEach((order) => {
-      order.items.forEach((item) => {
-        // Only count if the item is actually a drink (exists in drinks category)
-        if (drinkNames.includes(item.name)) {
-          drinkCount[item.name] = (drinkCount[item.name] || 0) + (item.quantity || 1)
-        }
-      })
-    })
-
-    // console.log("🥤 Drink counts:", drinkCount)
-
-    // Get the actual drink objects and add purchase count
-    const suggestedDrinks = allDrinks
-      .filter((drink) => drinkCount[drink.name] > 0)
-      .map((drink) => ({
-        ...drink.toObject(),
-        purchaseCount: drinkCount[drink.name] || 0,
-      }))
-      .sort((a, b) => b.purchaseCount - a.purchaseCount)
-      .slice(0, 6) // Limit to top 6
-
-    // console.log(`✅ Returning ${suggestedDrinks.length} suggested drinks`)
-
-    // If no drinks found based on history, return random drinks
-    if (suggestedDrinks.length === 0) {
-      const randomDrinks = await foodModel
-        .find({
-          category: { $in: drinkCategories },
-        })
-        .limit(4)
-      return res.json({
-        success: true,
-        data: randomDrinks,
-        message: "Không tìm thấy đồ uống phù hợp, hiển thị đồ uống ngẫu nhiên",
-      })
-    }
-
-    res.json({ success: true, data: suggestedDrinks })
   } catch (error) {
-    console.error("❌ Error in getSuggestedDrinks:", error)
+    console.error("[v0] ❌ Error in getSuggestedDrinks:", error)
     res.json({ success: false, message: "Lỗi server khi lấy gợi ý đồ uống" })
   }
 }
@@ -364,168 +422,188 @@ const getSuggestedDrinks = async (req, res) => {
 const getSuggestedFoods = async (req, res) => {
   try {
     const { drinkName } = req.params
+    const { drinkId } = req.query // Optional drinkId for drink-specific suggestions
 
-    console.log(`[v0] 🔍 Getting suggested foods for drink: ${drinkName}`)
+    console.log(`[v0] 🔍 Getting suggested foods for drinkName: ${drinkName}, drinkId: ${drinkId}`)
 
-    // First, get all available categories to understand the data structure
-    const allCategories = await foodModel.distinct("category")
-    // console.log("📂 All available categories:", allCategories)
+    let drink = null
 
-    // Try to find the drink with flexible search (case insensitive, partial match)
-    let drink = await foodModel.findOne({
-      name: { $regex: new RegExp(`^${drinkName}$`, "i") },
-    })
+    // Strategy 1: Drink-specific suggestions (if drinkId provided)
+    if (drinkId) {
+      console.log(`[v0] 🎯 Trying drink-specific suggestions for drinkId: ${drinkId}`)
 
-    // If exact match not found, try partial match
+      drink = await foodModel.findById(drinkId)
+      if (drink) {
+        console.log(`[v0] ✅ Found drink: "${drink.name}" in category: "${drink.category}"`)
+
+        const ordersWithDrink = await orderModel.find({
+          "items.name": drink.name,
+          status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
+        })
+
+        console.log(`[v0] Found ${ordersWithDrink.length} orders containing drink "${drink.name}"`)
+
+        if (ordersWithDrink.length > 0) {
+          const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+          const allFoods = await foodModel
+            .find({
+              $and: [{ category: { $nin: drinkCategories } }, { isActive: true }],
+            })
+            .populate("categoryId", "name")
+
+          const foods = allFoods.filter((food) => {
+            if (drinkCategories.includes(food.category)) return false
+            if (food.categoryId && drinkCategories.includes(food.categoryId.name)) return false
+            return true
+          })
+
+          const foodNamesSet = new Set(foods.map((food) => food.name))
+          const foodCount = {}
+
+          ordersWithDrink.forEach((order) => {
+            order.items.forEach((item) => {
+              if (foodNamesSet.has(item.name) && item.name !== drink.name) {
+                foodCount[item.name] = (foodCount[item.name] || 0) + (item.quantity || 1)
+              }
+            })
+          })
+
+          const suggestedFoods = foods
+            .filter((food) => foodCount[food.name] > 0)
+            .map((food) => ({
+              ...food.toObject(),
+              purchaseCount: foodCount[food.name] || 0,
+              suggestionType: "drink-specific",
+            }))
+            .sort((a, b) => b.purchaseCount - a.purchaseCount)
+            .slice(0, 6)
+
+          if (suggestedFoods.length > 0) {
+            console.log(`[v0] ✅ Returning ${suggestedFoods.length} drink-specific suggestions`)
+            return res.json({
+              success: true,
+              data: suggestedFoods,
+              message: `Gợi ý dựa trên đồ uống "${drink.name}"`,
+            })
+          }
+        }
+      }
+    }
+
+    console.log(`[v0] 🔄 No drink-specific suggestions found, trying name-based fallback`)
+
+    // Strategy 2: Name-based suggestions (fallback to original logic)
     if (!drink) {
       drink = await foodModel.findOne({
-        name: { $regex: drinkName, $options: "i" },
+        name: { $regex: new RegExp(`^${drinkName}$`, "i") },
       })
-    }
 
-    // If still not found, try to find any drink that contains the search term
-    if (!drink) {
-      const possibleDrinks = await foodModel.find({
-        category: "Đồ uống",
-        name: { $regex: drinkName, $options: "i" },
-      })
-      // console.log(
-      //   // `🔍 Found ${possibleDrinks.length} possible drinks:`,
-      //   possibleDrinks.map((d) => d.name),
-      // )
-      if (possibleDrinks.length > 0) {
-        drink = possibleDrinks[0] // Take the first match
+      if (!drink) {
+        drink = await foodModel.findOne({
+          name: { $regex: drinkName, $options: "i" },
+        })
+      }
+
+      if (!drink) {
+        const possibleDrinks = await foodModel.find({
+          category: "Đồ uống",
+          name: { $regex: drinkName, $options: "i" },
+        })
+        if (possibleDrinks.length > 0) {
+          drink = possibleDrinks[0]
+        }
       }
     }
 
-    // console.log(`🥤 Drink search result:`, drink ? `Found "${drink.name}" in category: ${drink.category}` : "Not found")
-
-    // Find orders that contain this drink name (use the original search term from orders)
-    const ordersWithDrink = await orderModel.find({
-      "items.name": { $regex: drinkName, $options: "i" },
-      status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
-    })
-
-    console.log(`[v0] 📦 Found ${ordersWithDrink.length} orders with drink pattern "${drinkName}"`)
-
-    if (ordersWithDrink.length > 0) {
-      console.log(`[v0] 📋 Orders containing "${drinkName}":`)
-      ordersWithDrink.forEach((order, index) => {
-        console.log(`[v0] Order ${index + 1} (${order._id}):`)
-        order.items.forEach((item, itemIndex) => {
-          console.log(`[v0]   Item ${itemIndex + 1}: "${item.name}" (qty: ${item.quantity})`)
-        })
+    if (drink) {
+      const ordersWithDrink = await orderModel.find({
+        "items.name": { $regex: drinkName, $options: "i" },
+        status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
       })
-    }
 
-    if (ordersWithDrink.length === 0) {
-      const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+      console.log(`[v0] Found ${ordersWithDrink.length} orders with drink pattern "${drinkName}"`)
 
-      // Get foods that have been ordered before (have purchase history)
-      const foodsWithHistory = await orderModel.aggregate([
-        { $match: { status: { $in: ["Đã hoàn thành", "Đã giao"] } } },
-        { $unwind: "$items" },
-        {
-          $group: {
-            _id: "$items.name",
-            totalOrdered: { $sum: "$items.quantity" },
-            orderCount: { $sum: 1 },
-          },
-        },
-        { $sort: { totalOrdered: -1 } },
-        { $limit: 10 },
-      ])
+      if (ordersWithDrink.length > 0) {
+        const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+        const foodNamesSet = new Set()
+        const foodCount = {}
 
-      const popularFoodNames = foodsWithHistory.map((item) => item._id)
+        ordersWithDrink.forEach((order) => {
+          order.items.forEach((item) => {
+            const isDrinkItem = item.name.toLowerCase().includes(drinkName.toLowerCase())
+            if (!isDrinkItem) {
+              foodNamesSet.add(item.name)
+              foodCount[item.name] = (foodCount[item.name] || 0) + (item.quantity || 1)
+            }
+          })
+        })
 
-      // Get actual food documents for popular items
-      let fallbackFoods = await foodModel
-        .find({
-          name: { $in: popularFoodNames },
+        const foodNamesFromOrders = Array.from(foodNamesSet).filter((foodName) => foodCount[foodName] > 0)
+
+        const existingFoods = await foodModel.find({
+          name: { $in: foodNamesFromOrders },
           category: { $nin: drinkCategories },
         })
-        .limit(4)
 
-      // If still no foods with history, get established foods (not the newest ones)
-      if (fallbackFoods.length === 0) {
-        fallbackFoods = await foodModel
-          .find({ category: { $nin: drinkCategories } })
-          .sort({ createdAt: 1 }) // Get older, more established products
-          .limit(4)
-      }
+        const suggestedFoods = existingFoods
+          .map((food) => ({
+            ...food.toObject(),
+            purchaseCount: foodCount[food.name] || 0,
+            suggestionType: "name-based",
+          }))
+          .sort((a, b) => b.purchaseCount - a.purchaseCount)
+          .slice(0, 6)
 
-      return res.json({
-        success: true,
-        data: fallbackFoods,
-        message: "Không có dữ liệu lịch sử, hiển thị món ăn phổ biến",
-      })
-    }
-
-    // Create a map of food names for quick lookup
-    const foodNamesSet = new Set()
-
-    // Count food occurrences in orders that contain the target drink
-    const foodCount = {}
-
-    console.log(`[v0] 🔍 Processing orders to count food occurrences...`)
-
-    ordersWithDrink.forEach((order, orderIndex) => {
-      console.log(`[v0] Processing order ${orderIndex + 1}:`)
-      order.items.forEach((item, itemIndex) => {
-        // Only count if the item is actually a food (not the drink itself and exists in foods)
-        const isDrinkItem = item.name.toLowerCase().includes(drinkName.toLowerCase())
-        console.log(`[v0]   Item "${item.name}": isDrinkItem=${isDrinkItem}`)
-
-        if (!isDrinkItem) {
-          foodNamesSet.add(item.name)
-          foodCount[item.name] = (foodCount[item.name] || 0) + (item.quantity || 1)
-          console.log(`[v0]     Added to suggestions: ${item.name} (count: ${foodCount[item.name]})`)
-        } else {
-          console.log(`[v0]     Skipped (is drink): ${item.name}`)
+        if (suggestedFoods.length > 0) {
+          console.log(`[v0] ✅ Returning ${suggestedFoods.length} name-based suggestions`)
+          return res.json({ success: true, data: suggestedFoods })
         }
-      })
-    })
-
-    console.log(`[v0] 📊 Final food count:`, foodCount)
-
-    const foodNamesFromOrders = Array.from(foodNamesSet).filter((foodName) => foodCount[foodName] > 0)
-
-    // Verify these foods actually exist in current database
-    const existingFoods = await foodModel.find({
-      name: { $in: foodNamesFromOrders },
-      category: { $nin: ["Đồ uống", "Nước uống", "Beverages", "Drinks"] },
-    })
-
-    console.log(
-      `[v0] 🔍 Found ${existingFoods.length} existing foods in database from ${foodNamesFromOrders.length} order items`,
-    )
-
-    // Create suggested foods with actual database objects and purchase counts
-    const suggestedFoods = existingFoods
-      .map((food) => ({
-        ...food.toObject(),
-        purchaseCount: foodCount[food.name] || 0,
-      }))
-      .sort((a, b) => b.purchaseCount - a.purchaseCount)
-      .slice(0, 6) // Limit to top 6
-
-    console.log(
-      `[v0] ✅ Final suggested foods:`,
-      suggestedFoods.map((f) => `${f.name} (${f.purchaseCount})`),
-    )
-
-    if (suggestedFoods.length === 0) {
-      console.log(`[v0] ⚠️ No existing foods found in database that match order history`)
-      return res.json({
-        success: true,
-        data: [],
-        message: "Chưa có dữ liệu gợi ý phù hợp",
-      })
+      }
     }
 
-    res.json({ success: true, data: suggestedFoods })
+    console.log(`[v0] 🎲 Using random fallback`)
+
+    // Final fallback: high-quality foods with better filtering
+    const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+    const testKeywords = ["test", "k có đơn", "không có đơn", "demo", "sample", "thử nghiệm"]
+
+    const randomFoods = await foodModel
+      .find({
+        $and: [
+          { category: { $nin: drinkCategories } },
+          { isActive: true },
+          // Filter out test/demo products
+          {
+            name: {
+              $not: {
+                $regex: testKeywords.join("|"),
+                $options: "i",
+              },
+            },
+          },
+        ],
+      })
+      .sort({ price: -1, name: 1 }) // Sort by price desc, then name asc for consistent results
+      .limit(6)
+
+    console.log(`[v0] ✅ Returning ${randomFoods.length} high-quality random foods as fallback`)
+    console.log(
+      `[v0] Random foods selected:`,
+      randomFoods.map((f) => f.name),
+    )
+
+    return res.json({
+      success: true,
+      data: randomFoods.map((food) => ({ ...food.toObject(), suggestionType: "random" })),
+      message: "Gợi ý món ăn phổ biến",
+      debug: {
+        strategy: "random",
+        drinkSearched: drinkName,
+        ordersFound: 0,
+      },
+    })
   } catch (error) {
-    console.error("❌ Error in getSuggestedFoods:", error)
+    console.error("[v0] ❌ Error in getSuggestedFoods:", error)
     res.json({ success: false, message: "Lỗi server khi lấy gợi ý món ăn" })
   }
 }
@@ -816,30 +894,43 @@ const getSuggestedDrinksByProduct = async (req, res) => {
 
     console.log(`[v0] 🎲 Using random fallback`)
 
-    // Final fallback: random drinks
-    const randomDrinks = await foodModel
+    // Final fallback: high-quality foods with better filtering
+    const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+    const testKeywords = ["test", "k có đơn", "không có đơn", "demo", "sample", "thử nghiệm"]
+
+    const randomFoods = await foodModel
       .find({
-        $or: [{ category: "Đồ uống" }, { categoryId: { $exists: true } }],
+        $and: [
+          { category: { $nin: drinkCategories } },
+          { isActive: true },
+          // Filter out test/demo products
+          {
+            name: {
+              $not: {
+                $regex: testKeywords.join("|"),
+                $options: "i",
+              },
+            },
+          },
+        ],
       })
-      .populate("categoryId", "name")
-      .limit(4)
+      .sort({ price: -1, name: 1 }) // Sort by price desc, then name asc for consistent results
+      .limit(6)
 
-    const drinks = randomDrinks.filter((drink) => {
-      if (drink.category === "Đồ uống") return true
-      if (drink.categoryId && drink.categoryId.name === "Đồ uống") return true
-      return false
-    })
-
-    console.log(`[v0] ✅ Returning ${drinks.length} random drinks as fallback`)
+    console.log(`[v0] ✅ Returning ${randomFoods.length} high-quality random foods as fallback`)
+    console.log(
+      `[v0] Random foods selected:`,
+      randomFoods.map((f) => f.name),
+    )
 
     return res.json({
       success: true,
-      data: drinks.map((drink) => ({ ...drink.toObject(), suggestionType: "random" })),
-      message: "Không có dữ liệu lịch sử, hiển thị đồ uống ngẫu nhiên",
+      data: randomFoods.map((food) => ({ ...food.toObject(), suggestionType: "random" })),
+      message: "Gợi ý món ăn phổ biến",
       debug: {
         strategy: "random",
         productSearched: product.name,
-        ordersFound: ordersWithProduct.length,
+        ordersFound: 0,
       },
     })
   } catch (error) {
@@ -863,13 +954,16 @@ const getSuggestedFoodsByDrink = async (req, res) => {
 
     console.log(`[v0] ✅ Found drink: "${drink.name}" in category: "${drink.category}"`)
 
-    // Find orders that contain this specific drink
     const ordersWithDrink = await orderModel.find({
-      "items.name": drink.name,
+      $or: [{ "items.name": drink.name }, { "items.foodId": drinkId }, { "items._id": drinkId }],
       status: { $in: ["Đã hoàn thành", "Đã giao", "Đang xử lý", "Đang giao hàng"] },
     })
 
     console.log(`[v0] Found ${ordersWithDrink.length} orders containing drink "${drink.name}"`)
+
+    if (ordersWithDrink.length > 0) {
+      console.log(`[v0] 🔍 Sample order structure:`, JSON.stringify(ordersWithDrink[0].items[0], null, 2))
+    }
 
     // If we have order history for this specific drink
     if (ordersWithDrink.length > 0) {
@@ -893,12 +987,9 @@ const getSuggestedFoodsByDrink = async (req, res) => {
       })
 
       console.log(`[v0] Filtered to ${foods.length} actual foods (excluding drinks)`)
-      console.log(
-        `[v0] Sample food names:`,
-        foods.slice(0, 5).map((f) => f.name),
-      )
 
       const foodNamesSet = new Set(foods.map((food) => food.name))
+      const foodIdsSet = new Set(foods.map((food) => food._id.toString()))
 
       // Count food occurrences in orders with this specific drink
       const foodCount = {}
@@ -912,10 +1003,16 @@ const getSuggestedFoodsByDrink = async (req, res) => {
           totalItemsProcessed++
           console.log(`[v0]   Item ${itemIndex + 1}: "${item.name}" (qty: ${item.quantity || 1})`)
 
-          if (foodNamesSet.has(item.name) && item.name !== drink.name) {
-            foodCount[item.name] = (foodCount[item.name] || 0) + (item.quantity || 1)
+          const isFood =
+            (foodNamesSet.has(item.name) || (item.foodId && foodIdsSet.has(item.foodId.toString()))) &&
+            item.name !== drink.name &&
+            item.foodId?.toString() !== drinkId
+
+          if (isFood) {
+            const foodKey = item.name // Use name as key for consistency
+            foodCount[foodKey] = (foodCount[foodKey] || 0) + (item.quantity || 1)
             foodsFoundInOrders++
-            console.log(`[v0]   ✅ Found food: "${item.name}" (total count: ${foodCount[item.name]})`)
+            console.log(`[v0]   ✅ Found food: "${item.name}" (total count: ${foodCount[foodKey]})`)
           }
         })
       })
@@ -925,7 +1022,7 @@ const getSuggestedFoodsByDrink = async (req, res) => {
       console.log(`[v0] Foods found in orders: ${foodsFoundInOrders}`)
       console.log(`[v0] Unique foods with counts:`, foodCount)
 
-      const foodNamesFromOrders = Array.from(foodNamesSet).filter((foodName) => foodCount[foodName] > 0)
+      const foodNamesFromOrders = Object.keys(foodCount).filter((foodName) => foodCount[foodName] > 0)
 
       // Verify these foods actually exist in current database
       const existingFoods = await foodModel.find({
@@ -951,16 +1048,14 @@ const getSuggestedFoodsByDrink = async (req, res) => {
         suggestedFoods.map((f) => `${f.name} (${f.purchaseCount})`),
       )
 
-      if (suggestedFoods.length === 0) {
-        console.log(`[v0] ⚠️ No existing foods found in database that match order history`)
+      if (suggestedFoods.length > 0) {
+        console.log(`[v0] ✅ Returning ${suggestedFoods.length} drink-specific suggestions`)
         return res.json({
           success: true,
-          data: [],
-          message: "Chưa có dữ liệu gợi ý phù hợp",
+          data: suggestedFoods,
+          message: `Gợi ý dựa trên đồ uống "${drink.name}"`,
         })
       }
-
-      res.json({ success: true, data: suggestedFoods })
     }
 
     console.log(`[v0] 🔄 No drink-specific suggestions found, trying category-based fallback`)
@@ -1045,24 +1140,43 @@ const getSuggestedFoodsByDrink = async (req, res) => {
 
     console.log(`[v0] 🎲 Using random fallback`)
 
-    // Final fallback: random foods
+    // Final fallback: high-quality foods with better filtering
     const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+    const testKeywords = ["test", "k có đơn", "không có đơn", "demo", "sample", "thử nghiệm"]
+
     const randomFoods = await foodModel
       .find({
-        $and: [{ category: { $nin: drinkCategories } }, { isActive: true }],
+        $and: [
+          { category: { $nin: drinkCategories } },
+          { isActive: true },
+          // Filter out test/demo products
+          {
+            name: {
+              $not: {
+                $regex: testKeywords.join("|"),
+                $options: "i",
+              },
+            },
+          },
+        ],
       })
-      .limit(4)
+      .sort({ price: -1, name: 1 }) // Sort by price desc, then name asc for consistent results
+      .limit(6)
 
-    console.log(`[v0] ✅ Returning ${randomFoods.length} random foods as fallback`)
+    console.log(`[v0] ✅ Returning ${randomFoods.length} high-quality random foods as fallback`)
+    console.log(
+      `[v0] Random foods selected:`,
+      randomFoods.map((f) => f.name),
+    )
 
     return res.json({
       success: true,
       data: randomFoods.map((food) => ({ ...food.toObject(), suggestionType: "random" })),
-      message: "Không có dữ liệu lịch sử, hiển thị món ăn ngẫu nhiên",
+      message: "Gợi ý món ăn phổ biến",
       debug: {
         strategy: "random",
         drinkSearched: drink.name,
-        ordersFound: ordersWithDrink.length,
+        ordersFound: 0,
       },
     })
   } catch (error) {

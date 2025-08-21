@@ -364,24 +364,19 @@ const ProductInfo = ({
           <SuggestedFoods drinkName={product.name} drinkId={product._id} isCompact={true} />
         </motion.div>
       ) : (
-        // If it's food, show suggested drinks
-        product.category !== "Đồ uống" &&
-        suggestedDrinks &&
-        suggestedDrinks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.75 }}
-            className="mt-6 pt-6 border-t border-slate-700"
-          >
-            <SuggestedDrinks
-              productCategory={product.category}
-              productId={product._id}
-              productName={product.name}
-              isCompact={true}
-            />
-          </motion.div>
-        )
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.75 }}
+          className="mt-6 pt-6 border-t border-slate-700"
+        >
+          <SuggestedDrinks
+            productCategory={product.category}
+            productId={product._id}
+            productName={product.name}
+            isCompact={true}
+          />
+        </motion.div>
       )}
 
       {/* Features */}
