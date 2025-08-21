@@ -171,7 +171,7 @@ const OrderCard = ({ order, url, formatDate, onOrderUpdate, confirmDelivery }) =
               <Package className="w-5 h-5 text-yellow-400" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">Đơn hàng #{order._id.slice(-8).toUpperCase()}</h3>
+              <h3 className="text-lg font-semibold text-white">Đơn hàng #{order._id.slice(-6).toUpperCase()}</h3>
               <div className="flex items-center gap-2 text-sm text-slate-300">
                 <Calendar className="w-4 h-4" />
                 <span>{formatDate(order.date)}</span>

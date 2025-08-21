@@ -80,9 +80,9 @@ const NotificationForm = ({ newNotification, setNewNotification, handleSendNotif
               <option value="info">Thông tin</option>
               <option value="warning">Cảnh báo</option>
               <option value="success">Thành công</option>
-              <option value="error">Lỗi</option>
+              {/* <option value="error">Lỗi</option>
               <option value="system">Hệ thống</option>
-              <option value="user">Người dùng</option>
+              <option value="user">Người dùng</option> */}
             </select>
           </div>
         </div>

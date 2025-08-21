@@ -10,7 +10,7 @@ const OrderHeader = ({ order, formatDate }) => {
           <Package size={18} className="text-primary" />
         </div>
         <div>
-          <p className="text-white font-medium text-sm">#{order._id.slice(-6)}</p>
+          <p className="text-white font-medium text-sm">#{order._id.slice(-6).toUpperCase()}</p>
           <p className="text-gray-400 text-xs">{formatDate(order.date)}</p>
         </div>
       </div>

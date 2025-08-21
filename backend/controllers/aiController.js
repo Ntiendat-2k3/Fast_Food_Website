@@ -28,7 +28,8 @@ const chatWithAI = async (req, res) => {
     if (!isRelevant) {
       return res.json({
         success: true,
-        reply: "Xin lỗi, tôi chỉ có thể trả lời các câu hỏi liên quan đến dịch vụ đồ ăn nhanh GreenEats. Vui lòng hỏi về thực đơn, đặt hàng, thanh toán, giao hàng, khuyến mãi hoặc các dịch vụ khác của chúng tôi.",
+        reply:
+          "Xin lỗi, tôi chỉ có thể trả lời các câu hỏi liên quan đến dịch vụ đồ ăn nhanh GreenEats. Vui lòng hỏi về thực đơn, đặt hàng, thanh toán, giao hàng, khuyến mãi hoặc các dịch vụ khác của chúng tôi.",
       })
     }
 
@@ -81,48 +82,181 @@ const isRelevantQuestion = async (message) => {
     // Danh sách từ khóa liên quan đến đồ ăn nhanh
     const relevantKeywords = [
       // Thực đơn và món ăn
-      "đồ ăn", "thức ăn", "món ăn", "thực đơn", "menu", "đặt đồ", "đặt món", "gọi món",
-      "burger", "pizza", "gà", "chicken", "khoai tây", "kfc", "mcdonald", "jollibee", "lotteria",
-      "combo", "set", "phần ăn", "suất ăn", "nước uống", "đồ uống", "thức uống", "đồ ngọt",
-      "salad", "pasta", "mì", "bún", "cơm", "sandwich", "bánh mì", "hotdog", "xúc xích",
-      "tráng miệng", "dessert", "kem", "bánh ngọt", "bánh", "kẹo", "snack", "đồ ăn vặt",
+      "đồ ăn",
+      "thức ăn",
+      "món ăn",
+      "thực đơn",
+      "menu",
+      "đặt đồ",
+      "đặt món",
+      "gọi món",
+      "burger",
+      "pizza",
+      "gà",
+      "chicken",
+      "khoai tây",
+      "kfc",
+      "mcdonald",
+      "jollibee",
+      "lotteria",
+      "combo",
+      "set",
+      "phần ăn",
+      "suất ăn",
+      "nước uống",
+      "đồ uống",
+      "thức uống",
+      "đồ ngọt",
+      "salad",
+      "pasta",
+      "mì",
+      "bún",
+      "cơm",
+      "sandwich",
+      "bánh mì",
+      "hotdog",
+      "xúc xích",
+      "tráng miệng",
+      "dessert",
+      "kem",
+      "bánh ngọt",
+      "bánh",
+      "kẹo",
+      "snack",
+      "đồ ăn vặt",
 
       // Đặt hàng và giao hàng
-      "đặt hàng", "order", "giao hàng", "delivery", "ship", "vận chuyển", "freeship",
-      "thời gian giao", "phí giao hàng", "phí ship", "miễn phí giao", "giao nhanh",
-      "đơn hàng", "đơn đặt", "theo dõi đơn", "hủy đơn", "trạng thái đơn",
+      "đặt hàng",
+      "order",
+      "giao hàng",
+      "delivery",
+      "ship",
+      "vận chuyển",
+      "freeship",
+      "thời gian giao",
+      "phí giao hàng",
+      "phí ship",
+      "miễn phí giao",
+      "giao nhanh",
+      "đơn hàng",
+      "đơn đặt",
+      "theo dõi đơn",
+      "hủy đơn",
+      "trạng thái đơn",
 
       // Thanh toán
-      "thanh toán", "payment", "tiền mặt", "cod", "thẻ", "ví điện tử", "momo", "zalopay",
-      "vnpay", "banking", "chuyển khoản", "atm", "visa", "mastercard", "hoàn tiền",
+      "thanh toán",
+      "payment",
+      "tiền mặt",
+      "cod",
+      "thẻ",
+      "ví điện tử",
+      "momo",
+      "zalopay",
+      "vnpay",
+      "banking",
+      "chuyển khoản",
+      "atm",
+      "visa",
+      "mastercard",
+      "hoàn tiền",
 
       // Khuyến mãi và giảm giá
-      "khuyến mãi", "ưu đãi", "giảm giá", "voucher", "coupon", "mã giảm", "code",
-      "sale", "flash sale", "deal", "combo", "quà tặng", "tích điểm", "đổi điểm",
+      "khuyến mãi",
+      "ưu đãi",
+      "giảm giá",
+      "voucher",
+      "coupon",
+      "mã giảm",
+      "code",
+      "sale",
+      "flash sale",
+      "deal",
+      "combo",
+      "quà tặng",
+      "tích điểm",
+      "đổi điểm",
 
       // Dịch vụ và hỗ trợ
-      "dịch vụ", "hỗ trợ", "support", "liên hệ", "contact", "hotline", "số điện thoại",
-      "email", "chat", "góp ý", "phản hồi", "khiếu nại", "complaint", "đánh giá", "review",
+      "dịch vụ",
+      "hỗ trợ",
+      "support",
+      "liên hệ",
+      "contact",
+      "hotline",
+      "số điện thoại",
+      "email",
+      "chat",
+      "góp ý",
+      "phản hồi",
+      "khiếu nại",
+      "complaint",
+      "đánh giá",
+      "review",
 
       // Tài khoản và đăng nhập
-      "tài khoản", "account", "đăng ký", "đăng nhập", "login", "signup", "register",
-      "mật khẩu", "password", "quên mật khẩu", "thông tin cá nhân", "profile",
+      "tài khoản",
+      "account",
+      "đăng ký",
+      "đăng nhập",
+      "login",
+      "signup",
+      "register",
+      "mật khẩu",
+      "password",
+      "quên mật khẩu",
+      "thông tin cá nhân",
+      "profile",
 
       // Tên thương hiệu
-      "greeneats", "green eats", "cửa hàng", "nhà hàng", "quán", "shop",
+      "greeneats",
+      "green eats",
+      "cửa hàng",
+      "nhà hàng",
+      "quán",
+      "shop",
 
       // Địa điểm
-      "địa chỉ", "chi nhánh", "cơ sở", "vị trí", "location", "bản đồ", "map",
+      "địa chỉ",
+      "chi nhánh",
+      "cơ sở",
+      "vị trí",
+      "location",
+      "bản đồ",
+      "map",
 
       // Thời gian
-      "giờ mở cửa", "giờ đóng cửa", "thời gian hoạt động", "ngày nghỉ", "lịch",
+      "giờ mở cửa",
+      "giờ đóng cửa",
+      "thời gian hoạt động",
+      "ngày nghỉ",
+      "lịch",
 
       // Chất lượng và an toàn thực phẩm
-      "chất lượng", "vệ sinh", "an toàn", "thành phần", "nguyên liệu", "dinh dưỡng",
-      "calories", "calo", "chay", "vegetarian", "vegan", "organic", "tươi", "ngon",
+      "chất lượng",
+      "vệ sinh",
+      "an toàn",
+      "thành phần",
+      "nguyên liệu",
+      "dinh dưỡng",
+      "calories",
+      "calo",
+      "chay",
+      "vegetarian",
+      "vegan",
+      "organic",
+      "tươi",
+      "ngon",
 
       // Từ khóa chung
-      "bao nhiêu", "giá", "price", "cách", "làm sao", "như thế nào", "khi nào", "ở đâu"
+      "bao nhiêu",
+      "giá",
+      "price",
+      "cách",
+      "làm sao",
+      "như thế nào",
+      "khi nào",
+      "ở đâu",
     ]
 
     // Chuyển message về chữ thường để dễ so sánh
@@ -141,12 +275,12 @@ const isRelevantQuestion = async (message) => {
       messages: [
         {
           role: "system",
-          content: `Bạn là một hệ thống phân loại câu hỏi. Nhiệm vụ của bạn là xác định xem câu hỏi có liên quan đến dịch vụ đồ ăn nhanh, nhà hàng, thực đơn, đặt hàng, giao hàng, thanh toán, khuyến mãi, hoặc bất kỳ chủ đề nào liên quan đến GreenEats - một cửa hàng đồ ăn nhanh hay không. Trả lời "yes" nếu liên quan và "no" nếu không liên quan.`
+          content: `Bạn là một hệ thống phân loại câu hỏi. Nhiệm vụ của bạn là xác định xem câu hỏi có liên quan đến dịch vụ đồ ăn nhanh, nhà hàng, thực đơn, đặt hàng, giao hàng, thanh toán, khuyến mãi, hoặc bất kỳ chủ đề nào liên quan đến GreenEats - một cửa hàng đồ ăn nhanh hay không. Trả lời "yes" nếu liên quan và "no" nếu không liên quan.`,
         },
         {
           role: "user",
-          content: message
-        }
+          content: message,
+        },
       ],
       temperature: 0.1,
       maxTokens: 10,
@@ -367,7 +501,7 @@ const getEnhancedContextData = async (userId) => {
         const usageLimit = voucher.usageLimit ? ` - Còn lại: ${voucher.usageLimit - (voucher.usedCount || 0)} lượt` : ""
 
         voucherInfo += `${index + 1}. **Mã "${voucher.code}"**: Giảm ${discount}${minOrder}${maxDiscount}\n`
-        voucherInfo += `   📅 HSD: ${endDate}${usageLimit}\n`
+        voucherInfo += `   📅 Hạn sử dụng: ${endDate}${usageLimit}\n`
         if (voucher.description) {
           voucherInfo += `   📝 ${voucher.description}\n`
         }
@@ -495,21 +629,116 @@ const getFallbackReply = async (message, userId) => {
 const isSimpleRelevantCheck = async (message) => {
   // Danh sách từ khóa liên quan đến đồ ăn nhanh
   const relevantKeywords = [
-    "đồ ăn", "thức ăn", "món ăn", "thực đơn", "menu", "đặt đồ", "đặt món", "gọi món",
-    "burger", "pizza", "gà", "chicken", "khoai tây", "kfc", "mcdonald", "jollibee", "lotteria",
-    "combo", "set", "phần ăn", "suất ăn", "nước uống", "đồ uống", "thức uống", "đồ ngọt",
-    "salad", "pasta", "mì", "bún", "cơm", "sandwich", "bánh mì", "hotdog", "xúc xích",
-    "tráng miệng", "dessert", "kem", "bánh ngọt", "bánh", "kẹo", "snack", "đồ ăn vặt",
-    "đặt hàng", "order", "giao hàng", "delivery", "ship", "vận chuyển", "freeship",
-    "thanh toán", "payment", "tiền mặt", "cod", "thẻ", "ví điện tử", "momo", "zalopay",
-    "khuyến mãi", "ưu đãi", "giảm giá", "voucher", "coupon", "mã giảm", "code",
-    "dịch vụ", "hỗ trợ", "support", "liên hệ", "contact", "hotline", "số điện thoại",
-    "tài khoản", "account", "đăng ký", "đăng nhập", "login", "signup", "register",
-    "greeneats", "green eats", "cửa hàng", "nhà hàng", "quán", "shop",
-    "địa chỉ", "chi nhánh", "cơ sở", "vị trí", "location", "bản đồ", "map",
-    "giờ mở cửa", "giờ đóng cửa", "thời gian hoạt động", "ngày nghỉ", "lịch",
-    "chất lượng", "vệ sinh", "an toàn", "thành phần", "nguyên liệu", "dinh dưỡng",
-    "bao nhiêu", "giá", "price", "cách", "làm sao", "như thế nào", "khi nào", "ở đâu"
+    "đồ ăn",
+    "thức ăn",
+    "món ăn",
+    "thực đơn",
+    "menu",
+    "đặt đồ",
+    "đặt món",
+    "gọi món",
+    "burger",
+    "pizza",
+    "gà",
+    "chicken",
+    "khoai tây",
+    "kfc",
+    "mcdonald",
+    "jollibee",
+    "lotteria",
+    "combo",
+    "set",
+    "phần ăn",
+    "suất ăn",
+    "nước uống",
+    "đồ uống",
+    "thức uống",
+    "đồ ngọt",
+    "salad",
+    "pasta",
+    "mì",
+    "bún",
+    "cơm",
+    "sandwich",
+    "bánh mì",
+    "hotdog",
+    "xúc xích",
+    "tráng miệng",
+    "dessert",
+    "kem",
+    "bánh ngọt",
+    "bánh",
+    "kẹo",
+    "snack",
+    "đồ ăn vặt",
+    "đặt hàng",
+    "order",
+    "giao hàng",
+    "delivery",
+    "ship",
+    "vận chuyển",
+    "freeship",
+    "thanh toán",
+    "payment",
+    "tiền mặt",
+    "cod",
+    "thẻ",
+    "ví điện tử",
+    "momo",
+    "zalopay",
+    "khuyến mãi",
+    "ưu đãi",
+    "giảm giá",
+    "voucher",
+    "coupon",
+    "mã giảm",
+    "code",
+    "dịch vụ",
+    "hỗ trợ",
+    "support",
+    "liên hệ",
+    "contact",
+    "hotline",
+    "số điện thoại",
+    "tài khoản",
+    "account",
+    "đăng ký",
+    "đăng nhập",
+    "login",
+    "signup",
+    "register",
+    "greeneats",
+    "green eats",
+    "cửa hàng",
+    "nhà hàng",
+    "quán",
+    "shop",
+    "địa chỉ",
+    "chi nhánh",
+    "cơ sở",
+    "vị trí",
+    "location",
+    "bản đồ",
+    "map",
+    "giờ mở cửa",
+    "giờ đóng cửa",
+    "thời gian hoạt động",
+    "ngày nghỉ",
+    "lịch",
+    "chất lượng",
+    "vệ sinh",
+    "an toàn",
+    "thành phần",
+    "nguyên liệu",
+    "dinh dưỡng",
+    "bao nhiêu",
+    "giá",
+    "price",
+    "cách",
+    "làm sao",
+    "như thế nào",
+    "khi nào",
+    "ở đâu",
   ]
 
   // Chuyển message về chữ thường để dễ so sánh
@@ -840,7 +1069,7 @@ Bạn muốn xem danh mục nào cụ thể? 😊`
     let reply = `🍽️ **${context.category ? context.category.toUpperCase() : "MÓN ĂN PHÙ HỢP"}:**\n\n`
 
     foods.forEach((food, index) => {
-      const rating = food.averageRating ? `⭐ ${food.averageRating.toFixed(1)}` : "⭐ Chưa có đánh giá"
+      const rating = food.averageRating ? `⭐ ${food.averageRating.toFixed(1)}` : "⭐ Mới"
       const soldCount = food.soldCount ? ` (Đã bán ${food.soldCount})` : ""
 
       reply += `${index + 1}. **${food.name}** - ${food.price.toLocaleString("vi-VN")}đ ${rating}${soldCount}\n`
@@ -919,7 +1148,7 @@ Bạn có muốn tôi hướng dẫn cách áp dụng mã giảm giá không? �
 
       reply += `${index + 1}. **Mã "${voucher.code}"** 🔥\n`
       reply += `   💰 Giảm ${discount}${minOrder}${maxDiscount}\n`
-      reply += `   📅 HSD: ${endDate}\n`
+      reply += `   📅 Hạn sử dụng: ${endDate}\n`
       reply += `   📊 Còn lại: ${remaining} lượt\n`
 
       if (voucher.description) {
@@ -962,7 +1191,7 @@ const generateOrderStatusReply = async (context, userId) => {
             "Đã hủy": "❌",
           }
 
-          userOrderInfo += `${index + 1}. Đơn #${order._id.toString().slice(-6)} - ${statusEmoji[order.status] || "📦"} ${order.status}\n`
+          userOrderInfo += `${index + 1}. Đơn #${order._id.toString().slice(-6).toUpperCase()} - ${statusEmoji[order.status] || "📦"} ${order.status}\n`
           userOrderInfo += `   💰 ${order.amount.toLocaleString("vi-VN")}đ - ${new Date(order.date).toLocaleDateString("vi-VN")}\n`
         })
         userOrderInfo += "\n"
@@ -1147,7 +1376,7 @@ Bạn vừa hỏi: "${originalMessage}"
 🍽️ **VỀ THỰC ĐƠN:**
 • "Xem thực đơn burger"
 • "Món nào ngon và rẻ?"
-• "Gợi ý món ăn cho 2 người"
+• "Gợi ý món ăn cho 4 người"
 
 📱 **VỀ ĐẶT HÀNG:**
 • "Hướng dẫn đặt hàng"

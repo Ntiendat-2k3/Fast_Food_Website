@@ -259,7 +259,7 @@ const StaffModal = ({ isOpen, onClose, onSuccess, mode, staff, url }) => {
                     <option value="info">Thông tin</option>
                     <option value="warning">Cảnh báo</option>
                     <option value="success">Thành công</option>
-                    <option value="error">Lỗi</option>
+                    {/* <option value="error">Lỗi</option> */}
                   </select>
                 </div>
 

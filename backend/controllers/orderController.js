@@ -615,7 +615,7 @@ const exportInvoice = async (req, res) => {
 
     // Order Details Header
     doc.fontSize(12).fillColor("#555").text(`Mã đơn hàng: `, { continued: true }) // Changed to darker gray
-    doc.fillColor("#000").text(`#${order._id.toString().slice(-8).toUpperCase()}`) // Changed to black
+    doc.fillColor("#000").text(`#${order._id.toString().slice(-6).toUpperCase()}`) // Changed to black
     doc.fillColor("#555").text(`Ngày đặt hàng: `, { continued: true }) // Changed to darker gray
     doc.fillColor("#000").text(`${formatDate(order.date)}`) // Changed to black
     doc.moveDown(1)

@@ -8,7 +8,7 @@ const OrderHeader = ({ order }) => {
           <Package className="w-5 h-5 text-black" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-white mb-1">Order #{order._id.slice(-8).toUpperCase()}</h2>
+          <h2 className="text-lg font-bold text-white mb-1">Order #{order._id.slice(-6).toUpperCase()}</h2>
           <div className="flex items-center gap-4 text-xs text-gray-400">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
