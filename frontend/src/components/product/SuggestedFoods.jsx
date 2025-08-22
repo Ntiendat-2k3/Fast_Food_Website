@@ -31,19 +31,22 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
         let response
         let suggestionMethod = "random"
 
+        console.log(`[v0] Fetching suggestions for drink: "${drinkName}", ID: ${drinkId}`)
+
+        // Try drink-specific suggestions first with drinkId parameter
         if (drinkId) {
           try {
-            // Try drink-specific suggestions first with drinkId parameter
             response = await axios.get(
               `${url}/api/food/suggested-foods/${encodeURIComponent(drinkName || "drink")}?drinkId=${drinkId}`,
             )
+            console.log(`[v0] API Response:`, response.data)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = response.data.data[0]?.suggestionType || "drink-specific"
             } else {
               response = null
             }
           } catch (err) {
-            console.log("Drink-specific suggestions failed:", err.message)
+            console.log(`[v0] Drink-specific API failed:`, err.message)
             response = null
           }
         }
@@ -51,21 +54,21 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
         if (!response && drinkName) {
           try {
             response = await axios.get(`${url}/api/food/suggested-foods/${encodeURIComponent(drinkName)}`)
+            console.log(`[v0] Name-based API Response:`, response.data)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = "name-based"
             } else {
               response = null
             }
           } catch (err) {
-            console.log("Name-based suggestions failed:", err.message)
+            console.log(`[v0] Name-based API failed:`, err.message)
             response = null
           }
         }
 
-        if (response && response.data.success && response.data.data) {
-          console.log("[v0] Raw API response data:", response.data.data.length, "items")
-          console.log("[v0] Sample items:", response.data.data.slice(0, 3))
+        console.log(`[v0] Final strategy used: ${suggestionMethod}`)
 
+        if (response && response.data.success && response.data.data) {
           const filteredFoods = response.data.data.filter((food) => {
             // Filter out drinks that might have slipped through
             const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
@@ -123,12 +126,13 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
             setError("Không tìm thấy món ăn phù hợp")
           }
         } else {
+          console.log(`[v0] No valid response from API`)
           setSuggestedFoods([])
           setSuggestionType("none")
           setError("Không tìm thấy món ăn phù hợp")
         }
       } catch (error) {
-        console.error("❌ Error fetching suggested foods:", error)
+        console.error(`[v0] Error fetching suggested foods:`, error)
         setError("Không thể tải gợi ý món ăn")
         setSuggestedFoods([])
         setSuggestionType("error")
