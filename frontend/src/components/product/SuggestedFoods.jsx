@@ -33,13 +33,17 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
 
         if (drinkId) {
           try {
-            response = await axios.get(`${url}/api/food/suggested-foods-by-drink/${drinkId}`)
+            // Try drink-specific suggestions first with drinkId parameter
+            response = await axios.get(
+              `${url}/api/food/suggested-foods/${encodeURIComponent(drinkName || "drink")}?drinkId=${drinkId}`,
+            )
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = response.data.data[0]?.suggestionType || "drink-specific"
             } else {
               response = null
             }
           } catch (err) {
+            console.log("Drink-specific suggestions failed:", err.message)
             response = null
           }
         }
@@ -49,15 +53,75 @@ const SuggestedFoods = ({ drinkName, drinkId }) => {
             response = await axios.get(`${url}/api/food/suggested-foods/${encodeURIComponent(drinkName)}`)
             if (response.data.success && response.data.data && response.data.data.length > 0) {
               suggestionMethod = "name-based"
+            } else {
+              response = null
             }
           } catch (err) {
+            console.log("Name-based suggestions failed:", err.message)
             response = null
           }
         }
 
-        if (response && response.data.success) {
-          setSuggestedFoods(response.data.data || [])
-          setSuggestionType(suggestionMethod)
+        if (response && response.data.success && response.data.data) {
+          console.log("[v0] Raw API response data:", response.data.data.length, "items")
+          console.log("[v0] Sample items:", response.data.data.slice(0, 3))
+
+          const filteredFoods = response.data.data.filter((food) => {
+            // Filter out drinks that might have slipped through
+            const drinkCategories = ["Đồ uống", "Nước uống", "Beverages", "Drinks"]
+            const categoryName = food.categoryId?.name || food.category || ""
+
+            if (drinkCategories.some((cat) => categoryName.toLowerCase().includes(cat.toLowerCase()))) {
+              console.log("[v0] Filtered out drink:", food.name, "category:", categoryName)
+              return false
+            }
+
+            // Filter out test/demo products and undefined categories
+            const testKeywords = [
+              "test",
+              "abc",
+              "demo",
+              "sample",
+              "thử nghiệm",
+              "k có đơn",
+              "không có đơn",
+              "undefined",
+            ]
+            if (food.name && testKeywords.some((keyword) => food.name.toLowerCase().includes(keyword.toLowerCase()))) {
+              console.log("[v0] Filtered out test product:", food.name)
+              return false
+            }
+
+            if (!categoryName || categoryName.toLowerCase() === "undefined" || categoryName.trim() === "") {
+              console.log("[v0] Filtered out undefined category:", food.name, "category:", categoryName)
+              return false
+            }
+
+            // Ensure the product is active and has a valid name
+            if (!food.name || food.name.trim() === "" || food.isActive === false) {
+              console.log("[v0] Filtered out inactive/invalid:", food.name, "isActive:", food.isActive)
+              return false
+            }
+
+            if (food.price < 0) {
+              console.log("[v0] Filtered out negative price:", food.name, "price:", food.price)
+              return false
+            }
+
+            console.log("[v0] Keeping item:", food.name, "category:", categoryName, "price:", food.price)
+            return true
+          })
+
+          console.log("[v0] After filtering:", filteredFoods.length, "items remaining")
+
+          if (filteredFoods.length > 0) {
+            setSuggestedFoods(filteredFoods)
+            setSuggestionType(suggestionMethod)
+          } else {
+            setSuggestedFoods([])
+            setSuggestionType("none")
+            setError("Không tìm thấy món ăn phù hợp")
+          }
         } else {
           setSuggestedFoods([])
           setSuggestionType("none")

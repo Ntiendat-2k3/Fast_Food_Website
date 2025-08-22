@@ -14,8 +14,12 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
   const [error, setError] = useState(null)
   const [suggestionType, setSuggestionType] = useState("loading")
 
+  console.log("[v0] SuggestedDrinks props:", { productCategory, category, productId, productName })
+
   // Use productId first, then productCategory or category as fallback
-  const targetCategory = productCategory || category
+  const targetCategory = productCategory || category || "sản phẩm"
+
+  console.log("[v0] Target category:", targetCategory)
 
   useEffect(() => {
     const fetchSuggestedDrinks = async () => {
@@ -146,7 +150,8 @@ const SuggestedDrinks = ({ productCategory, category, productId, productName, is
       case "product-specific":
         return `🥤 Đồ uống được gợi ý cho "${productName || "sản phẩm này"}"`
       case "category-based":
-        return `🥤 Đồ uống được gợi ý cho danh mục "${targetCategory}"`
+        const displayCategory = targetCategory === "sản phẩm" ? "sản phẩm này" : targetCategory
+        return `🥤 Đồ uống được gợi ý cho danh mục "${displayCategory}"`
       case "random":
         return `🥤 Đồ uống phổ biến`
       default:
