@@ -35,7 +35,7 @@ const getCart = async (req, res) => {
       }
     }
 
-    console.log("Cart data retrieved:", cartData)
+    // console.log("Cart data retrieved:", cartData)
     res.json({ success: true, cartData })
   } catch (error) {
     console.error("Error getting cart:", error)
